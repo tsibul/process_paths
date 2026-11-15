@@ -1,0 +1,10 @@
+[project]
+name = "process_paths"
+version = "0.1.0"
+description = "Digitizing paths: entities, state axes, transition kinds and linear variants"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
