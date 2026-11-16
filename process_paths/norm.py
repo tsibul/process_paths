@@ -6,7 +6,7 @@
 The labour of a call is ``kind cost × scope coefficient × executor coefficient``; the labour of
 a variant is the sum over its calls. A skip is a check axis (an axis changed by a kind marked
 ``check``) that is still on its initial value (the first value of the axis) in a slice.
-Skips are counted in every named slice of the slices file and in the final slice.
+Skips are counted in every named slice of the model (its condition) and in the final slice.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .engine import Slice, run_variant
-from .model import Model, ModelError, Variant
+from .model import Model, ModelError, NamedSlice, SliceGroup, Variant
 
 #: Name of the final slice in the output.
 FINAL = "final"
@@ -33,6 +33,7 @@ class Normalization:
     :ivar axis_skip_prices: price of a skip of each check axis, by axis name.
     :ivar batch_size: batch size the scope coefficients are given for, or ``None``.
     :ivar uncounted: errors not counted in the skips, ``{group: [text, …]}``.
+    :ivar unreached_final: a named slice that is not reached is counted on the final slice.
     """
 
     kind_costs: dict[str, Decimal]
@@ -41,33 +42,7 @@ class Normalization:
     axis_skip_prices: dict[str, Decimal]
     batch_size: Decimal | None = None
     uncounted: dict[str, list[str]] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class Alternative:
-    """One alternative of a named slice condition.
-
-    :ivar states: ``(entity, axis, value)`` that must all hold in the slice.
-    :ivar calls: ``(kind, executor)`` pairs; if given, the variant must contain a call
-        matching at least one of them.
-    """
-
-    states: tuple[tuple[str, str, str], ...]
-    calls: tuple[tuple[str, str], ...] = ()
-
-
-@dataclass(frozen=True)
-class NamedSlice:
-    """A named slice: the first slice of a variant where any alternative holds.
-
-    :ivar name: slice name.
-    :ivar alternatives: the alternatives.
-    :ivar otherwise_final: when no slice matches, the named slice is the final one.
-    """
-
-    name: str
-    alternatives: tuple[Alternative, ...]
-    otherwise_final: bool = False
+    unreached_final: bool = False
 
 
 @dataclass
@@ -137,10 +112,13 @@ def parse_normalization(data: dict) -> Normalization:
     uncounted = data.get("uncounted_errors", {})
     if not isinstance(uncounted, dict) or any(not isinstance(v, list) for v in uncounted.values()):
         raise ModelError("normalization: uncounted_errors must be {group: [text, …]}")
+    unreached = data.get("unreached_slice")
+    if unreached not in (None, FINAL):
+        raise ModelError(f"normalization: unreached_slice must be {FINAL!r}")
     return Normalization(_numbers(data, "kind_costs"), _numbers(data, "executor_coefficients"),
                          _numbers(data, "scope_coefficients"), _numbers(data, "axis_skip_prices"),
                          None if batch is None else _number(batch, "normalization: batch_size"),
-                         {k: [str(t) for t in v] for k, v in uncounted.items()})
+                         {k: [str(t) for t in v] for k, v in uncounted.items()}, unreached == FINAL)
 
 
 def load_normalization(path: Path) -> Normalization:
@@ -154,53 +132,6 @@ def load_normalization(path: Path) -> Normalization:
                                           parse_float=Decimal))
 
 
-def parse_slices(data: dict) -> list[NamedSlice]:
-    """Build named slices from parsed JSON.
-
-    Format: ``{name: {"any": [{"states": [[entity, axis, value], …],
-    "calls": [[kind, executor], …]}, …], "otherwise": "final"}}``; ``calls`` and
-    ``otherwise`` are optional.
-
-    :param data: parsed JSON.
-    :return: the named slices in file order.
-    :rtype: list[NamedSlice]
-    """
-    if not isinstance(data, dict):
-        raise ModelError("slices: object of named slices expected")
-    result = []
-    for name, spec in data.items():
-        where = f"slice {name!r}"
-        if name == FINAL:
-            raise ModelError(f"{where}: name is reserved for the final slice")
-        if not isinstance(spec, dict) or not isinstance(spec.get("any"), list) or not spec["any"]:
-            raise ModelError(f"{where}: expected {{\"any\": [alternative, …]}}")
-        otherwise = spec.get("otherwise")
-        if otherwise not in (None, FINAL):
-            raise ModelError(f"{where}: otherwise must be {FINAL!r}")
-        alts = []
-        for alt in spec["any"]:
-            states = alt.get("states") if isinstance(alt, dict) else None
-            calls = alt.get("calls", []) if isinstance(alt, dict) else None
-            if (not isinstance(states, list) or not states
-                    or any(not isinstance(s, list) or len(s) != 3 for s in states)):
-                raise ModelError(f"{where}: states must be [[entity, axis, value], …]")
-            if not isinstance(calls, list) or any(not isinstance(c, list) or len(c) != 2 for c in calls):
-                raise ModelError(f"{where}: calls must be [[kind, executor], …]")
-            alts.append(Alternative(tuple(tuple(s) for s in states), tuple(tuple(c) for c in calls)))
-        result.append(NamedSlice(name, tuple(alts), otherwise == FINAL))
-    return result
-
-
-def load_slices(path: Path) -> list[NamedSlice]:
-    """Read a named slices file.
-
-    :param path: path to the JSON file.
-    :return: the named slices.
-    :rtype: list[NamedSlice]
-    """
-    return parse_slices(json.loads(Path(path).read_text(encoding="utf-8")))
-
-
 def check_axes(model: Model) -> list[tuple[str, str]]:
     """Return the check axes: axes changed by kinds marked ``check``, in dictionary order.
 
@@ -212,12 +143,11 @@ def check_axes(model: Model) -> list[tuple[str, str]]:
     return [(e.name, a.name) for e in model.entities for a in e.axes if (e.name, a.name) in marked]
 
 
-def validate(model: Model, norm: Normalization, slices: list[NamedSlice]) -> None:
-    """Check that the normalization and the slices match the dictionaries.
+def validate(model: Model, norm: Normalization) -> None:
+    """Check that the normalization matches the dictionaries.
 
     :param model: the model.
     :param norm: the normalization.
-    :param slices: the named slices.
     :raises ModelError: listing every mismatch found.
     """
     problems = []
@@ -239,18 +169,8 @@ def validate(model: Model, norm: Normalization, slices: list[NamedSlice]) -> Non
     problems += [f"check axis without skip price: {e}/{a}" for e, a in axes if a not in norm.axis_skip_prices]
     problems += [f"skip price of an axis that is not a check axis: {a}"
                  for a in norm.axis_skip_prices if a not in names]
-    for ns in slices:
-        for alt in ns.alternatives:
-            for e, a, v in alt.states:
-                ent = model.entity(e)
-                ax = ent.axis(a) if ent else None
-                if ax is None or v not in ax.values:
-                    problems.append(f"slice {ns.name!r}: unknown {e}/{a}={v}")
-            for k, x in alt.calls:
-                if model.kind(k) is None:
-                    problems.append(f"slice {ns.name!r}: unknown kind {k}")
-                if model.executor(x) is None:
-                    problems.append(f"slice {ns.name!r}: unknown executor {x}")
+    problems += [f"named slice {ns.name!r}: name is reserved for the final slice"
+                 for ns in model.named_slices if ns.name == FINAL]
     if problems:
         raise ModelError("normalization does not match the model:\n  " + "\n  ".join(problems))
 
@@ -289,13 +209,12 @@ def skips(model: Model, norm: Normalization, s: Slice) -> list[tuple[str, str, D
     return result
 
 
-def _holds(variant: Variant, s: Slice, alt: Alternative) -> bool:
-    """:return: whether the alternative holds in the slice of the variant.
+def _holds(variant: Variant, s: Slice, group: SliceGroup) -> bool:
+    """:return: whether all terms of the group hold in the slice of the variant.
     :rtype: bool
     """
-    if alt.calls and not any((c.kind, c.executor) in alt.calls for c in variant.calls):
-        return False
-    return all(s.get((e, a)) == v for e, a, v in alt.states)
+    return (all(variant.params.get(p) == x for p, x in group.params)
+            and all(s.get((e, a)) == v for e, a, v in group.states))
 
 
 def find_slice(variant: Variant, slices: list[Slice], ns: NamedSlice) -> int | None:
@@ -307,7 +226,7 @@ def find_slice(variant: Variant, slices: list[Slice], ns: NamedSlice) -> int | N
     :return: the slice number or ``None``.
     :rtype: int | None
     """
-    return next((i for i, s in enumerate(slices) if any(_holds(variant, s, a) for a in ns.alternatives)),
+    return next((i for i, s in enumerate(slices) if any(_holds(variant, s, g) for g in ns.groups)),
                 None)
 
 
@@ -319,12 +238,11 @@ def _slice_skips(model: Model, norm: Normalization, name: str, index: int | None
     return SliceSkips(name, index, reached, found, sum((p for _, _, p in found), Decimal(0)))
 
 
-def norm_variant(model: Model, norm: Normalization, named: list[NamedSlice], variant: Variant) -> VariantNorm:
+def norm_variant(model: Model, norm: Normalization, variant: Variant) -> VariantNorm:
     """Labour and skips of one variant.
 
     :param model: the model.
     :param norm: the normalization.
-    :param named: the named slices.
     :param variant: the variant.
     :return: the result.
     :rtype: VariantNorm
@@ -333,25 +251,24 @@ def norm_variant(model: Model, norm: Normalization, named: list[NamedSlice], var
     by, total = labour(model, norm, variant)
     final = len(slices) - 1
     out = []
-    for ns in named:
+    for ns in model.named_slices:
         i = find_slice(variant, slices, ns)
-        idx = i if i is not None else (final if ns.otherwise_final else None)
+        idx = i if i is not None else (final if norm.unreached_final else None)
         out.append(_slice_skips(model, norm, ns.name, idx, i is not None, slices))
     out.append(_slice_skips(model, norm, FINAL, final, True, slices))
     return VariantNorm(variant, by, total, out)
 
 
-def norm_all(model: Model, norm: Normalization, named: list[NamedSlice]) -> list[VariantNorm]:
+def norm_all(model: Model, norm: Normalization) -> list[VariantNorm]:
     """Labour and skips of all variants, after validation.
 
     :param model: the model.
     :param norm: the normalization.
-    :param named: the named slices.
     :return: results in variant order.
     :rtype: list[VariantNorm]
     """
-    validate(model, norm, named)
-    return [norm_variant(model, norm, named, v) for v in model.variants]
+    validate(model, norm)
+    return [norm_variant(model, norm, v) for v in model.variants]
 
 
 def _num(d: Decimal | None) -> int | str | None:

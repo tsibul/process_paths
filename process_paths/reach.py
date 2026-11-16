@@ -129,6 +129,7 @@ def dictionaries(model: Model) -> tuple:
         tuple((k.name, k.quadruple, k.requires) for k in model.kinds),
         tuple(x.name for x in model.executors),
         tuple(model.instruments), tuple(model.scopes), model.batch_scope,
+        tuple(model.variant_params), tuple(model.named_slices),
     )
 
 

@@ -129,6 +129,7 @@ class Variant:
     :ivar initial: initial slice deviations, ``{entity: {axis: value}}``.
     :ivar out_of_comparison: optional reason why the variant is not compared with
         the competitors.
+    :ivar params: variant parameters, ``{parameter: executor}``.
     """
 
     code: str
@@ -137,6 +138,31 @@ class Variant:
     entities: tuple[str, ...] = ()
     initial: dict[str, dict[str, str]] = field(default_factory=dict)
     out_of_comparison: str | None = None
+    params: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SliceGroup:
+    """One group of a named slice condition; all its terms must hold ("and").
+
+    :ivar states: ``(entity, axis, value)`` that must hold in the slice.
+    :ivar params: ``(parameter, executor)`` that must hold in the variant.
+    """
+
+    states: tuple[tuple[str, str, str], ...] = ()
+    params: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class NamedSlice:
+    """A named slice given by a condition: the first slice of a variant where any group holds.
+
+    :ivar name: slice name.
+    :ivar groups: the groups ("or" between them).
+    """
+
+    name: str
+    groups: tuple[SliceGroup, ...]
 
 
 @dataclass
@@ -155,6 +181,8 @@ class Model:
     :ivar texts: free texts used by the Markdown output.
     :ivar forbidden: forbidden word stems.
     :ivar forbidden_exceptions: phrases removed before the forbidden word search.
+    :ivar variant_params: names of the variant parameters; each variant sets every one.
+    :ivar named_slices: named slices given by a condition, in file order.
     """
 
     entities: list[Entity]
@@ -169,6 +197,8 @@ class Model:
     texts: dict[str, str] = field(default_factory=dict)
     forbidden: list[str] = field(default_factory=list)
     forbidden_exceptions: list[str] = field(default_factory=list)
+    variant_params: list[str] = field(default_factory=list)
+    named_slices: list[NamedSlice] = field(default_factory=list)
 
     def entity(self, name: str) -> Entity | None:
         """:param name: entity name.
@@ -207,6 +237,39 @@ def _dec(value: object, where: str) -> Decimal | None:
     return Decimal(value)
 
 
+def _parse_named_slices(data: object) -> list[NamedSlice]:
+    """Build named slices from parsed JSON.
+
+    Format: ``{name: {"any": [{"states": [[entity, axis, value], …],
+    "params": [[parameter, executor], …]}, …]}}``; a group needs at least one term.
+
+    :param data: parsed JSON.
+    :return: the named slices in file order.
+    :rtype: list[NamedSlice]
+    """
+    if not isinstance(data, dict):
+        raise ModelError("named_slices: object of named slices expected")
+    result = []
+    for name, spec in data.items():
+        where = f"named slice {name!r}"
+        if not isinstance(spec, dict) or not isinstance(spec.get("any"), list) or not spec["any"]:
+            raise ModelError(f"{where}: expected {{\"any\": [group, …]}}")
+        groups = []
+        for g in spec["any"]:
+            if not isinstance(g, dict):
+                raise ModelError(f"{where}: group must be an object")
+            states, params = g.get("states", []), g.get("params", [])
+            if not isinstance(states, list) or any(not isinstance(s, list) or len(s) != 3 for s in states):
+                raise ModelError(f"{where}: states must be [[entity, axis, value], …]")
+            if not isinstance(params, list) or any(not isinstance(c, list) or len(c) != 2 for c in params):
+                raise ModelError(f"{where}: params must be [[parameter, executor], …]")
+            if not states and not params:
+                raise ModelError(f"{where}: empty group")
+            groups.append(SliceGroup(tuple(tuple(s) for s in states), tuple(tuple(c) for c in params)))
+        result.append(NamedSlice(name, tuple(groups)))
+    return result
+
+
 def parse_model(data: dict) -> Model:
     """Build a model from parsed JSON and validate it.
 
@@ -240,14 +303,16 @@ def parse_model(data: dict) -> Model:
         variants = [
             Variant(v["code"], v["title"], tuple(Call(*c) for c in v["calls"]),
                     tuple(v.get("entities", [])), v.get("initial", {}),
-                    v.get("out_of_comparison"))
+                    v.get("out_of_comparison"), dict(v.get("params", {})))
             for v in data["variants"]
         ]
         model = Model(entities, ex["name"], ex["absent"], kinds, executors,
                       list(data["instruments"]), list(data["scopes"]),
                       data["batch_scope"], variants, dict(data.get("texts", {})),
                       list(data.get("forbidden_words", [])),
-                      list(data.get("forbidden_exceptions", [])))
+                      list(data.get("forbidden_exceptions", [])),
+                      list(data.get("variant_params", [])),
+                      _parse_named_slices(data.get("named_slices", {})))
     except (KeyError, TypeError) as exc:
         raise ModelError(f"malformed model: {exc!r}") from exc
     validate_model(model)
@@ -337,8 +402,30 @@ def validate_model(model: Model) -> None:
                 raise ModelError(f"kind {k.name}: condition: unknown {re_}/{ra}={rv}")
             if (re_, ra) == (k.entity, k.axis):
                 raise ModelError(f"kind {k.name}: condition on its own axis")
+    _unique(model.variant_params, "variant parameter")
+    _unique([ns.name for ns in model.named_slices], "named slice")
+    for ns in model.named_slices:
+        for g in ns.groups:
+            for e, a, val in g.states:
+                ent = model.entity(e)
+                ax = ent.axis(a) if ent else None
+                if ax is None or val not in ax.values:
+                    raise ModelError(f"named slice {ns.name!r}: unknown {e}/{a}={val}")
+            for prm, x in g.params:
+                if prm not in model.variant_params:
+                    raise ModelError(f"named slice {ns.name!r}: unknown variant parameter {prm}")
+                if model.executor(x) is None:
+                    raise ModelError(f"named slice {ns.name!r}: unknown executor {x}")
     _unique([v.code for v in model.variants], "variant code")
     for v in model.variants:
+        for prm in model.variant_params:
+            if prm not in v.params:
+                raise ModelError(f"variant {v.code}: variant parameter {prm} not set")
+        for prm, x in v.params.items():
+            if prm not in model.variant_params:
+                raise ModelError(f"variant {v.code}: unknown variant parameter {prm}")
+            if model.executor(x) is None:
+                raise ModelError(f"variant {v.code}: parameter {prm}: unknown executor {x}")
         if v.out_of_comparison is not None and (
                 not isinstance(v.out_of_comparison, str) or not v.out_of_comparison.strip()):
             raise ModelError(f"variant {v.code}: out_of_comparison must be a reason text")

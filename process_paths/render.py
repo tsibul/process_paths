@@ -46,6 +46,8 @@ def _variant_block(model: Model, v: Variant) -> list[str]:
     out = [f"### {v.code}. {v.title}", ""]
     if v.out_of_comparison:
         out += [f"Вне сравнения с конкурентами: {v.out_of_comparison}.", ""]
+    if v.params:
+        out += ["Параметры варианта: " + "; ".join(f"{p} — {x}" for p, x in v.params.items()) + ".", ""]
     out += [slice_line(model, v, slices[0]), ""]
     for i, c in enumerate(v.calls, 1):
         keys = changed_keys(slices[i - 1], slices[i])
@@ -144,6 +146,8 @@ def render_markdown(model: Model) -> str:
     L += ["", "### 3.4. Исполнители", ""] + [f"- {x.name}" for x in model.executors]
     L += ["", "### 3.5. Инструменты", ""] + [f"- {x}" for x in model.instruments]
     L += ["", "### 3.6. Охваты", ""] + [f"- {x}" for x in model.scopes]
+    if model.variant_params:
+        L += ["", "### 3.7. Параметры варианта", ""] + [f"- {x}" for x in model.variant_params]
     L += ["", "## 4. Варианты пути", ""]
     if t.get("variants_note"):
         L += [t["variants_note"], ""]

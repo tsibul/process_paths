@@ -181,13 +181,11 @@ def cmd_reach(paths: list[Path], goal_texts: list[str], goal_files: list[Path], 
     return 0
 
 
-def cmd_norm(model: Model, norm_path: Path | None, slices_path: Path | None, output: Path | None,
-             json_path: Path | None) -> int:
-    """Labour and skips of all variants by a normalization file.
+def cmd_norm(model: Model, norm_path: Path | None, output: Path | None, json_path: Path | None) -> int:
+    """Labour and skips of all variants by a normalization file, in the named slices of the model.
 
     :param model: the model.
     :param norm_path: normalization JSON file.
-    :param slices_path: named slices JSON file, or ``None`` for the final slice only.
     :param output: Markdown output file, or ``None`` for stdout.
     :param json_path: JSON output file, or ``None``.
     :return: exit code.
@@ -196,8 +194,7 @@ def cmd_norm(model: Model, norm_path: Path | None, slices_path: Path | None, out
     if norm_path is None:
         raise ModelError("norm needs --norm")
     nrm = norm.load_normalization(norm_path)
-    named = norm.load_slices(slices_path) if slices_path else []
-    results = norm.norm_all(model, nrm, named)
+    results = norm.norm_all(model, nrm)
     text = norm.render_markdown(model, nrm, results)
     if output:
         output.write_text(text, encoding="utf-8")
@@ -229,7 +226,6 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--md", action="store_true", help="reach: Markdown tables instead of text")
     p.add_argument("-o", "--output", type=Path, help="markdown, reach, norm: output file (default: stdout)")
     p.add_argument("--norm", type=Path, help="norm: normalization JSON file")
-    p.add_argument("--slices", type=Path, help="norm: named slices JSON file")
     p.add_argument("--json", type=Path, dest="json_out", help="norm: JSON output file")
     p.add_argument("--batch", type=int, default=analysis.DEFAULT_BATCH, help="cost: batch size")
     a = p.parse_args(argv)
@@ -247,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(text)
             return 0
         if a.command == "norm":
-            return cmd_norm(model, a.norm, a.slices, a.output, a.json_out)
+            return cmd_norm(model, a.norm, a.output, a.json_out)
         if a.command == "cost":
             return cmd_cost(model, a.batch)
         return {"check": cmd_check, "counts": cmd_counts, "split": cmd_split, "variants": cmd_variants,
