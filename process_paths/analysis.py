@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Counts and checks over the model."""
 
 from __future__ import annotations
@@ -7,7 +10,7 @@ from decimal import Decimal
 from itertools import combinations
 
 from .engine import run_variant
-from .model import Model, Variant
+from .model import Call, Model, Variant
 
 #: Default batch size for the cost per document.
 DEFAULT_BATCH = 100
@@ -93,6 +96,15 @@ def unused_kinds(model: Model) -> list[str]:
     return [k.name for k in model.kinds if k.name not in used]
 
 
+def unused_executors(model: Model) -> list[str]:
+    """:param model: the model.
+    :return: names of executors used in no variant.
+    :rtype: list[str]
+    """
+    used = {c.executor for v in model.variants for c in v.calls}
+    return [x.name for x in model.executors if x.name not in used]
+
+
 def identical_slices(model: Model) -> list[dict[str, object]]:
     """Find equal slices between pairs of variants.
 
@@ -133,8 +145,20 @@ def path_cost(model: Model, variant: Variant, batch: int = DEFAULT_BATCH) -> Dec
     :return: the cost, or ``None`` if a number is missing.
     :rtype: Decimal | None
     """
+    return calls_cost(model, variant.calls, batch)
+
+
+def calls_cost(model: Model, calls: tuple[Call, ...], batch: int = DEFAULT_BATCH) -> Decimal | None:
+    """Cost of a sequence of calls per one document, by the rules of :func:`path_cost`.
+
+    :param model: the model.
+    :param calls: the calls.
+    :param batch: batch size.
+    :return: the cost, or ``None`` if a number is missing.
+    :rtype: Decimal | None
+    """
     total = Decimal(0)
-    for c in variant.calls:
+    for c in calls:
         k = model.kind(c.kind)
         base = k.instrument_costs.get(c.instrument, k.cost)
         factor = model.executor(c.executor).factor

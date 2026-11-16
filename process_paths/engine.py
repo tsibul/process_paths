@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Slices and transitions: running a variant."""
 
 from __future__ import annotations
@@ -101,6 +104,10 @@ def apply(model: Model, s: Slice, variant: Variant, number: int) -> Slice:
     if s[key] != kind.source:
         raise TransitionError(f"{where}: {kind.entity}/{kind.axis} is {s[key]!r}, "
                               f"expected {kind.source!r}")
+    for re_, ra, rv in kind.requires:
+        if s.get((re_, ra)) != rv:
+            raise TransitionError(f"{where}: condition not met: {re_}/{ra} is "
+                                  f"{s.get((re_, ra))!r}, required {rv!r}")
     nxt = dict(s)
     nxt[key] = kind.target
     if kind.axis == model.existence_axis:
@@ -127,17 +134,14 @@ def run_variant(model: Model, variant: Variant) -> list[Slice]:
     return slices
 
 
-def changed_key(before: Slice, after: Slice, model: Model) -> tuple[str, str]:
-    """Return the axis whose value the transition set.
+def changed_keys(before: Slice, after: Slice) -> set[tuple[str, str]]:
+    """Return the axes whose value differs between two slices.
 
-    Axes filled because of a creation are not counted: the existence axis is returned.
+    On a creation these are the existence axis and every axis that got its initial value.
 
     :param before: slice before.
     :param after: slice after.
-    :param model: the model.
-    :return: ``(entity, axis)``.
-    :rtype: tuple[str, str]
+    :return: ``{(entity, axis)}``.
+    :rtype: set[tuple[str, str]]
     """
-    diff = [k for k in after if after[k] != before.get(k)]
-    exist = [k for k in diff if k[1] == model.existence_axis]
-    return exist[0] if exist else diff[0]
+    return {k for k in after if after[k] != before.get(k)}

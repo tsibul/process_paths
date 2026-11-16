@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests of the core: loading, transitions, checks, cost, Markdown."""
 
 import copy
@@ -173,7 +176,7 @@ def test_markdown_structure():
                  "### V1. one", "## 5. Сводная таблица"):
         assert head in text
     assert "↓ send (client; pc; per batch)" in text
-    assert "Image: **yes**; client" in text
+    assert "Image: **yes**; **client**" in text
     assert "Image: no" in text
     assert "2.4." not in text
 
@@ -187,3 +190,152 @@ def test_cli_check_and_markdown(tmp_path, capsys):
     assert main(["markdown", str(src), "-o", str(out)]) == 0
     assert out.read_text(encoding="utf-8").startswith("# T")
     assert load_model(src).variants[0].calls[2].scope == "per batch"
+
+
+def test_condition_allows_and_refuses():
+    data = copy.deepcopy(BASE)
+    data["kinds"][3]["requires"] = [["Doc", "checked", "checked"]]
+    m = parse_model(data)
+    with pytest.raises(TransitionError, match=r"variant V1, call 3 \(send\): condition not met"):
+        run_variant(m, m.variants[0])
+    data["variants"][0]["calls"].append(data["variants"][0]["calls"].pop(2))
+    m = parse_model(data)
+    assert run_variant(m, m.variants[0])[-1][("Image", "place")] == "office"
+    assert "| Doc: checked = checked |" in render_markdown(m)
+
+
+def test_condition_validated():
+    data = copy.deepcopy(BASE)
+    data["kinds"][4]["requires"] = [["Doc", "checked", "unchecked"]]
+    with pytest.raises(ModelError, match="own axis"):
+        parse_model(data)
+    data["kinds"][4]["requires"] = [["Paper", "place", "moon"]]
+    with pytest.raises(ModelError, match="condition: unknown"):
+        parse_model(data)
+
+
+def test_unused_executors(capsys, tmp_path):
+    data = copy.deepcopy(BASE)
+    data["executors"].append({"name": "robot"})
+    m = parse_model(data)
+    assert analysis.unused_executors(m) == ["robot"]
+    assert "Исполнителей: 3; не задействованы ни в одном варианте: 1 (robot)." in render_markdown(m)
+    src = tmp_path / "m.json"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    assert main(["unused", str(src)]) == 0
+    assert capsys.readouterr().out.splitlines() == ["executor: robot"]
+
+
+def _write(tmp_path, name, data):
+    path = tmp_path / name
+    path.write_text(json.dumps(data, ensure_ascii=False, default=str), encoding="utf-8")
+    return path
+
+
+def test_parse_goal_text():
+    from process_paths.reach import parse_goal_text
+    g = parse_goal_text("Doc/checked=checked; Image/exists=yes")
+    assert g.items == (("Doc", "checked", "checked"), ("Image", "exists", "yes"))
+    with pytest.raises(ModelError):
+        parse_goal_text("Doc checked")
+
+
+def test_reach_stretch_and_absent_entity():
+    from process_paths.reach import parse_goal_text, reach_variant
+    m = model()
+    g = parse_goal_text("Image/exists=yes")
+    r1 = reach_variant(m, m.variants[0], g, "V1")
+    assert (r1.index, r1.calls, r1.rest) == (2, 2, 2)
+    assert r1.by_executor == {"client": 2} and r1.by_scope == {"per doc": 2}
+    assert r1.shifted == {("Paper", "place"): "client"}
+    assert r1.cost is None
+    r2 = reach_variant(m, m.variants[1], g, "V2")  # no Image entity in V2: not reached, no error
+    assert r2.index is None and r2.rest == 0
+
+
+def test_reach_shifted_by_value_against_reference():
+    from process_paths.reach import parse_goal_text, reach_variant
+    m = model()
+    # Image created at the client: place "client" equals the first axis value, not shifted
+    r = reach_variant(m, m.variants[0], parse_goal_text("Doc/checked=checked"), "V1")
+    assert r.shifted == {("Paper", "place"): "client", ("Image", "exists"): "yes", ("Image", "place"): "office"}
+    # Image created at the office by inheritance: shifted although no call moved it
+    data = copy.deepcopy(BASE)
+    data["variants"][0]["calls"] = [["receive", "client", "hand", "per doc"],
+                                    ["hand over", "client", "hand", "per doc"],
+                                    ["shoot", "client", "hand", "per doc"],
+                                    ["check", "program", "pc", "per doc"]]
+    m = parse_model(data)
+    r = reach_variant(m, m.variants[0], parse_goal_text("Doc/checked=checked"), "V1")
+    assert r.shifted[("Image", "place")] == "office"
+
+
+def test_reach_compare_and_cost():
+    from process_paths.reach import compare, parse_goal_text, reach_variant
+    data = copy.deepcopy(BASE)
+    for k in data["kinds"]:
+        k["cost"] = 1
+    data["executors"] = [{"name": "client", "factor": 1}, {"name": "program", "factor": 1}]
+    m = parse_model(json.loads(json.dumps(data), parse_float=Decimal))
+    g = parse_goal_text("Doc/checked=checked")
+    a = reach_variant(m, m.variants[0], g, "V1", batch=10)
+    b = reach_variant(m, m.variants[1], g, "V2", batch=10)
+    assert a.cost == Decimal("3.1") and b.cost == Decimal("2.1")
+    only_a, only_b, alike, differ = compare(a, b)
+    assert only_a == ["Image/exists", "Image/place"] and only_b == [] and alike == []
+    assert differ == ["Paper/place: client / office"]
+
+
+def test_reach_compare_alike():
+    from process_paths.reach import compare, parse_goal_text, reach_variant
+    m = model()
+    data = copy.deepcopy(BASE)
+    data["variants"][0]["calls"].insert(0, data["variants"][0]["calls"].pop(3))  # check first
+    m2 = parse_model(data)
+    g = parse_goal_text("Image/exists=yes")
+    a = reach_variant(m, m.variants[0], g, "V1")
+    b = reach_variant(m2, m2.variants[0], g, "V1b")
+    assert compare(a, b) == ([], ["Doc/checked"], ["Paper/place"], [])
+
+
+def test_reach_cli_two_models_and_goal_file(tmp_path, capsys):
+    m1 = _write(tmp_path, "one.json", BASE)
+    other = copy.deepcopy(BASE)
+    other["variants"] = [other["variants"][1]]
+    m2 = _write(tmp_path, "two.json", other)
+    goals = _write(tmp_path, "goals.json", {"checked": [["Doc", "checked", "checked"]]})
+    out = tmp_path / "r.md"
+    assert main(["reach", str(m1), str(m2), "--goals", str(goals), "--goal", "Image/exists=yes",
+                 "--base", "one/V1", "--md", "-o", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## 1. Цель: Image/exists=yes" in text and "## 2. Цель: checked" in text
+    assert "| two/V2 two | не достигнута |" in text
+    assert "Сравнение с опорным вариантом one/V1" in text
+    assert analysis.forbidden_hits(parse_model(copy.deepcopy(BASE)), text) == []
+    assert main(["reach", str(m1), "--goal", "Doc/checked=checked"]) == 0
+    assert "V1: slice 4" in capsys.readouterr().out
+
+
+def test_reach_rejects_different_dictionaries(tmp_path, capsys):
+    m1 = _write(tmp_path, "one.json", BASE)
+    other = copy.deepcopy(BASE)
+    other["instruments"] = ["hand"]
+    for v in other["variants"]:
+        for c in v["calls"]:
+            c[2] = "hand"
+    m2 = _write(tmp_path, "two.json", other)
+    assert main(["reach", str(m1), str(m2), "--goal", "Doc/checked=checked"]) == 2
+    assert "dictionaries of two differ" in capsys.readouterr().err
+
+
+def test_zero_weight_and_out_of_comparison():
+    data = copy.deepcopy(BASE)
+    data["kinds"][0].update(zero_weight=True, zero_weight_note="note")
+    data["kinds"][1]["zero_weight"] = True
+    data["variants"][1]["out_of_comparison"] = "only ours"
+    text = render_markdown(parse_model(data))
+    assert "| да: note |" in text and "| да |" in text
+    assert "Вне сравнения с конкурентами: only ours." in text
+    data["kinds"][2]["zero_weight_note"] = "no flag"
+    with pytest.raises(ModelError, match="zero_weight_note"):
+        parse_model(data)

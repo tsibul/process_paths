@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Command line interface."""
 
 from __future__ import annotations
@@ -9,6 +12,10 @@ from pathlib import Path
 from . import analysis
 from .engine import run_variant
 from .model import Model, ModelError, load_model
+from .reach import (Goal, check_same_dictionaries, find_base, load_goals, parse_goal_text,
+                    reach_all)
+from .reach import render_markdown as reach_markdown
+from .reach import render_text as reach_text
 from .render import render_markdown
 
 
@@ -82,14 +89,16 @@ def cmd_variants(model: Model) -> int:
 
 
 def cmd_unused(model: Model) -> int:
-    """Print the kinds used in no variant.
+    """Print the kinds and executors used in no variant.
 
     :param model: the model.
     :return: exit code.
     :rtype: int
     """
     for k in analysis.unused_kinds(model):
-        print(k)
+        print(f"kind: {k}")
+    for x in analysis.unused_executors(model):
+        print(f"executor: {x}")
     return 0
 
 
@@ -135,6 +144,42 @@ def cmd_cost(model: Model, batch: int) -> int:
     return 0
 
 
+def cmd_reach(paths: list[Path], goal_texts: list[str], goal_files: list[Path], base: str | None,
+              batch: int, markdown: bool, output: Path | None) -> int:
+    """Measure the stretches of all variants up to each goal.
+
+    :param paths: model files with the same dictionaries.
+    :param goal_texts: goals as ``Entity/axis=value; …``.
+    :param goal_files: JSON files of named goals.
+    :param base: base variant label for the comparison, or ``None``.
+    :param batch: batch size for the cost.
+    :param markdown: print Markdown instead of text.
+    :param output: output file, or ``None`` for stdout.
+    :return: exit code.
+    :rtype: int
+    """
+    models = [(p.stem, load_model(p)) for p in paths]
+    check_same_dictionaries(models)
+    goals: list[Goal] = [parse_goal_text(t) for t in goal_texts]
+    for f in goal_files:
+        goals += load_goals(f)
+    if not goals:
+        raise ModelError("no goal: use --goal or --goals")
+    results = []
+    for g in goals:
+        reaches = reach_all(models, g, batch)
+        results.append((g, reaches, find_base(reaches, base) if base else None))
+    if markdown:
+        text = reach_markdown(results, batch)
+    else:
+        text = "".join(reach_text(g, r, b) for g, r, b in results)
+    if output:
+        output.write_text(text, encoding="utf-8")
+    else:
+        sys.stdout.write(text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point.
 
@@ -144,13 +189,24 @@ def main(argv: list[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="process_paths", description="Path model checks and output.")
     p.add_argument("command", choices=["check", "counts", "split", "variants", "unused", "same",
-                                       "cost", "markdown"])
-    p.add_argument("model", type=Path, help="model JSON file")
-    p.add_argument("-o", "--output", type=Path, help="markdown: output file (default: stdout)")
+                                       "cost", "markdown", "reach"])
+    p.add_argument("model", type=Path, nargs="+",
+                   help="model JSON file; reach accepts several with the same dictionaries")
+    p.add_argument("--goal", action="append", default=[],
+                   help="reach: goal 'Entity/axis=value; Entity/axis=value' (repeatable)")
+    p.add_argument("--goals", type=Path, action="append", default=[],
+                   help="reach: JSON file {name: [[entity, axis, value], ...]} (repeatable)")
+    p.add_argument("--base", help="reach: base variant (code, or file/code for several models)")
+    p.add_argument("--md", action="store_true", help="reach: Markdown tables instead of text")
+    p.add_argument("-o", "--output", type=Path, help="markdown, reach: output file (default: stdout)")
     p.add_argument("--batch", type=int, default=analysis.DEFAULT_BATCH, help="cost: batch size")
     a = p.parse_args(argv)
     try:
-        model = load_model(a.model)
+        if a.command == "reach":
+            return cmd_reach(a.model, a.goal, a.goals, a.base, a.batch, a.md, a.output)
+        if len(a.model) != 1:
+            raise ModelError(f"{a.command} takes one model file")
+        model = load_model(a.model[0])
         if a.command == "markdown":
             text = render_markdown(model)
             if a.output:

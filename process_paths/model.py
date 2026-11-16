@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Model dictionaries and their loading from JSON."""
 
 from __future__ import annotations
@@ -60,6 +63,11 @@ class Kind:
     :ivar cost: optional cost of the kind.
     :ivar instrument_costs: optional cost of the kind per instrument.
     :ivar check: optional flag: the kind is a check.
+    :ivar requires: condition: ``(entity, axis, value)`` triples that must all hold
+        in the current slice for the transition to be allowed.
+    :ivar zero_weight: optional flag: the transition stays in the path but does not
+        count in the labour estimate.
+    :ivar zero_weight_note: optional note to the zero weight.
     """
 
     name: str
@@ -70,6 +78,9 @@ class Kind:
     cost: Decimal | None = None
     instrument_costs: dict[str, Decimal] = field(default_factory=dict)
     check: bool | None = None
+    requires: tuple[tuple[str, str, str], ...] = ()
+    zero_weight: bool | None = None
+    zero_weight_note: str | None = None
 
     @property
     def quadruple(self) -> tuple[str, str, str, str]:
@@ -116,6 +127,8 @@ class Variant:
     :ivar calls: transitions in order.
     :ivar entities: entities of the variant; empty means the entities touched by the calls.
     :ivar initial: initial slice deviations, ``{entity: {axis: value}}``.
+    :ivar out_of_comparison: optional reason why the variant is not compared with
+        the competitors.
     """
 
     code: str
@@ -123,6 +136,7 @@ class Variant:
     calls: tuple[Call, ...]
     entities: tuple[str, ...] = ()
     initial: dict[str, dict[str, str]] = field(default_factory=dict)
+    out_of_comparison: str | None = None
 
 
 @dataclass
@@ -213,7 +227,9 @@ def parse_model(data: dict) -> Model:
                  _dec(k.get("cost"), f"kind {k['name']}: cost"),
                  {i: _dec(c, f"kind {k['name']}: instrument cost") for i, c in
                   k.get("instrument_costs", {}).items()},
-                 k.get("check"))
+                 k.get("check"),
+                 tuple(tuple(r) for r in k.get("requires", [])),
+                 k.get("zero_weight"), k.get("zero_weight_note"))
             for k in data["kinds"]
         ]
         executors = [
@@ -223,7 +239,8 @@ def parse_model(data: dict) -> Model:
         ]
         variants = [
             Variant(v["code"], v["title"], tuple(Call(*c) for c in v["calls"]),
-                    tuple(v.get("entities", [])), v.get("initial", {}))
+                    tuple(v.get("entities", [])), v.get("initial", {}),
+                    v.get("out_of_comparison"))
             for v in data["variants"]
         ]
         model = Model(entities, ex["name"], ex["absent"], kinds, executors,
@@ -304,8 +321,27 @@ def validate_model(model: Model) -> None:
                 raise ModelError(f"kind {k.name}: unknown instrument {i}")
         if k.check is not None and not isinstance(k.check, bool):
             raise ModelError(f"kind {k.name}: check must be true or false")
+        if k.zero_weight is not None and not isinstance(k.zero_weight, bool):
+            raise ModelError(f"kind {k.name}: zero_weight must be true or false")
+        if k.zero_weight_note is not None and (
+                not isinstance(k.zero_weight_note, str) or not k.zero_weight_note.strip()
+                or k.zero_weight is not True):
+            raise ModelError(f"kind {k.name}: zero_weight_note needs zero_weight true and text")
+        for r in k.requires:
+            if len(r) != 3:
+                raise ModelError(f"kind {k.name}: condition must be [entity, axis, value]")
+            re_, ra, rv = r
+            rent = model.entity(re_)
+            rax = rent.axis(ra) if rent else None
+            if rax is None or rv not in rax.values:
+                raise ModelError(f"kind {k.name}: condition: unknown {re_}/{ra}={rv}")
+            if (re_, ra) == (k.entity, k.axis):
+                raise ModelError(f"kind {k.name}: condition on its own axis")
     _unique([v.code for v in model.variants], "variant code")
     for v in model.variants:
+        if v.out_of_comparison is not None and (
+                not isinstance(v.out_of_comparison, str) or not v.out_of_comparison.strip()):
+            raise ModelError(f"variant {v.code}: out_of_comparison must be a reason text")
         for n in v.entities:
             if model.entity(n) is None:
                 raise ModelError(f"variant {v.code}: unknown entity {n}")

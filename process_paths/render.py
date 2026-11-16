@@ -1,19 +1,23 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Markdown output of the model."""
 
 from __future__ import annotations
 
 from . import analysis
-from .engine import Slice, changed_key, run_variant, variant_entities
+from .engine import Slice, changed_keys, run_variant, variant_entities
 from .model import Model, Variant
 
 
-def slice_line(model: Model, variant: Variant, s: Slice, changed: tuple[str, str] | None = None) -> str:
+def slice_line(model: Model, variant: Variant, s: Slice,
+               changed: set[tuple[str, str]] | None = None) -> str:
     """Render one slice: all axes of all entities of the variant.
 
     :param model: the model.
     :param variant: the variant.
     :param s: the slice.
-    :param changed: axis to show in bold.
+    :param changed: axes to show in bold.
     :return: one line.
     :rtype: str
     """
@@ -25,7 +29,7 @@ def slice_line(model: Model, variant: Variant, s: Slice, changed: tuple[str, str
             keys = [ex_key]
         else:
             keys = [(name, a.name) for a in ent.axes]
-        vals = [f"**{s[k]}**" if k == changed else str(s[k]) for k in keys]
+        vals = [f"**{s[k]}**" if changed and k in changed else str(s[k]) for k in keys]
         parts.append(f"{name}: " + "; ".join(vals))
     return " | ".join(parts)
 
@@ -39,11 +43,14 @@ def _variant_block(model: Model, v: Variant) -> list[str]:
     :rtype: list[str]
     """
     slices = run_variant(model, v)
-    out = [f"### {v.code}. {v.title}", "", slice_line(model, v, slices[0]), ""]
+    out = [f"### {v.code}. {v.title}", ""]
+    if v.out_of_comparison:
+        out += [f"Вне сравнения с конкурентами: {v.out_of_comparison}.", ""]
+    out += [slice_line(model, v, slices[0]), ""]
     for i, c in enumerate(v.calls, 1):
-        key = changed_key(slices[i - 1], slices[i], model)
+        keys = changed_keys(slices[i - 1], slices[i])
         out += [f"↓ {c.kind} ({c.executor}; {c.instrument}; {c.scope})", "",
-                slice_line(model, v, slices[i], key), ""]
+                slice_line(model, v, slices[i], keys), ""]
     out += ["| Переходов всего | Видов переходов |", "|---|---|",
             f"| {len(v.calls)} | {len({c.kind for c in v.calls})} |", ""]
     return out
@@ -84,6 +91,7 @@ def render_markdown(model: Model) -> str:
     t = model.texts
     n = analysis.dictionary_counts(model)
     unused = analysis.unused_kinds(model)
+    idle = analysis.unused_executors(model)
     rows = analysis.variant_counts(model)
     bad = analysis.decomposable_kinds(model) + [(a, [b]) for a, b in analysis.duplicate_kinds(model)]
     L = [f"# {t.get('title', '')}", ""]
@@ -98,7 +106,9 @@ def render_markdown(model: Model) -> str:
           + "; ".join(f"{e} — {c}" for e, c in n["values_by_entity"].items()) + ".",
           f"- Видов переходов: {n['kinds']}; не задействованы ни в одном варианте: {len(unused)}"
           + (" (" + ", ".join(unused) + ")" if unused else "") + ".",
-          f"- Исполнителей: {n['executors']}.",
+          f"- Исполнителей: {n['executors']}"
+          + (f"; не задействованы ни в одном варианте: {len(idle)} (" + ", ".join(idle) + ")"
+             if idle else "") + ".",
           f"- Инструментов: {n['instruments']}.",
           f"- Охватов: {n['scopes']}.", "",
           "### 2.2. Проверка разделения переходов", "",
@@ -112,8 +122,9 @@ def render_markdown(model: Model) -> str:
           "| Вариант | Переходов всего | Видов переходов задействовано |", "|---|---|---|"]
     L += [f"| {c} {title} | {a} | {b} |" for c, title, a, b in rows]
     L += ["", "Механическая проверка вариантов: все названия из справочников; каждый переход меняет "
-          "ровно одно значение одной оси одной сущности, соседние срезы различаются только им; "
-          "числа совпадают с подсчётом.", ""]
+          "значение ровно одной оси одной сущности; при создании сущности вместе с наличием получают "
+          "начальные значения остальные её оси (место — по правилу наличия); больше соседние срезы "
+          "ничем не различаются; числа совпадают с подсчётом.", ""]
     if analysis.has_numbers(model):
         L += _cost_block(model)
     L += ["## 3. Справочники", "", "### 3.1. Сущности", ""]
@@ -123,8 +134,12 @@ def render_markdown(model: Model) -> str:
         L.append(f"- **{e.name}**")
         L += [f"  - {a.name}: " + "; ".join(a.values) for a in e.axes]
     L += ["", "### 3.3. Виды переходов", "",
-          "| № | Вид перехода | Сущность | Ось | Из | В |", "|---|---|---|---|---|---|"]
-    L += [f"| {i} | {k.name} | {k.entity} | {k.axis} | {k.source} | {k.target} |"
+          "| № | Вид перехода | Сущность | Ось | Из | В | Условие | Вес 0 |",
+          "|---|---|---|---|---|---|---|---|"]
+    L += [f"| {i} | {k.name} | {k.entity} | {k.axis} | {k.source} | {k.target} | "
+          + ("; ".join(f"{e}: {a} = {v}" for e, a, v in k.requires) or "—") + " | "
+          + (("да" + (f": {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else "—")
+          + " |"
           for i, k in enumerate(model.kinds, 1)]
     L += ["", "### 3.4. Исполнители", ""] + [f"- {x.name}" for x in model.executors]
     L += ["", "### 3.5. Инструменты", ""] + [f"- {x}" for x in model.instruments]
