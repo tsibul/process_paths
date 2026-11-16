@@ -1,0 +1,55 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""The light indigo palette of the mockup as a Qt stylesheet."""
+
+BG = "#FFFFFF"
+SUB = "#FAFAFB"
+PANEL = "#F4F4F6"
+BORDER = "#E4E4E7"
+TEXT = "#18181B"
+TEXT2 = "#52525B"
+ERR = "#B91C1C"
+OK = "#15803D"
+ACCENT = "#4F46E5"
+ON_ACCENT = "#FFFFFF"
+TINT = "#EEF2FF"
+RADIUS = "8px"
+
+STYLE = f"""
+QWidget {{ background: {BG}; color: {TEXT}; font-size: 15px; }}
+QMainWindow, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {BG}; }}
+QLabel {{ background: transparent; }}
+QLabel#title {{ font-size: 18px; font-weight: 700; }}
+QLabel#h2 {{ font-size: 17px; font-weight: 700; }}
+QLabel#h3 {{ font-size: 13px; font-weight: 600; color: {TEXT2}; padding-top: 14px; }}
+QLabel#note {{ font-size: 13px; color: {TEXT2}; }}
+QLabel#err {{ color: {ERR}; font-weight: 600; }}
+QFrame#bar {{ background: {BG}; }}
+QPushButton {{ background: {BG}; color: {TEXT}; border: 1px solid {BORDER}; border-radius: 6px;
+              padding: 5px 12px; }}
+QPushButton:hover {{ border-color: {ACCENT}; }}
+QPushButton:disabled {{ color: {TEXT2}; background: {SUB}; }}
+QPushButton[primary="true"] {{ background: {ACCENT}; color: {ON_ACCENT}; border-color: {ACCENT}; }}
+QPushButton:checked {{ border-color: {ACCENT}; color: {ACCENT}; font-weight: 600; }}
+QComboBox {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 6px; padding: 5px 12px;
+            min-width: 240px; }}
+QComboBox QAbstractItemView {{ background: {BG}; border: 1px solid {BORDER};
+                              selection-background-color: {TINT}; selection-color: {TEXT}; }}
+QTabWidget::pane {{ border: none; border-top: 1px solid {BORDER}; top: -1px; }}
+QTabBar::tab {{ background: transparent; color: {TEXT2}; padding: 8px 12px;
+               border-bottom: 2px solid transparent; }}
+QTabBar::tab:selected {{ color: {ACCENT}; border-bottom: 2px solid {ACCENT}; font-weight: 600; }}
+QTableWidget {{ background: {BG}; border: 1px solid {BORDER}; border-radius: {RADIUS};
+               gridline-color: {BORDER}; selection-background-color: {TINT};
+               selection-color: {TEXT}; outline: 0; }}
+QTableWidget::item {{ padding: 2px 8px; border-bottom: 1px solid {BORDER}; }}
+QHeaderView {{ background: {SUB}; border: none; border-top-left-radius: {RADIUS};
+              border-top-right-radius: {RADIUS}; }}
+QHeaderView::section {{ background: {SUB}; color: {TEXT2}; font-size: 13px; font-weight: 600;
+                       padding: 6px 8px; border: none; border-bottom: 1px solid {BORDER}; }}
+QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
+QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
+QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}
+QScrollBar {{ background: {SUB}; }}
+"""

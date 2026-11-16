@@ -1,0 +1,111 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""Read-only tables and section labels shared by the tabs."""
+
+from __future__ import annotations
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QFontDatabase, QFontMetrics
+from PySide6.QtWidgets import QAbstractItemView, QLabel, QTableWidget, QTableWidgetItem, QWidget
+
+DASH = "—"
+ARROW = "→"
+CHECK = "✓"
+
+
+def label(text: str, name: str = "") -> QLabel:
+    """A label with a style name: ``title``, ``h2``, ``h3``, ``note`` or ``err``."""
+    w = QLabel(text)
+    w.setWordWrap(name in ("note", "err"))
+    w.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+    if name:
+        w.setObjectName(name)
+    return w
+
+
+def mono():
+    """System fixed-width font for numbers."""
+    f = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+    f.setPixelSize(14)
+    return f
+
+
+def item(text: str, numeric: bool = False) -> QTableWidgetItem:
+    """A read-only cell; numbers right-aligned in the fixed-width font."""
+    it = QTableWidgetItem(text)
+    it.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+    if numeric:
+        it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        it.setFont(mono())
+    return it
+
+
+class Table(QTableWidget):
+    """A read-only table that takes the height of its rows (the page scrolls, not the table)."""
+
+    def __init__(self, headers: list[str], numeric: set[int] = frozenset(), parent: QWidget | None = None):
+        super().__init__(0, len(headers), parent)
+        self.numeric = set(numeric)
+        self.setHorizontalHeaderLabels(headers)
+        for c in self.numeric:
+            h = self.horizontalHeaderItem(c)
+            h.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.verticalHeader().hide()
+        self.setShowGrid(False)
+        self.setWordWrap(False)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._content_width = 0
+        self.horizontalHeader().setHighlightSections(False)
+        self.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.fit()
+
+    def set_rows(self, rows: list[list[str]]) -> None:
+        """Replace all rows with texts."""
+        self.setSortingEnabled(False)
+        self.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, text in enumerate(row):
+                self.setItem(r, c, item(text, c in self.numeric))
+        self.fit()
+
+    def fit(self) -> None:
+        """Size the table to its contents: full height; a horizontal scroll bar when too narrow."""
+        hh = self.horizontalHeader()
+        hh.setStretchLastSection(False)
+        # The header's own size hint ignores the stylesheet's 13px font: measure the header text here.
+        f = QFont(self.font())
+        f.setPixelSize(13)
+        f.setBold(True)
+        fm = QFontMetrics(f)
+        extra = 16 + (16 if hh.isSortIndicatorShown() else 0)
+        for c in range(self.columnCount()):
+            head = fm.horizontalAdvance(self.horizontalHeaderItem(c).text()) + extra
+            self.setColumnWidth(c, max(self.sizeHintForColumn(c), head))
+        self.resizeRowsToContents()
+        self._content_width = sum(self.columnWidth(c) for c in range(self.columnCount()))
+        hh.setStretchLastSection(True)
+        self._fit_height()
+
+    def _fit_height(self) -> None:
+        rows = sum(self.rowHeight(r) for r in range(self.rowCount()) if not self.isRowHidden(r))
+        h = self.horizontalHeader().sizeHint().height() + rows + 2 * self.frameWidth()
+        if self._content_width > self.width() - 2 * self.frameWidth():
+            h += self.horizontalScrollBar().sizeHint().height()
+        self.setFixedHeight(h)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().resizeEvent(event)
+        self._fit_height()
+
+    def texts(self) -> list[str]:
+        """All header and cell texts, for tests."""
+        out = [self.horizontalHeaderItem(c).text() for c in range(self.columnCount())]
+        out += [self.item(r, c).text() for r in range(self.rowCount()) for c in range(self.columnCount())
+                if self.item(r, c)]
+        return out
+
