@@ -6,10 +6,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from . import analysis
+from . import analysis, norm
 from .engine import run_variant
 from .model import Model, ModelError, load_model
 from .reach import (Goal, check_same_dictionaries, find_base, load_goals, parse_goal_text,
@@ -180,6 +181,34 @@ def cmd_reach(paths: list[Path], goal_texts: list[str], goal_files: list[Path], 
     return 0
 
 
+def cmd_norm(model: Model, norm_path: Path | None, slices_path: Path | None, output: Path | None,
+             json_path: Path | None) -> int:
+    """Labour and skips of all variants by a normalization file.
+
+    :param model: the model.
+    :param norm_path: normalization JSON file.
+    :param slices_path: named slices JSON file, or ``None`` for the final slice only.
+    :param output: Markdown output file, or ``None`` for stdout.
+    :param json_path: JSON output file, or ``None``.
+    :return: exit code.
+    :rtype: int
+    """
+    if norm_path is None:
+        raise ModelError("norm needs --norm")
+    nrm = norm.load_normalization(norm_path)
+    named = norm.load_slices(slices_path) if slices_path else []
+    results = norm.norm_all(model, nrm, named)
+    text = norm.render_markdown(model, nrm, results)
+    if output:
+        output.write_text(text, encoding="utf-8")
+    else:
+        sys.stdout.write(text)
+    if json_path:
+        json_path.write_text(json.dumps(norm.to_json(model, nrm, results), ensure_ascii=False, indent=1)
+                             + "\n", encoding="utf-8")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point.
 
@@ -189,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="process_paths", description="Path model checks and output.")
     p.add_argument("command", choices=["check", "counts", "split", "variants", "unused", "same",
-                                       "cost", "markdown", "reach"])
+                                       "cost", "markdown", "reach", "norm"])
     p.add_argument("model", type=Path, nargs="+",
                    help="model JSON file; reach accepts several with the same dictionaries")
     p.add_argument("--goal", action="append", default=[],
@@ -198,7 +227,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="reach: JSON file {name: [[entity, axis, value], ...]} (repeatable)")
     p.add_argument("--base", help="reach: base variant (code, or file/code for several models)")
     p.add_argument("--md", action="store_true", help="reach: Markdown tables instead of text")
-    p.add_argument("-o", "--output", type=Path, help="markdown, reach: output file (default: stdout)")
+    p.add_argument("-o", "--output", type=Path, help="markdown, reach, norm: output file (default: stdout)")
+    p.add_argument("--norm", type=Path, help="norm: normalization JSON file")
+    p.add_argument("--slices", type=Path, help="norm: named slices JSON file")
+    p.add_argument("--json", type=Path, dest="json_out", help="norm: JSON output file")
     p.add_argument("--batch", type=int, default=analysis.DEFAULT_BATCH, help="cost: batch size")
     a = p.parse_args(argv)
     try:
@@ -214,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 sys.stdout.write(text)
             return 0
+        if a.command == "norm":
+            return cmd_norm(model, a.norm, a.slices, a.output, a.json_out)
         if a.command == "cost":
             return cmd_cost(model, a.batch)
         return {"check": cmd_check, "counts": cmd_counts, "split": cmd_split, "variants": cmd_variants,
