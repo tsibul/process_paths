@@ -713,3 +713,35 @@ def delete(data: dict, what: str, old: str | tuple[str, ...]) -> tuple[dict | No
     if what in _COEFFICIENTS:
         norm.get(_COEFFICIENTS[what], {}).pop(old, None)
     return _checked(new)
+
+
+def empty_project(name: str) -> tuple[dict | None, list[Remark]]:
+    """Make the data of a project with no variants and no kinds, the start of the manual input.
+
+    It holds the three words the file cannot lack: the existence axis ``exists`` with the absent
+    value ``no``, and the one scope ``batch``, which is also the batch scope.
+
+    :param name: the project name; empty or blank is refused.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    name = name.strip()
+    if not name:
+        return None, [Remark("name", "name is empty")]
+    data = {
+        "format": 1,
+        "name": name,
+        "existence_axis": {"name": "exists", "absent": "no"},
+        "entities": [],
+        "kinds": [],
+        "executors": [],
+        "instruments": [],
+        "scopes": ["batch"],
+        "batch_scope": "batch",
+        "variants": [],
+        "normalization": {table: {} for table in NUMBER_TABLES},
+    }
+    project, remarks = read_project(data, strict=False)
+    if project is None:
+        return None, remarks
+    return data, []
