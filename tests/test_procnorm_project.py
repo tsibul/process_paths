@@ -423,3 +423,79 @@ def test_task_must_be_a_text(value):
     d = base()
     variant(d, "Б")["task"] = value
     assert has(remarks_of(d), "task must be a text", "variant Б")
+
+
+# ---------- steps ----------
+
+def steps_of(count_each):
+    return [{"text": f"Шаг {i}", "calls": n} for i, n in enumerate(count_each, 1)]
+
+
+def test_laundry_has_no_steps():
+    project, remarks = load_file(LAUNDRY)
+    assert remarks == []
+    assert project.steps == {"А": None, "Б": None, "В": None}
+
+
+def test_steps_reach_project():
+    d = base()
+    variant(d, "Б")["steps"] = [{"text": " Включить ", "calls": 2}, {"text": "Ждать", "calls": 0},
+                                {"text": "Развесить", "calls": 3}]
+    project, remarks = read_project(d)
+    assert remarks == []
+    assert project.steps["Б"] == [(" Включить ", 2), ("Ждать", 0), ("Развесить", 3)]
+    assert project.steps["А"] is None and project.steps["В"] is None
+
+
+def test_steps_empty_list_covers_nothing():
+    d = base()
+    variant(d, "Б")["steps"] = []
+    assert has(remarks_of(d), "steps cover 0 calls, the variant has 5", "variant Б")
+
+
+def test_steps_sum_must_match_calls():
+    d = base()
+    variant(d, "А")["steps"] = steps_of([2, 1])
+    remarks = remarks_of(d)
+    assert [r.text for r in remarks] == ["steps cover 3 calls, the variant has 7"]
+    assert remarks[0].where == "variant А"
+    assert str(remarks[0]) == "variant А: steps cover 3 calls, the variant has 7"
+
+
+@pytest.mark.parametrize("value", ["x", 5, None, {"text": "a", "calls": 1}, True])
+def test_steps_must_be_a_list(value):
+    d = base()
+    variant(d, "Б")["steps"] = value
+    assert has(remarks_of(d), "steps must be a list", "variant Б")
+
+
+@pytest.mark.parametrize("item", ["x", 5, None, ["a", 1]])
+def test_step_must_be_an_object(item):
+    d = base()
+    variant(d, "Б")["steps"] = [item]
+    assert has(remarks_of(d), "object expected", "variant Б, step 1")
+
+
+def test_step_unknown_and_missing_fields():
+    d = base()
+    variant(d, "Б")["steps"] = [{"text": "a", "calls": 5, "extra": 1}, {"text": "b"}, {"calls": 0}]
+    remarks = remarks_of(d)
+    assert has(remarks, "unknown field 'extra'", "variant Б, step 1")
+    assert has(remarks, "field 'calls' is missing", "variant Б, step 2")
+    assert has(remarks, "field 'text' is missing", "variant Б, step 3")
+
+
+@pytest.mark.parametrize("value", ["", "  ", 5, None, ["a"]])
+def test_step_text_must_be_a_text(value):
+    d = base()
+    variant(d, "Б")["steps"] = [{"text": value, "calls": 5}]
+    assert has(remarks_of(d), "text must be a text", "variant Б, step 1")
+
+
+@pytest.mark.parametrize("value", [-1, 1.5, Decimal("2.0"), True, "2", None, [1]])
+def test_step_calls_must_be_a_non_negative_integer(value):
+    d = base()
+    variant(d, "Б")["steps"] = [{"text": "a", "calls": value}, {"text": "b", "calls": 5}]
+    remarks = remarks_of(d)
+    assert has(remarks, "calls must be an integer, 0 or more", "variant Б, step 1")
+    assert not has(remarks, "steps cover")

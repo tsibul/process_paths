@@ -35,7 +35,8 @@ AXIS_FIELDS = {"name", "values", "inherit"}
 KIND_FIELDS = {"name", "entity", "axis", "from", "to", "requires", "check", "zero_weight",
                "zero_weight_note"}
 VARIANT_FIELDS = {"code", "title", "side", "calls", "params", "entities", "initial",
-                  "out_of_comparison", "task"}
+                  "out_of_comparison", "task", "steps"}
+STEP_FIELDS = {"text", "calls"}
 NORM_FIELDS = {"batch_size", "kind_costs", "executor_coefficients", "scope_coefficients",
                "axis_skip_prices", "uncounted_errors"}
 
@@ -86,6 +87,8 @@ class Project:
     :ivar norm: normalization.
     :ivar data: the parsed file, kept to store and export it unchanged.
     :ivar tasks: ``{variant code: task text as entered, or None}``.
+    :ivar steps: ``{variant code: [(step text as entered, calls count)], or None}``; ``None`` when
+        the variant has no ``steps``.
     """
 
     name: str
@@ -95,6 +98,7 @@ class Project:
     norm: Normalization
     data: dict
     tasks: dict[str, str | None] = field(default_factory=dict)
+    steps: dict[str, list[tuple[str, int]] | None] = field(default_factory=dict)
 
 
 class _Remarks:
@@ -159,6 +163,33 @@ def _numbers_map(r: _Remarks, where: str, v: object) -> None:
     for k, x in v.items():
         if not _is_number(x):
             r.add(f"{where} {k!r}", "number expected")
+
+
+def _check_steps(r: _Remarks, w: str, v: dict) -> None:
+    steps = v["steps"]
+    if not isinstance(steps, list):
+        r.add(w, "steps must be a list")
+        return
+    ok = True
+    total = 0
+    for i, s in enumerate(steps, 1):
+        ws = f"{w}, step {i}"
+        if not _obj(r, ws, s):
+            ok = False
+            continue
+        n = len(r)
+        _unknown_fields(r, ws, s, STEP_FIELDS)
+        _required(r, ws, s, ("text", "calls"))
+        if "text" in s and not _is_text(s["text"]):
+            r.add(ws, "text must be a text")
+        if "calls" in s:
+            if isinstance(s["calls"], int) and not isinstance(s["calls"], bool) and s["calls"] >= 0:
+                total += s["calls"]
+            else:
+                r.add(ws, "calls must be an integer, 0 or more")
+        ok = ok and len(r) == n
+    if ok and isinstance(v.get("calls"), list) and total != len(v["calls"]):
+        r.add(w, f"steps cover {total} calls, the variant has {len(v['calls'])}")
 
 
 def _check_structure(data: object, r: _Remarks) -> None:
@@ -284,6 +315,8 @@ def _check_structure(data: object, r: _Remarks) -> None:
                 r.add(f"{w}, initial", "object {entity: {axis: value}} expected")
             if "task" in v and not _is_text(v["task"]):
                 r.add(w, "task must be a text")
+            if "steps" in v:
+                _check_steps(r, w, v)
             if "out_of_comparison" in v and not _is_text(v["out_of_comparison"]):
                 r.add(w, "out_of_comparison must be a reason text")
     elif "variants" in data:
@@ -540,7 +573,10 @@ def read_project(data: object) -> tuple[Project | None, list[Remark]]:
         return None, r.items
     sides = {v["code"]: v.get("side", "own") for v in data["variants"]}
     tasks = {v["code"]: v.get("task") for v in data["variants"]}
-    return Project(data["name"], data.get("description", ""), model, sides, norm, data, tasks), []
+    steps = {v["code"]: [(s["text"], s["calls"]) for s in v["steps"]] if "steps" in v else None
+             for v in data["variants"]}
+    return Project(data["name"], data.get("description", ""), model, sides, norm, data, tasks,
+                   steps), []
 
 
 def parse_text(text: str) -> tuple[Project | None, list[Remark]]:
