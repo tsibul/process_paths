@@ -85,6 +85,7 @@ QFrame#path[cur="true"] {{ background: {TINT}; }}
 QFrame#path[grey="true"] QLabel#pathTitle {{ color: {TEXT2}; }}
 QLabel#warn {{ font-size: 13px; color: {WARN}; }}
 QLabel#chainTitle {{ font-size: 16px; }}
+QFrame#offer {{ background: {TINT}; border: none; border-left: 3px solid {ACCENT}; }}
 QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}

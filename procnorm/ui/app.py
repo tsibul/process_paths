@@ -5,24 +5,72 @@
 
 from __future__ import annotations
 
+import html
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout, QMainWindow, QMessageBox,
-                               QPushButton, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
+from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
+                               QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
-from procnorm.project import load_file
+from procnorm.calc import empty_steps, project_empty_steps
+from procnorm.project import Project, load_file
 from procnorm.store import Store, default_path
 from procnorm.ui.chains import ChainsPage
 from procnorm.ui.comparison import ComparisonPage
 from procnorm.ui.pages import DictionaryPage, NormPage
 from procnorm.ui.remarks import RemarksPanel
-from procnorm.ui.style import STYLE
+from procnorm.ui.style import ACCENT, STYLE
 from procnorm.ui.tables import label
 
 LAST = "last_project"
 JSON_FILTER = "Project files (*.json);;All files (*)"
+
+
+def _dot_icon() -> QIcon:
+    """A small accent dot for a tab."""
+    pix = QPixmap(10, 10)
+    pix.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(ACCENT))
+    painter.drawEllipse(1, 1, 8, 8)
+    painter.end()
+    return QIcon(pix)
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+class OfferTabs(QTabWidget):
+    """Tabs with a full-width strip between the tab bar and the pages."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.strip = QFrame(self)
+        self.strip.hide()
+
+    def place(self) -> None:
+        """Put the strip under the tab bar and push the pages down by its height."""
+        stack = self.findChild(QStackedWidget)
+        if stack is None:
+            return
+        bar_h = self.tabBar().height()
+        h = self.strip.layout().totalHeightForWidth(self.width()) if not self.strip.isHidden() else 0
+        self.strip.setGeometry(0, bar_h, self.width(), h)
+        stack.setGeometry(0, bar_h + h, self.width(), max(0, self.height() - bar_h - h))
+        self.strip.raise_()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.place()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self.place()
 
 
 class MainWindow(QMainWindow):
@@ -64,7 +112,7 @@ class MainWindow(QMainWindow):
         head.addWidget(self.remarks_panel)
         lay.addLayout(head)
 
-        self.tabs = QTabWidget()
+        self.tabs = OfferTabs()
         self.tabs.setDocumentMode(True)
         self.dictionary = DictionaryPage()
         self.norm = NormPage()
@@ -75,6 +123,8 @@ class MainWindow(QMainWindow):
         self.chains = ChainsPage()
         self.tabs.addTab(self.chains, "Step chains")
         self.tabs.setCurrentWidget(self.comparison)
+        self._build_offer()
+        self.tabs.currentChanged.connect(self._tab_changed)
         lay.addWidget(self.tabs, 1)
         self.setCentralWidget(body)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
@@ -82,6 +132,73 @@ class MainWindow(QMainWindow):
 
         last = settings.value(LAST) if settings is not None else None
         self.refresh(int(last) if last is not None else None)
+
+    def _build_offer(self) -> None:
+        strip = self.tabs.strip
+        strip.setObjectName("offer")
+        row = QHBoxLayout(strip)
+        row.setContentsMargins(16, 10, 16, 10)
+        row.setSpacing(16)
+        self._offer_label = QLabel()
+        self._offer_label.setWordWrap(True)
+        self._offer_label.setTextFormat(Qt.TextFormat.RichText)
+        row.addWidget(self._offer_label, 1)
+        self.offer_show_button = QPushButton("Show step chains")
+        self.offer_show_button.setProperty("primary", True)
+        self.offer_later_button = QPushButton("Not now")
+        self.offer_show_button.clicked.connect(self._offer_show)
+        self.offer_later_button.clicked.connect(lambda: self._set_offer(False))
+        row.addWidget(self.offer_show_button)
+        row.addWidget(self.offer_later_button)
+
+    def _set_offer(self, shown: bool) -> None:
+        self.tabs.strip.setVisible(shown)
+        self.tabs.place()
+
+    def _set_dot(self, shown: bool) -> None:
+        self.tabs.setTabIcon(3, _dot_icon() if shown else QIcon())
+        self.tabs.place()
+
+    def offer_visible(self) -> bool:
+        """Whether the offer bar is shown."""
+        return not self.tabs.strip.isHidden()
+
+    def offer_text(self) -> str:
+        """The text of the offer bar, without markup."""
+        doc = QTextDocumentFragment.fromHtml(self._offer_label.text())
+        return doc.toPlainText()
+
+    def chains_dot(self) -> bool:
+        """Whether the Step chains tab carries the dot."""
+        return not self.tabs.tabIcon(3).isNull()
+
+    def _tab_changed(self, index: int) -> None:
+        if index == 3 and self.chains_dot():
+            self._set_dot(False)
+
+    def _offer_show(self) -> None:
+        codes = self.chains.codes()
+        project = self.store.get(self.current_id) if self.current_id is not None else None
+        target = next((c for c in codes if project and empty_steps(project, c)), None)
+        if target is None and codes:
+            target = codes[0]
+        if target is not None:
+            self.chains.select_path(target)
+        self._set_offer(False)
+        self.tabs.setCurrentWidget(self.chains)
+
+    def _offer(self, project: Project) -> None:
+        n = len(project.model.variants)
+        k = project_empty_steps(project)
+        text = (f"<b>{html.escape(self.projects.currentText())} loaded: {_plural(n, 'path', 'paths')}.</b> "
+                "Check how your steps were split into transitions before you compare.")
+        if k:
+            verb = "has" if k == 1 else "have"
+            text += f" {_plural(k, 'step', 'steps')} {verb} no transitions."
+        self._offer_label.setText(text)
+        self._set_offer(True)
+        if self.tabs.currentIndex() != 3:
+            self._set_dot(True)
 
     @staticmethod
     def _button(bar: QHBoxLayout, text: str, slot) -> QPushButton:
@@ -115,6 +232,8 @@ class MainWindow(QMainWindow):
 
     def _open(self, pid: int | None) -> None:
         self.current_id = pid
+        self._set_offer(False)
+        self._set_dot(False)
         project = self.store.get(pid) if pid is not None else None
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
             page.show_project(project)
@@ -134,6 +253,7 @@ class MainWindow(QMainWindow):
             return False
         self.remarks_panel.hide()
         self.refresh(self.store.add(project))
+        self._offer(project)
         self.statusBar().showMessage(f"Loaded {Path(path).name}")
         return True
 
@@ -149,6 +269,7 @@ class MainWindow(QMainWindow):
         pid = self.current_id
         self.store.replace(pid, project)
         self.refresh(pid)
+        self._offer(project)
         self.statusBar().showMessage(f"Loaded {Path(path).name} over the project")
         return True
 
