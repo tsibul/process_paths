@@ -17,7 +17,11 @@ TEXT = LAUNDRY.read_text(encoding="utf-8")
 
 
 def base() -> dict:
-    return copy.deepcopy(json.loads(TEXT, parse_float=Decimal))
+    """The example without its ``steps``: most tests start from a variant without them."""
+    d = copy.deepcopy(json.loads(TEXT, parse_float=Decimal))
+    for v in d["variants"]:
+        v.pop("steps", None)
+    return d
 
 
 def remarks_of(d: dict):
@@ -431,10 +435,11 @@ def steps_of(count_each):
     return [{"text": f"Шаг {i}", "calls": n} for i, n in enumerate(count_each, 1)]
 
 
-def test_laundry_has_no_steps():
+def test_laundry_has_steps_on_every_variant():
     project, remarks = load_file(LAUNDRY)
     assert remarks == []
-    assert project.steps == {"А": None, "Б": None, "В": None}
+    assert set(project.steps) == {"А", "Б", "В"}
+    assert all(s is not None for s in project.steps.values())
 
 
 def test_steps_reach_project():

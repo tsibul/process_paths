@@ -19,7 +19,11 @@ D = Decimal
 
 
 def base() -> dict:
-    return copy.deepcopy(json.loads(LAUNDRY.read_text(encoding="utf-8"), parse_float=Decimal))
+    """The example without its ``steps``: most tests start from a variant without them."""
+    d = copy.deepcopy(json.loads(LAUNDRY.read_text(encoding="utf-8"), parse_float=Decimal))
+    for v in d["variants"]:
+        v.pop("steps", None)
+    return d
 
 
 def project_of(d):
@@ -30,9 +34,7 @@ def project_of(d):
 
 @pytest.fixture
 def project():
-    p, remarks = load_file(LAUNDRY)
-    assert remarks == []
-    return p
+    return project_of(base())
 
 
 def rows(project):
