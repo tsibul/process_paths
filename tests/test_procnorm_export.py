@@ -67,7 +67,7 @@ def test_csv_rows(project):
     assert by["Б"]["Skipped checks, end"] == "8.00"
     assert by["В"]["Skipped checks, end"] == "3.00"
     assert by["А"]["Side"] == "Ours" and by["Б"]["Side"] == "Theirs" and by["А"]["Steps"] == "7"
-    assert all(r[0] == "No comparable variant" and r[-1] == "" for r in rows[1:])
+    assert all(r[0] == "Task: Постирать бельё" and r[-1] == "" for r in rows[1:])
 
 
 def test_csv_groups_and_reason():
@@ -91,8 +91,8 @@ def test_markdown(project):
     assert "| 8.40 |" in md
     assert "| Б | Быстрая стирка | Theirs | 5 |" in md
     assert "| Code | Title | Side | Steps | Labour · Человек | Labour · total | Skipped checks, постирано | Skipped checks, end |" in md
-    assert "## No comparable variant" in md
-    assert "Not compared: no other variant has the same task" in md
+    assert "## Task: Постирать бельё" in md and "\n3 variants\n" in md
+    assert "## No comparable variant" not in md
     assert "## Uncounted errors" in md and "### Вне модели" in md and "- порошок закончился" in md
     assert "## Out of comparison" not in md
     assert "## Details" in md

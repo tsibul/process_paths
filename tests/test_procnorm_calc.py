@@ -168,7 +168,7 @@ def grouped_project():
 
 def test_row_task_and_reason(project):
     c = compare(project)
-    assert all(r.task is None and r.reason is None for r in c.rows)
+    assert all(r.task == "Постирать бельё" and r.reason is None for r in c.rows)
 
 
 def test_row_task_from_file():
@@ -227,7 +227,7 @@ def test_pair_of_two_own_is_a_group():
     g = groups(compare(project_of(d)))
     assert [(x.kind, x.task, [r.code for r in x.rows]) for x in g] == [
         ("task", "Мыть", ["б2", "а2"]),
-        ("no-pair", None, ["А", "Б", "В"])]
+        ("task", "Постирать бельё", ["А", "Б", "В"])]
 
 
 def test_out_of_comparison_does_not_make_a_pair():
@@ -235,13 +235,14 @@ def test_out_of_comparison_does_not_make_a_pair():
     clone(d, "А", "а2", "own", "Мыть")
     clone(d, "Б", "б2", "own", "Мыть", out="x")
     g = groups(compare(project_of(d)))
-    assert [x.kind for x in g] == ["no-pair", "out"]
-    assert "а2" in [r.code for r in g[0].rows]
+    assert [x.kind for x in g] == ["task", "no-pair", "out"]
+    assert "а2" in [r.code for r in g[1].rows]
 
 
 def test_empty_groups_absent():
     g = groups(compare(project_of(base())))
-    assert [x.kind for x in g] == ["no-pair"]
+    assert [x.kind for x in g] == ["task"]
+    assert g[0].task == "Постирать бельё"
     assert [r.code for r in g[0].rows] == ["А", "Б", "В"]
 
 

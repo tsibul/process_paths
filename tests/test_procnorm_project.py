@@ -403,10 +403,10 @@ def test_zero_weight_cost_one_is_remark():
 
 # ---------- task ----------
 
-def test_laundry_has_no_tasks():
+def test_laundry_has_one_task():
     project, remarks = load_file(LAUNDRY)
     assert remarks == []
-    assert project.tasks == {"А": None, "Б": None, "В": None}
+    assert project.tasks == {"А": "Постирать бельё", "Б": "Постирать бельё", "В": "Постирать бельё"}
 
 
 def test_task_reaches_project():
@@ -415,7 +415,7 @@ def test_task_reaches_project():
     variant(d, "Б")["task"] = " Постирать бельё "
     project, remarks = read_project(d)
     assert remarks == []
-    assert project.tasks == {"А": "Постирать бельё", "Б": " Постирать бельё ", "В": None}
+    assert project.tasks == {"А": "Постирать бельё", "Б": " Постирать бельё ", "В": "Постирать бельё"}
 
 
 @pytest.mark.parametrize("value", ["", "   ", "\t\n", 5, True, None, ["x"], {"a": "b"}])
