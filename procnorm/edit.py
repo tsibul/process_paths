@@ -12,7 +12,7 @@ import copy
 import re
 from decimal import Decimal
 
-from procnorm.project import Remark, read_project
+from procnorm.project import FINAL, Remark, read_project
 
 NUMBER_TABLES = ("kind_costs", "executor_coefficients", "scope_coefficients", "axis_skip_prices")
 
@@ -253,4 +253,286 @@ def rename_variant(data: dict, code: str, new_code: str, title: str
     if new_code != code and _variant(new, new_code) is not None:
         return None, [Remark(where, f"variant code is taken: {new_code}")]
     v["code"], v["title"] = new_code, title
+    return _checked(new)
+
+
+# ---------- dictionary words ----------
+
+WORDS = ("entity", "axis", "value", "kind", "executor", "instrument", "scope", "variant_param",
+         "named_slice")
+
+_LISTS = {"executor": "executors", "instrument": "instruments", "scope": "scopes",
+          "variant_param": "variant_params"}
+_CALL_FIELD = {"kind": 0, "executor": 1, "instrument": 2, "scope": 3}
+_COEFFICIENTS = {"kind": "kind_costs", "executor": "executor_coefficients",
+                 "scope": "scope_coefficients"}
+
+
+def _rekey(d: dict, old: str, new: str) -> dict:
+    """The dict with the key ``old`` named ``new``, in the same order."""
+    return {(new if k == old else k): v for k, v in d.items()}
+
+
+def _swap(items: list, old: str, new: str) -> None:
+    items[:] = [new if x == old else x for x in items]
+
+
+def _entity(new: dict, name: str) -> dict | None:
+    return next((e for e in new["entities"] if e["name"] == name), None)
+
+
+def _axis(new: dict, entity: str, axis: str) -> dict | None:
+    e = _entity(new, entity)
+    return next((a for a in e["axes"] if a["name"] == axis), None) if e else None
+
+
+def _states(new: dict):
+    """Every ``[entity, axis, value]`` triple: kind conditions and named slice conditions."""
+    for k in new["kinds"]:
+        yield from k.get("requires", [])
+    for spec in new.get("named_slices", {}).values():
+        for g in spec["any"]:
+            yield from g.get("states", [])
+
+
+def _rename_entity(new: dict, old: str, name: str) -> str | None:
+    if _entity(new, old) is None:
+        return "no such entity"
+    if name == old:
+        return None
+    if _entity(new, name) is not None:
+        return f"entity name is taken: {name}"
+    for e in new["entities"]:
+        if e["name"] == old:
+            e["name"] = name
+        for a in e["axes"]:
+            for src in a.get("inherit", []):
+                if src[0] == old:
+                    src[0] = name
+    for k in new["kinds"]:
+        if k["entity"] == old:
+            k["entity"] = name
+    for t in _states(new):
+        if t[0] == old:
+            t[0] = name
+    for v in new["variants"]:
+        if "entities" in v:
+            _swap(v["entities"], old, name)
+        if "initial" in v:
+            v["initial"] = _rekey(v["initial"], old, name)
+    norm = new["normalization"]
+    if "axis_skip_prices" in norm:
+        norm["axis_skip_prices"] = _rekey(norm["axis_skip_prices"], old, name)
+    return None
+
+
+def _rename_axis(new: dict, old: tuple[str, str], name: str) -> str | None:
+    entity, axis = old
+    if _axis(new, entity, axis) is None:
+        return "no such axis"
+    if name == axis:
+        return None
+    existence = new["existence_axis"]
+    if axis == existence["name"]:
+        # one word for every entity that appears or disappears
+        targets = {e["name"] for e in new["entities"] if any(a["name"] == axis for a in e["axes"])}
+        if any(a["name"] == name for e in new["entities"] for a in e["axes"]):
+            return f"axis name is taken: {name}"
+        existence["name"] = name
+    else:
+        targets = {entity}
+        if _axis(new, entity, name) is not None:
+            return f"axis name is taken: {name}"
+        if name == existence["name"]:
+            return f"the name {name!r} is the existence axis"
+    for e in new["entities"]:
+        for a in e["axes"]:
+            if e["name"] in targets and a["name"] == axis:
+                a["name"] = name
+            for src in a.get("inherit", []):
+                if src[0] in targets and src[1] == axis:
+                    src[1] = name
+    for k in new["kinds"]:
+        if k["entity"] in targets and k["axis"] == axis:
+            k["axis"] = name
+    for t in _states(new):
+        if t[0] in targets and t[1] == axis:
+            t[1] = name
+    for v in new["variants"]:
+        for e, axes in v.get("initial", {}).items():
+            if e in targets:
+                v["initial"][e] = _rekey(axes, axis, name)
+    prices = new["normalization"].get("axis_skip_prices", {})
+    for e, axes in prices.items():
+        if e in targets:
+            prices[e] = _rekey(axes, axis, name)
+    return None
+
+
+def _value_axes(new: dict, entity: str, axis: str, value: str) -> set[tuple[str, str]]:
+    """The axes where ``value`` is one word with the value of ``entity/axis``.
+
+    The value "does not exist" is one for all existence axes; an axis that inherits takes the value
+    of its source by name, so the value is one along the inherit links.
+    """
+    existence = new["existence_axis"]
+    if axis == existence["name"] and value == existence["absent"]:
+        found = {(e["name"], a["name"]) for e in new["entities"] for a in e["axes"]
+                 if a["name"] == axis}
+    else:
+        found = {(entity, axis)}
+    links = [((e["name"], a["name"]), tuple(src)) for e in new["entities"] for a in e["axes"]
+             for src in a.get("inherit", [])]
+    grown = True
+    while grown:
+        grown = False
+        for x, y in links:
+            for p, q in ((x, y), (y, x)):
+                if p in found and q not in found:
+                    ax = _axis(new, *q)
+                    if ax is not None and value in ax["values"]:
+                        found.add(q)
+                        grown = True
+    return found
+
+
+def _rename_value(new: dict, old: tuple[str, str, str], name: str) -> str | None:
+    entity, axis, value = old
+    ax = _axis(new, entity, axis)
+    if ax is None or value not in ax["values"]:
+        return "no such value"
+    if name == value:
+        return None
+    targets = _value_axes(new, entity, axis, value)
+    for e, a in sorted(targets):
+        if name in _axis(new, e, a)["values"]:
+            return f"value is taken: {e}/{a}={name}"
+    existence = new["existence_axis"]
+    if axis == existence["name"] and value == existence["absent"]:
+        existence["absent"] = name
+    for e, a in targets:
+        _swap(_axis(new, e, a)["values"], value, name)
+    for k in new["kinds"]:
+        if (k["entity"], k["axis"]) in targets:
+            for f in ("from", "to"):
+                if k[f] == value:
+                    k[f] = name
+    for t in _states(new):
+        if (t[0], t[1]) in targets and t[2] == value:
+            t[2] = name
+    for v in new["variants"]:
+        for e, axes in v.get("initial", {}).items():
+            for a, x in axes.items():
+                if (e, a) in targets and x == value:
+                    axes[a] = name
+    return None
+
+
+def _rename_named_slice(new: dict, old: str, name: str) -> str | None:
+    slices = new.get("named_slices", {})
+    if old not in slices:
+        return "no such named slice"
+    if name == old:
+        return None
+    if name == FINAL:
+        return f"the name {FINAL!r} is reserved for the final slice"
+    if name in slices:
+        return f"named slice name is taken: {name}"
+    new["named_slices"] = _rekey(slices, old, name)
+    return None
+
+
+def _rename_simple(new: dict, what: str, old: str, name: str) -> str | None:
+    """Kind, executor, instrument, scope, variant parameter."""
+    label = what.replace("_", " ")
+    names = [k["name"] for k in new["kinds"]] if what == "kind" else new.get(_LISTS[what], [])
+    if old not in names:
+        return f"no such {label}"
+    if name == old:
+        return None
+    if name in names:
+        return f"{label} name is taken: {name}"
+    if what == "kind":
+        for k in new["kinds"]:
+            if k["name"] == old:
+                k["name"] = name
+    else:
+        _swap(new[_LISTS[what]], old, name)
+    if what in _CALL_FIELD:
+        i = _CALL_FIELD[what]
+        for v in new["variants"]:
+            for c in v["calls"]:
+                if c[i] == old:
+                    c[i] = name
+    if what == "scope" and new["batch_scope"] == old:
+        new["batch_scope"] = name
+    if what == "executor":
+        for v in new["variants"]:
+            for p, x in v.get("params", {}).items():
+                if x == old:
+                    v["params"][p] = name
+    if what == "variant_param":
+        for v in new["variants"]:
+            if "params" in v:
+                v["params"] = _rekey(v["params"], old, name)
+    if what in ("executor", "variant_param"):
+        i = 1 if what == "executor" else 0
+        for spec in new.get("named_slices", {}).values():
+            for g in spec["any"]:
+                for pair in g.get("params", []):
+                    if pair[i] == old:
+                        pair[i] = name
+    if what in _COEFFICIENTS:
+        norm = new["normalization"]
+        if _COEFFICIENTS[what] in norm:
+            norm[_COEFFICIENTS[what]] = _rekey(norm[_COEFFICIENTS[what]], old, name)
+    return None
+
+
+def rename(data: dict, what: str, old: str | tuple[str, ...], name: str
+           ) -> tuple[dict | None, list[Remark]]:
+    """Rename a dictionary word everywhere in the project.
+
+    Changes the word in the dictionary, kinds and their conditions, inherit sources, the existence
+    axis and its "does not exist" value, the batch scope, named slice conditions, the variants
+    (calls, params, entities, initial) and the normalization. Human texts (titles, tasks, steps) are
+    not touched. An empty name and a taken name are refused; the same name changes nothing.
+
+    A value is one word along the inherit links (an inheriting axis takes the value by name), and
+    "does not exist" is one word for all existence axes; the existence axis is one name for all
+    entities. Such a word is renamed in all its axes.
+
+    :param data: the parsed project file; not changed.
+    :param what: one of :data:`WORDS`.
+    :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+    :param name: the new name; spaces around it are dropped.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    size = {"axis": 2, "value": 3}.get(what)
+    shaped = (isinstance(old, tuple) and len(old) == size and all(isinstance(x, str) for x in old)
+              if size else isinstance(old, str))
+    label = "/".join(old) if size and shaped else str(old)
+    where = f"{what.replace('_', ' ')} {label}"
+    if what not in WORDS:
+        return None, [Remark(where, f"unknown kind of word: {what}")]
+    if not shaped:
+        return None, [Remark(where, f"name must be ({', '.join(('entity', 'axis', 'value')[:size])})"
+                                    if size else "name must be a text")]
+    name = name.strip() if isinstance(name, str) else ""
+    if not name:
+        return None, [Remark(where, "name must not be empty")]
+    new = copy.deepcopy(data)
+    if what == "entity":
+        reason = _rename_entity(new, old, name)
+    elif what == "axis":
+        reason = _rename_axis(new, old, name)
+    elif what == "value":
+        reason = _rename_value(new, old, name)
+    elif what == "named_slice":
+        reason = _rename_named_slice(new, old, name)
+    else:
+        reason = _rename_simple(new, what, old, name)
+    if reason is not None:
+        return None, [Remark(where, reason)]
     return _checked(new)
