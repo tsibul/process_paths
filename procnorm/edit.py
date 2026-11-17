@@ -853,3 +853,136 @@ def add_word(data: dict, what: str, name: str | tuple[str, ...],
             return _add_refuse(what, f"{label} name is taken: {name}")
         words.append(name)
     return _checked(new)
+
+
+# ---------- order of words, batch scope, existence axis ----------
+
+_ORDER_LISTS = {"kind": "kinds", "executor": "executors", "instrument": "instruments",
+                "scope": "scopes", "variant_param": "variant_params"}
+
+
+def _move_in(items: list, index: int, delta: int) -> bool:
+    """Swap the item with its neighbour; False when the neighbour does not exist."""
+    other = index + delta
+    if not 0 <= other < len(items):
+        return False
+    items[index], items[other] = items[other], items[index]
+    return True
+
+
+def _order_list(new: dict, what: str, name: str | tuple[str, ...]) -> tuple[list | None, object]:
+    """The list that holds the word and the word's key in it, or ``(None, None)``."""
+    if what == "entity":
+        items = new["entities"]
+        keys = [e["name"] for e in items]
+    elif what == "axis":
+        owner = _entity(new, name[0])
+        items = owner["axes"] if owner else []
+        keys = [a["name"] for a in items]
+        name = name[1]
+    elif what == "value":
+        found = _axis(new, name[0], name[1])
+        items = found["values"] if found else []
+        keys = items
+        name = name[2]
+    elif what == "kind":
+        items = new["kinds"]
+        keys = [k["name"] for k in items]
+    elif what == "named_slice":
+        items = list(new.get("named_slices", {}))
+        keys = items
+    else:
+        items = new.get(_ORDER_LISTS[what], [])
+        keys = items
+    if name not in keys:
+        return None, None
+    return items, keys.index(name)
+
+
+def move_word(data: dict, what: str, name: str | tuple[str, ...], delta: int
+              ) -> tuple[dict | None, list[Remark]]:
+    """Move a dictionary word one place up (``delta`` -1) or down (+1) in its own list.
+
+    The lists are the entities, the axes of an entity, the values of an axis, the kinds, the
+    executors, the instruments, the scopes, the variant parameters and the named slices. A word
+    never leaves its list: not to another entity, not to another axis. A move past the edge is
+    refused.
+
+    The first value of an axis is its initial value: moving it changes the initial slice, and a
+    variant that no longer runs gets an ``error`` (the project still reads).
+
+    :param data: the parsed project file; not changed.
+    :param what: one of :data:`WORDS`.
+    :param name: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+    :param delta: -1 for up, +1 for down.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    label = _shape(what, name)
+    where = f"{what.replace('_', ' ')} {label}"
+    if label is None:
+        return None, [Remark("move word", f"unknown kind of word or wrong name: {what}")]
+    if delta not in (-1, 1) or isinstance(delta, bool):
+        return None, [Remark(where, "move by -1 or +1")]
+    new = copy.deepcopy(data)
+    items, index = _order_list(new, what, name)
+    if items is None:
+        return None, [Remark(where, "no such word")]
+    if what == "named_slice":
+        slices = new["named_slices"]
+        if not _move_in(items, index, delta):
+            return None, [Remark(where, f"cannot move {'up' if delta < 0 else 'down'}")]
+        new["named_slices"] = {key: slices[key] for key in items}
+        return _checked(new)
+    if not _move_in(items, index, delta):
+        return None, [Remark(where, f"cannot move {'up' if delta < 0 else 'down'}")]
+    return _checked(new)
+
+
+def set_batch_scope(data: dict, scope: str) -> tuple[dict | None, list[Remark]]:
+    """Choose which scope of the dictionary is the "per batch" scope.
+
+    :param data: the parsed project file; not changed.
+    :param scope: a scope of the project.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the scope is unknown.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    where = "batch scope"
+    if not isinstance(scope, str) or scope not in data["scopes"]:
+        return None, [Remark(where, f"no such scope: {scope}")]
+    new = copy.deepcopy(data)
+    new["batch_scope"] = scope
+    return _checked(new)
+
+
+def set_existence_axis(data: dict, name: str, absent: str) -> tuple[dict | None, list[Remark]]:
+    """Set the name of the existence axis and its "does not exist" value.
+
+    Both words change everywhere they stand: in every entity that has the axis, in the kinds, the
+    conditions, the inherit sources, the initial states and the axis skip prices. The comparison
+    does not change.
+
+    :param data: the parsed project file; not changed.
+    :param name: the new name of the existence axis; spaces around it are dropped.
+    :param absent: the new "does not exist" value; spaces around it are dropped.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when a word is empty or taken.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    where = "existence axis"
+    name = name.strip() if isinstance(name, str) else ""
+    absent = absent.strip() if isinstance(absent, str) else ""
+    if not name or not absent:
+        return None, [Remark(where, "name and value must be texts, not empty")]
+    new = copy.deepcopy(data)
+    old = new["existence_axis"]["name"]
+    owner = next((e for e in new["entities"] if any(a["name"] == old for a in e["axes"])), None)
+    if owner is not None:
+        reason = _rename_axis(new, (owner["name"], old), name)
+        if reason is None:
+            reason = _rename_value(new, (owner["name"], name, new["existence_axis"]["absent"]),
+                                   absent)
+        if reason is not None:
+            return None, [Remark(where, reason)]
+    else:
+        new["existence_axis"] = {"name": name, "absent": absent}
+    return _checked(new)
