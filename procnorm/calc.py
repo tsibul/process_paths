@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
 from process_paths.engine import Slice, run_variant
@@ -46,6 +46,8 @@ class Row:
     :ivar labour: ``{executor: labour}`` for the table columns.
     :ivar total: total labour.
     :ivar slices: named slices in dictionary order, then the final slice.
+    :ivar task: task of the variant, ``None`` when absent.
+    :ivar reason: reason of ``out_of_comparison``, ``None`` for a compared variant.
     """
 
     code: str
@@ -55,6 +57,8 @@ class Row:
     labour: dict[str, Decimal]
     total: Decimal
     slices: list[SliceResult]
+    task: str | None = None
+    reason: str | None = None
 
 
 @dataclass
@@ -66,6 +70,7 @@ class Comparison:
     :ivar rows: compared variants, in file order.
     :ivar excluded: ``[(code, title, reason)]`` of variants out of comparison.
     :ivar uncounted_errors: ``{group: [text]}``.
+    :ivar excluded_rows: the variants out of comparison, computed, with ``reason``; file order.
     """
 
     executors: list[str]
@@ -73,6 +78,21 @@ class Comparison:
     rows: list[Row]
     excluded: list[tuple[str, str, str]]
     uncounted_errors: dict[str, list[str]]
+    excluded_rows: list[Row] = field(default_factory=list)
+
+
+@dataclass
+class Group:
+    """A group of rows of the comparison.
+
+    :ivar kind: ``"task"`` (a pair or more), ``"no-pair"`` or ``"out"``.
+    :ivar task: task text for ``"task"``, otherwise ``None``.
+    :ivar rows: own first, then other; within a side by total, then by code.
+    """
+
+    kind: str
+    task: str | None
+    rows: list[Row]
 
 
 @dataclass
@@ -152,7 +172,8 @@ def _row(project: Project, v: Variant, columns: list[str]) -> Row:
         idx = last if i is None else i
         results.append(_slice_result(project, ns.name, idx, i is not None, slices[idx]))
     results.append(_slice_result(project, FINAL, last, True, slices[last]))
-    return Row(v.code, v.title, project.sides[v.code], len(v.calls), labour, total, results)
+    return Row(v.code, v.title, project.sides[v.code], len(v.calls), labour, total, results,
+               project.tasks.get(v.code), v.out_of_comparison or None)
 
 
 def compare(project: Project) -> Comparison:
@@ -163,14 +184,43 @@ def compare(project: Project) -> Comparison:
     :rtype: Comparison
     """
     columns = _columns(project)
-    rows, excluded = [], []
+    rows, excluded, excluded_rows = [], [], []
     for v in project.model.variants:
         if v.out_of_comparison:
             excluded.append((v.code, v.title, v.out_of_comparison))
+            excluded_rows.append(_row(project, v, columns))
         else:
             rows.append(_row(project, v, columns))
     names = [ns.name for ns in project.model.named_slices] + [FINAL]
-    return Comparison(columns, names, rows, excluded, project.norm.uncounted_errors)
+    return Comparison(columns, names, rows, excluded, project.norm.uncounted_errors, excluded_rows)
+
+
+def _ordered(rows: list[Row]) -> list[Row]:
+    return sorted(rows, key=lambda r: (r.side != "own", r.total, r.code))
+
+
+def groups(comparison: Comparison) -> list[Group]:
+    """Split the rows into groups, in the default order.
+
+    Groups with a pair (a task of two or more compared variants) go alphabetically by task,
+    then variants without a pair, then variants out of comparison. Empty groups are absent.
+
+    :param comparison: the table.
+    :return: the groups.
+    :rtype: list[Group]
+    """
+    by_task: dict[str, list[Row]] = {}
+    for r in comparison.rows:
+        if r.task is not None:
+            by_task.setdefault(r.task, []).append(r)
+    paired = sorted((t for t, rs in by_task.items() if len(rs) >= 2), key=lambda t: (t.casefold(), t))
+    out = [Group("task", t, _ordered(by_task[t])) for t in paired]
+    single = [r for r in comparison.rows if r.task not in paired]
+    if single:
+        out.append(Group("no-pair", None, _ordered(single)))
+    if comparison.excluded_rows:
+        out.append(Group("out", None, _ordered(comparison.excluded_rows)))
+    return out
 
 
 def details(project: Project, code: str) -> list[Step]:

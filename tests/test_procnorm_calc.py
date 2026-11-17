@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.calc import compare, details, fmt
+from procnorm.calc import compare, details, fmt, groups
 from procnorm.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
@@ -133,3 +133,113 @@ def test_fmt():
     assert fmt(D("8.40")) == "8.4"
     assert fmt(D("1E+1")) == "10"
     assert fmt(D("0.000")) == "0"
+
+
+# ---------- task, out of comparison with numbers, groups ----------
+
+def clone(d, src, code, side, task=None, out=None):
+    v = copy.deepcopy(next(x for x in d["variants"] if x["code"] == src))
+    v["code"], v["title"], v["side"] = code, "T" + code, side
+    for key, val in (("task", task), ("out_of_comparison", out)):
+        if val is not None:
+            v[key] = val
+        else:
+            v.pop(key, None)
+    d["variants"].append(v)
+
+
+def grouped_project():
+    """А 8.4 own, Б 3.4 other, В 5.4 other (all without task); more are cloned."""
+    d = base()
+    for v in d["variants"]:
+        v.pop("task", None)
+    clone(d, "А", "а2", "own", "Мыть")       # 8.4
+    clone(d, "Б", "б2", "other", "Мыть")     # 3.4
+    clone(d, "В", "в2", "other", "Мыть")     # 5.4
+    clone(d, "Б", "б3", "own", "Мыть")       # 3.4
+    clone(d, "Б", "б0", "own", "Мыть")       # 3.4, ties with б3: by code
+    clone(d, "А", "а3", "own", "Сушить")     # 8.4
+    clone(d, "В", "в3", "own", "Сушить")     # 5.4
+    clone(d, "Б", "б4", "own", "Одна")       # alone
+    clone(d, "А", "а4", "other", "Вне", out="не сравнивать")
+    clone(d, "Б", "б5", "own", "Мыть", out="ещё не готов")
+    return project_of(d)
+
+
+def test_row_task_and_reason(project):
+    c = compare(project)
+    assert all(r.task is None and r.reason is None for r in c.rows)
+
+
+def test_row_task_from_file():
+    d = base()
+    next(v for v in d["variants"] if v["code"] == "Б")["task"] = "Мыть"
+    assert rows(project_of(d))["Б"].task == "Мыть"
+
+
+def test_excluded_rows_have_numbers_and_reason():
+    d = base()
+    next(v for v in d["variants"] if v["code"] == "Б")["out_of_comparison"] = "не сравнивать"
+    c = compare(project_of(d))
+    assert [r.code for r in c.rows] == ["А", "В"]
+    assert c.excluded == [("Б", "Быстрая стирка", "не сравнивать")]
+    assert [r.code for r in c.excluded_rows] == ["Б"]
+    b = c.excluded_rows[0]
+    assert b.reason == "не сравнивать" and b.side == "other"
+
+
+def test_excluded_numbers_equal_unmarked():
+    plain = {r.code: r for r in compare(project_of(base())).rows}["Б"]
+    d = base()
+    next(v for v in d["variants"] if v["code"] == "Б")["out_of_comparison"] = "x"
+    marked = compare(project_of(d)).excluded_rows[0]
+    assert (marked.steps, marked.labour, marked.total, marked.slices) == \
+           (plain.steps, plain.labour, plain.total, plain.slices)
+
+
+def test_groups_order_and_kinds():
+    g = groups(compare(grouped_project()))
+    assert [(x.kind, x.task) for x in g] == [
+        ("task", "Мыть"), ("task", "Сушить"), ("no-pair", None), ("out", None)]
+
+
+def test_groups_rows_order():
+    g = groups(compare(grouped_project()))
+    # own first, then other; by total, tie by code
+    assert [r.code for r in g[0].rows] == ["б0", "б3", "а2", "б2", "в2"]
+    assert [r.code for r in g[1].rows] == ["в3", "а3"]
+
+
+def test_groups_no_pair_and_out():
+    g = groups(compare(grouped_project()))
+    # alone task "Одна" and the three without task: А own, Б, В other
+    assert [r.code for r in g[2].rows] == ["б4", "А", "Б", "В"]
+    assert g[2].task is None
+    # out of comparison regardless of task; own first
+    assert [r.code for r in g[3].rows] == ["б5", "а4"]
+    assert [r.reason for r in g[3].rows] == ["ещё не готов", "не сравнивать"]
+
+
+def test_pair_of_two_own_is_a_group():
+    d = base()
+    clone(d, "А", "а2", "own", "Мыть")
+    clone(d, "Б", "б2", "own", "Мыть")
+    g = groups(compare(project_of(d)))
+    assert [(x.kind, x.task, [r.code for r in x.rows]) for x in g] == [
+        ("task", "Мыть", ["б2", "а2"]),
+        ("no-pair", None, ["А", "Б", "В"])]
+
+
+def test_out_of_comparison_does_not_make_a_pair():
+    d = base()
+    clone(d, "А", "а2", "own", "Мыть")
+    clone(d, "Б", "б2", "own", "Мыть", out="x")
+    g = groups(compare(project_of(d)))
+    assert [x.kind for x in g] == ["no-pair", "out"]
+    assert "а2" in [r.code for r in g[0].rows]
+
+
+def test_empty_groups_absent():
+    g = groups(compare(project_of(base())))
+    assert [x.kind for x in g] == ["no-pair"]
+    assert [r.code for r in g[0].rows] == ["А", "Б", "В"]
