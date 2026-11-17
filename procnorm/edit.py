@@ -745,3 +745,111 @@ def empty_project(name: str) -> tuple[dict | None, list[Remark]]:
     if project is None:
         return None, remarks
     return data, []
+
+
+ADDED_WORDS = ("entity", "axis", "value", "executor", "instrument", "scope", "variant_param")
+
+
+def _add_refuse(what: str, reason: str) -> tuple[None, list[Remark]]:
+    return None, [Remark(f"add {what.replace('_', ' ')}", reason)]
+
+
+def _add_name(what: str, name: object) -> tuple[str | tuple[str, ...] | None, str | None]:
+    """Check the shape of the name and trim it.
+
+    :return: ``(trimmed name, None)``, or ``(None, reason)``.
+    """
+    size = {"axis": 2, "value": 3}.get(what)
+    if size is None:
+        if not isinstance(name, str):
+            return None, "name must be text"
+        parts = (name,)
+    else:
+        if not (isinstance(name, tuple) and len(name) == size
+                and all(isinstance(x, str) for x in name)):
+            if what == "axis":
+                return None, "name must be (entity, axis)"
+            return None, "name must be (entity, axis, value)"
+        parts = name
+    trimmed = tuple(x.strip() for x in parts)
+    if not all(trimmed):
+        return None, "name is empty"
+    return (trimmed if size else trimmed[0]), None
+
+
+def _add_variant_param(new: dict, name: str, executor: str | None) -> str | None:
+    params = new.setdefault("variant_params", [])
+    if name in params:
+        return f"variant parameter name is taken: {name}"
+    if new["variants"]:
+        if executor is None or not executor.strip():
+            return "the variants need an executor for the new variant parameter"
+        executor = executor.strip()
+        if executor not in new["executors"]:
+            return f"no such executor: {executor}"
+    params.append(name)
+    for v in new["variants"]:
+        v.setdefault("params", {})[name] = executor
+    return None
+
+
+def add_word(data: dict, what: str, name: str | tuple[str, ...],
+             first_value: str | None = None, executor: str | None = None
+             ) -> tuple[dict | None, list[Remark]]:
+    """Add a dictionary word at the end of its list.
+
+    An axis comes with its first value (an axis with no values does not exist). A variant parameter
+    of a project that has variants needs an executor: every variant gets it as the parameter value.
+    A repeat and an empty name are refused; so is whatever the lenient read refuses (for example an
+    axis of the existence axis name without the "does not exist" value).
+
+    :param data: the parsed project file; not changed.
+    :param what: one of :data:`ADDED_WORDS`.
+    :param name: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+        Spaces around it are dropped.
+    :param first_value: the first value of the new axis; only for ``axis``.
+    :param executor: the executor all variants take for the new parameter; only for
+        ``variant_param``.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    if what not in ADDED_WORDS:
+        return _add_refuse(what, f"cannot add this kind of word: {what}")
+    name, reason = _add_name(what, name)
+    if reason:
+        return _add_refuse(what, reason)
+    new = copy.deepcopy(data)
+    label = what.replace("_", " ")
+    if what == "entity":
+        if _entity(new, name) is not None:
+            return _add_refuse(what, f"entity name is taken: {name}")
+        new["entities"].append({"name": name, "axes": []})
+    elif what == "axis":
+        entity, axis = name
+        owner = _entity(new, entity)
+        if owner is None:
+            return _add_refuse(what, f"no such entity: {entity}")
+        if _axis(new, entity, axis) is not None:
+            return _add_refuse(what, f"axis name is taken: {entity}/{axis}")
+        first = first_value.strip() if isinstance(first_value, str) else ""
+        if not first:
+            return _add_refuse(what, f"axis {entity}/{axis} needs its first value")
+        owner["axes"].append({"name": axis, "values": [first]})
+    elif what == "value":
+        entity, axis, value = name
+        found = _axis(new, entity, axis)
+        if found is None:
+            return _add_refuse(what, f"no such axis: {entity}/{axis}")
+        if value in found["values"]:
+            return _add_refuse(what, f"value name is taken: {entity}/{axis}={value}")
+        found["values"].append(value)
+    elif what == "variant_param":
+        reason = _add_variant_param(new, name, executor)
+        if reason:
+            return _add_refuse(what, reason)
+    else:
+        words = new[_LISTS[what]]
+        if name in words:
+            return _add_refuse(what, f"{label} name is taken: {name}")
+        words.append(name)
+    return _checked(new)
