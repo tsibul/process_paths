@@ -536,3 +536,180 @@ def rename(data: dict, what: str, old: str | tuple[str, ...], name: str
     if reason is not None:
         return None, [Remark(where, reason)]
     return _checked(new)
+
+
+# ---------- usages and deletion of dictionary words ----------
+
+def _exists(data: dict, what: str, old) -> bool:
+    if what == "entity":
+        return _entity(data, old) is not None
+    if what == "axis":
+        return _axis(data, *old) is not None
+    if what == "value":
+        ax = _axis(data, old[0], old[1])
+        return ax is not None and old[2] in ax["values"]
+    if what == "named_slice":
+        return old in data.get("named_slices", {})
+    if what == "kind":
+        return any(k["name"] == old for k in data["kinds"])
+    return old in data.get(_LISTS[what], [])
+
+
+def _places(data: dict, what: str, old) -> list[str]:
+    """Every place where the word is used; the normalization numbers are not among them."""
+    out: list[str] = []
+    variants, kinds = data["variants"], data["kinds"]
+    slices = data.get("named_slices", {})
+    if what in _CALL_FIELD:
+        i = _CALL_FIELD[what]
+        for v in variants:
+            out += [f"variant {v['code']}, call {n}" for n, c in enumerate(v["calls"], 1)
+                    if c[i] == old]
+    if what == "scope" and data["batch_scope"] == old:
+        out.append("batch scope")
+    if what in ("executor", "variant_param"):
+        for v in variants:
+            for p, x in v.get("params", {}).items():
+                if (x if what == "executor" else p) == old:
+                    out.append(f"variant {v['code']}, parameter {p}")
+        i = 1 if what == "executor" else 0
+        for name, spec in slices.items():
+            if any(pair[i] == old for g in spec["any"] for pair in g.get("params", [])):
+                out.append(f"slice {name}")
+    if what in ("entity", "axis", "value"):
+        out += _structure_places(data, what, old)
+    return out
+
+
+def _structure_places(data: dict, what: str, old) -> list[str]:
+    """Places of an entity, an axis or a value (several axes when it is one word along inherit)."""
+    entity = old if what == "entity" else old[0]
+    axis = old[1] if what != "entity" else None
+    value = old[2] if what == "value" else None
+    if what == "entity":
+        targets = None
+    elif what == "value":
+        targets = _value_axes(data, entity, axis, value)
+    else:
+        targets = {(entity, axis)}
+
+    def hit(e: str, a: str | None, x: str | None = None) -> bool:
+        if what == "entity":
+            return e == entity
+        if (e, a) not in targets:
+            return False
+        return what == "axis" or x == value
+
+    out: list[str] = []
+    for v in data["variants"]:
+        if what == "entity" and entity in v.get("entities", []):
+            out.append(f"variant {v['code']}, entities")
+        if any(hit(e, a, x) for e, axes in v.get("initial", {}).items()
+               for a, x in axes.items()):
+            out.append(f"variant {v['code']}, initial")
+    for k in data["kinds"]:
+        if what == "value":
+            out += [f"kind {k['name']}, {f}" for f in ("from", "to")
+                    if hit(k["entity"], k["axis"], k[f])]
+        elif hit(k["entity"], k["axis"]):
+            out.append(f"kind {k['name']}")
+        if any(hit(*t) for t in k.get("requires", [])):
+            out.append(f"kind {k['name']}, condition")
+    for name, spec in data.get("named_slices", {}).items():
+        if any(hit(*t) for g in spec["any"] for t in g.get("states", [])):
+            out.append(f"slice {name}")
+    for e in data["entities"]:
+        for a in e["axes"]:
+            if what != "value" and any(src[0] == entity and (what == "entity" or src[1] == axis)
+                                       for src in a.get("inherit", [])) \
+                    and not (what == "entity" and e["name"] == entity):
+                out.append(f"axis {e['name']}/{a['name']}, inherit")
+    if what == "value":
+        existence = data["existence_axis"]
+        if axis == existence["name"] and value == existence["absent"]:
+            out.append("existence axis")
+        for e, a in sorted(targets):
+            if _axis(data, e, a)["values"][0] == value:
+                out.append(f"initial value of {e}/{a}")
+    return out
+
+
+def usages(data: dict, what: str, old: str | tuple[str, ...]) -> list[str]:
+    """The places where a dictionary word is used, one text each, without repeats.
+
+    The places are: variant calls, parameters, entities and initial states; kinds and their
+    conditions; named slice conditions; inherit sources; the batch scope; the existence axis; the
+    first value of an axis (the initial state when a variant does not set it). A normalization
+    number is not a place. An unknown word, or a name of a wrong shape, has none.
+
+    :param data: the parsed project file; not changed.
+    :param what: one of :data:`WORDS`.
+    :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+    :return: the places, in the order of variants, kinds, slices.
+    :rtype: list[str]
+    """
+    if _shape(what, old) is None or not _exists(data, what, old):
+        return []
+    found = _places(data, what, old)
+    return list(dict.fromkeys(found))
+
+
+def _shape(what: str, old) -> str | None:
+    """The name for messages, or None when ``what`` or the shape of ``old`` is wrong."""
+    if what not in WORDS:
+        return None
+    size = {"axis": 2, "value": 3}.get(what)
+    if size:
+        ok = isinstance(old, tuple) and len(old) == size and all(isinstance(x, str) for x in old)
+        return "/".join(old) if ok else None
+    return old if isinstance(old, str) else None
+
+
+def delete(data: dict, what: str, old: str | tuple[str, ...]) -> tuple[dict | None, list[Remark]]:
+    """Delete a dictionary word that is not used anywhere, with its normalization number.
+
+    A used word is refused with the remark ``<name> is used and cannot be deleted:`` and one place
+    per line (all of them, see :func:`usages`). Deleting an entity takes its axes and their skip
+    prices; an axis takes its skip price.
+
+    :param data: the parsed project file; not changed.
+    :param what: one of :data:`WORDS`.
+    :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    label = _shape(what, old)
+    where = f"{what.replace('_', ' ')} {label if label is not None else old}"
+    if what not in WORDS:
+        return None, [Remark(where, f"unknown kind of word: {what}")]
+    if label is None:
+        size = {"axis": 2, "value": 3}.get(what)
+        return None, [Remark(where, f"name must be ({', '.join(('entity', 'axis', 'value')[:size])})"
+                                    if size else "name must be a text")]
+    if not _exists(data, what, old):
+        return None, [Remark(where, f"no such {what.replace('_', ' ')}")]
+    places = usages(data, what, old)
+    if places:
+        short = old[-1] if isinstance(old, tuple) else old
+        return None, [Remark(where, f"{short} is used and cannot be deleted:\n" + "\n".join(places))]
+    new = copy.deepcopy(data)
+    norm = new["normalization"]
+    if what == "entity":
+        new["entities"] = [e for e in new["entities"] if e["name"] != old]
+        norm.get("axis_skip_prices", {}).pop(old, None)
+    elif what == "axis":
+        _axes = _entity(new, old[0])["axes"]
+        _axes[:] = [a for a in _axes if a["name"] != old[1]]
+        norm.get("axis_skip_prices", {}).get(old[0], {}).pop(old[1], None)
+    elif what == "value":
+        for e, a in _value_axes(new, *old):
+            _axis(new, e, a)["values"].remove(old[2])
+    elif what == "named_slice":
+        del new["named_slices"][old]
+    elif what == "kind":
+        new["kinds"] = [k for k in new["kinds"] if k["name"] != old]
+    else:
+        new[_LISTS[what]].remove(old)
+    if what in _COEFFICIENTS:
+        norm.get(_COEFFICIENTS[what], {}).pop(old, None)
+    return _checked(new)
