@@ -144,6 +144,8 @@ class MainWindow(QMainWindow):
         self.dictionary.batch_set.connect(self.set_batch_scope)
         self.dictionary.kind_added.connect(self.add_kind)
         self.dictionary.kind_set.connect(self.set_kind)
+        self.dictionary.slice_added.connect(self.add_slice)
+        self.dictionary.slice_set.connect(self.set_slice)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -468,6 +470,38 @@ class MainWindow(QMainWindow):
         new, remarks = fn(data, name, structure)
         if new is None:
             self._refuse_word("kind", remarks, (own, f"kind {name.strip()}"))
+            return False
+        self._save_edit(new, dictionary=True)
+        return True
+
+    def add_slice(self, name: str, groups: list) -> bool:
+        """Add a named slice, from the slice form of the Dictionary tab; as :meth:`add_kind`.
+
+        :param name: the typed name.
+        :param groups: see ``edit.add_slice``.
+        :return: whether the slice was added.
+        :rtype: bool
+        """
+        return self._put_slice(edit.add_slice, "add slice", name, groups)
+
+    def set_slice(self, name: str, groups: list) -> bool:
+        """Change the groups of a named slice, from the slice form of the Dictionary tab; as
+        :meth:`add_kind`.
+
+        :param name: the named slice.
+        :param groups: see ``edit.set_slice``.
+        :return: whether the slice was changed.
+        :rtype: bool
+        """
+        return self._put_slice(edit.set_slice, "set slice", name, groups)
+
+    def _put_slice(self, fn, own: str, name: str, groups: list) -> bool:
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = fn(data, name, groups)
+        if new is None:
+            self._refuse_word("named_slice", remarks, (own, f"named slice {name.strip()}"))
             return False
         self._save_edit(new, dictionary=True)
         return True

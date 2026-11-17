@@ -73,6 +73,7 @@ ARROW_WIDTH = 28  # px of an entity cell that count as the arrow
 ADD = Qt.ItemDataRole.UserRole + 3  # (what, owner) of an add row's cell
 ADD_TEXTS = {
     "kind": "+ Add kind",
+    "named_slice": "+ Add slice",
     "entity": "+ Add entity",
     "axis": "+ Add axis",
     "value": "+ Add value",
@@ -91,12 +92,16 @@ NAME_HINTS = {
     "variant_param": "parameter name",
 }
 SPECIAL = "special"  # refusal key of the row with the existence axis and the batch scope
-FORM_WORDS = ("kind",)  # words added and changed in a form under their row
+FORM_WORDS = ("kind", "named_slice")  # words added and changed in a form under their row
 EDIT = "✎"
 START_HINT = ("Start with entities, their axes and values. Then add kinds, executors, instruments "
               "and scopes. Add variants on the Step chains tab.")
 ZERO_NOTE = "Zero weight clears the cost of this kind."
 CHECK_NOTE = "a check changes the axis it checks; a skipped one is priced"
+ROW_NOTE = "A row is either a state (entity, axis, value) or a parameter (parameter, executor)."
+GROUP_HINT = "all rows must hold"
+ROW_SORT = Qt.ItemDataRole.UserRole + 4  # STATE or PARAM of an item of a slice row's first list
+STATE, PARAM = "state", "param"
 
 
 @dataclass
@@ -484,6 +489,286 @@ class KindForm(QFrame):
         return structure
 
 
+class _SliceWords(_Words):
+    """The words of a slice form: entities, axes, values, variant parameters and executors."""
+
+    def __init__(self, model) -> None:
+        super().__init__(model)
+        self.params: list[str] = []
+        self.executors: list[str] = []
+        if model is None:
+            return
+        self.params = list(model.variant_params)
+        self.executors = [x.name for x in model.executors]
+
+
+class SliceRow(QWidget):
+    """A row of a slice group: a state (entity, axis and value lists) or a parameter (parameter
+    and executor lists), and ``✕``. The first list holds the entities, then the variant
+    parameters; a parameter chosen in it makes the row a pair, the axis list goes."""
+
+    removed = Signal()
+
+    def __init__(self, words: _SliceWords, cells: tuple[str, ...] | None = None) -> None:
+        super().__init__()
+        self.words = words
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+        self.first = _pick(130)
+        self.axis = _pick(110)
+        self.value = _pick(110)
+        lay.addWidget(self.first)
+        lay.addWidget(self.axis)
+        lay.addWidget(_form_label("="))
+        lay.addWidget(self.value)
+        self.remove_button = _icon(REMOVE, "Remove the row")
+        self.remove_button.clicked.connect(self.removed)
+        lay.addWidget(self.remove_button)
+        lay.addStretch(1)
+        self._fill_first()
+        self._first_changed()
+        self.first.currentIndexChanged.connect(self._first_changed)
+        self.axis.currentIndexChanged.connect(self._axis_changed)
+        if cells is not None:
+            self._show(cells)
+
+    def _fill_first(self) -> None:
+        """Entities, a separator, variant parameters; the first item is chosen."""
+        self.first.blockSignals(True)
+        self.first.clear()
+        for name in self.words.entities():
+            self.first.addItem(name, STATE)
+        params = self.words.params
+        if params and self.first.count():
+            self.first.insertSeparator(self.first.count())
+        for name in params:
+            self.first.addItem(name, PARAM)
+        if self.first.count():
+            self.first.setCurrentIndex(0)
+        self.first.blockSignals(False)
+
+    def _show(self, cells: tuple[str, ...]) -> None:
+        sort = PARAM if len(cells) == 2 else STATE
+        for i in range(self.first.count()):
+            if self.first.itemText(i) == cells[0] and self.first.itemData(i) == sort:
+                self.first.setCurrentIndex(i)
+                break
+        if sort == STATE:
+            _choose(self.axis, cells[1])
+        _choose(self.value, cells[-1])
+
+    def is_pair(self) -> bool:
+        """Whether the row is a parameter (parameter, executor)."""
+        return self.first.currentData() == PARAM
+
+    def _first_changed(self) -> None:
+        if self.is_pair():
+            self.axis.hide()
+            _refill(self.axis, [])
+            _refill(self.value, self.words.executors)
+            return
+        self.axis.show()
+        _refill(self.axis, self.words.axes_of(self.first.currentText()))
+        self._axis_changed()
+
+    def _axis_changed(self) -> None:
+        if self.is_pair():
+            return
+        values = self.words.values_of(self.first.currentText(), self.axis.currentText())
+        _refill(self.value, values)
+
+    def values(self) -> tuple[str, ...]:
+        """The chosen ``(entity, axis, value)`` or ``(parameter, executor)``."""
+        if self.is_pair():
+            return self.first.currentText(), self.value.currentText()
+        return self.first.currentText(), self.axis.currentText(), self.value.currentText()
+
+
+class SliceGroupBox(QWidget):
+    """A group of a slice form: ``or`` above it (but above the first), a frame with the title,
+    ``✕`` of the group, its rows and ``+ Add row``."""
+
+    removed = Signal()
+    resized = Signal()
+
+    def __init__(self, words: _SliceWords, rows: list[tuple[str, ...] | None]) -> None:
+        super().__init__()
+        self.words = words
+        self._rows: list[SliceRow] = []
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(4)
+        self.or_line = QLabel("or")
+        self.or_line.setObjectName("orLine")
+        outer.addWidget(self.or_line)
+
+        frame = QFrame()
+        frame.setObjectName("sliceGroup")
+        outer.addWidget(frame)
+        box = QVBoxLayout(frame)
+        box.setContentsMargins(10, 6, 10, 8)
+        box.setSpacing(5)
+        head = QHBoxLayout()
+        head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(8)
+        self.title = QLabel("")
+        self.title.setObjectName("groupTitle")
+        head.addWidget(self.title)
+        self.hint = _form_label(GROUP_HINT)
+        head.addWidget(self.hint)
+        head.addStretch(1)
+        self.remove_button = _icon(REMOVE, "Remove the group")
+        self.remove_button.clicked.connect(self.removed)
+        head.addWidget(self.remove_button)
+        box.addLayout(head)
+
+        self.row_box = QVBoxLayout()
+        self.row_box.setContentsMargins(0, 0, 0, 0)
+        self.row_box.setSpacing(5)
+        box.addLayout(self.row_box)
+        self.add_row = QPushButton("+ Add row")
+        self.add_row.setObjectName("addLink")
+        self.add_row.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.add_row.clicked.connect(lambda: self._add_row(None))
+        box.addWidget(self.add_row, 0, Qt.AlignmentFlag.AlignLeft)
+        for cells in rows:
+            self._add_row(cells)
+
+    def set_place(self, index: int) -> None:
+        """Title ``Group N`` by the place of the group; ``or`` above all but the first."""
+        self.title.setText(f"Group {index + 1}")
+        self.or_line.setVisible(index > 0)
+
+    def _add_row(self, cells: tuple[str, ...] | None) -> None:
+        row = SliceRow(self.words, cells)
+        row.removed.connect(lambda r=row: self._remove_row(r))
+        self.row_box.addWidget(row)
+        row.show()
+        self._rows.append(row)
+        self.resized.emit()
+
+    def _remove_row(self, row: SliceRow) -> None:
+        self._rows.remove(row)
+        self.row_box.removeWidget(row)
+        row.hide()
+        row.deleteLater()
+        self.resized.emit()
+
+    def rows(self) -> list[SliceRow]:
+        """The rows of the group, top to bottom."""
+        return list(self._rows)
+
+
+class SliceForm(QFrame):
+    """The form of a named slice: name; groups "or", each with rows "and"; ``+ Add group``;
+    ``Add`` (a new slice) or ``Apply`` (a changed slice) and ``Cancel``. A new slice starts with
+    one group of one row. Enter in the name submits, Esc cancels; ``resized`` is emitted when a
+    group or a row comes or goes.
+
+    :param model: the dictionary the lists are filled from.
+    :param named: the named slice to change; ``None`` for a new slice.
+    """
+
+    submitted = Signal()
+    cancelled = Signal()
+    resized = Signal()
+
+    def __init__(self, model, named=None) -> None:
+        super().__init__()
+        self.setObjectName("sliceForm")
+        self.words = _SliceWords(model)
+        self.adding = named is None
+        self._boxes: list[SliceGroupBox] = []
+        grid = QGridLayout(self)
+        grid.setContentsMargins(12, 10, 12, 10)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(1, 1)
+
+        self.name = QLineEdit()
+        self.name.setObjectName("addField")
+        self.name.setPlaceholderText("slice name")
+        self.name.setMinimumWidth(150)
+        self.name.returnPressed.connect(self.submitted)
+        grid.addWidget(_form_label("Name"), 0, 0)
+        grid.addLayout(KindForm._line([self.name]), 0, 1)
+
+        self.group_box = QVBoxLayout()
+        self.group_box.setContentsMargins(0, 0, 0, 0)
+        self.group_box.setSpacing(6)
+        grid.addLayout(self.group_box, 1, 0, 1, 2)
+        self.add_group = QPushButton("+ Add group")
+        self.add_group.setObjectName("addLink")
+        self.add_group.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.add_group.clicked.connect(lambda: self._add_group([None]))
+        grid.addWidget(self.add_group, 2, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
+        self.row_note = label(ROW_NOTE, "note")
+        grid.addWidget(self.row_note, 3, 0, 1, 2)
+
+        self.submit_button = QPushButton("Add" if self.adding else "Apply")
+        self.submit_button.setObjectName("small")
+        self.submit_button.setProperty("primary", True)
+        self.submit_button.clicked.connect(self.submitted)
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setObjectName("small")
+        self.cancel_button.clicked.connect(self.cancelled)
+        buttons = KindForm._line([self.submit_button, self.cancel_button])
+        grid.addLayout(buttons, 4, 0, 1, 2)
+
+        if named is None:
+            self._add_group([None])
+        else:
+            self._fill(named)
+
+    def _fill(self, named) -> None:
+        """Show a named slice of the dictionary; its name cannot be changed here."""
+        self.name.setText(named.name)
+        self.name.setReadOnly(True)
+        self.name.setToolTip("To rename the slice, double-click its name in the table")
+        for group in named.groups:
+            rows = [tuple(s) for s in group.states] + [tuple(p) for p in group.params]
+            self._add_group(rows)
+
+    def _add_group(self, rows: list[tuple[str, ...] | None]) -> None:
+        """Add a group at the end; ``None`` in ``rows`` is a row of the first items."""
+        box = SliceGroupBox(self.words, rows)
+        box.removed.connect(lambda b=box: self._remove_group(b))
+        box.resized.connect(self.resized)
+        self.group_box.addWidget(box)
+        box.show()
+        self._boxes.append(box)
+        self._renumber()
+        self.resized.emit()
+
+    def _remove_group(self, box: SliceGroupBox) -> None:
+        self._boxes.remove(box)
+        self.group_box.removeWidget(box)
+        box.hide()
+        box.deleteLater()
+        self._renumber()
+        self.resized.emit()
+
+    def _renumber(self) -> None:
+        for i, box in enumerate(self._boxes):
+            box.set_place(i)
+
+    def group_boxes(self) -> list[SliceGroupBox]:
+        """The groups, top to bottom."""
+        return list(self._boxes)
+
+    def groups(self) -> list[list[tuple[str, ...]]]:
+        """The groups in the shape ``edit.add_slice`` takes: a list of rows each."""
+        return [[row.values() for row in box.rows()] for box in self._boxes]
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        if event.key() == Qt.Key.Key_Escape:
+            self.cancelled.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class FormCell(QWidget):
     """The cell that holds a form across a whole table row. Its width does not count when the
     table sizes its columns; its height is the form's."""
@@ -810,7 +1095,8 @@ class DictionaryPage(Page):
     (``word_moved(what, old, delta)``). The row above the tables sets the existence axis
     (``existence_set(name, absent)``) and the batch scope (``batch_set(scope)``). A kind is added
     and changed in a form under its row (``kind_added(name, structure)``,
-    ``kind_set(name, structure)``).
+    ``kind_set(name, structure)``), and so is a named slice (``slice_added(name, groups)``,
+    ``slice_set(name, groups)``).
     """
 
     word_edited = Signal(str, object, str)
@@ -821,6 +1107,8 @@ class DictionaryPage(Page):
     batch_set = Signal(str)
     kind_added = Signal(str, object)
     kind_set = Signal(str, object)
+    slice_added = Signal(str, object)
+    slice_set = Signal(str, object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -1007,19 +1295,45 @@ class DictionaryPage(Page):
         """The open form of a kind; ``None`` when closed."""
         return self.kinds.form()
 
+    def slice_form(self) -> SliceForm | None:
+        """The open form of a named slice; ``None`` when closed."""
+        return self.slices.form()
+
     def _open_form(self, table: WordTable, what: str, old: object) -> None:
-        """Open the form of a new kind (``old`` is ``None``) or of an existing one."""
-        if what != "kind":
+        """Open the form of a new kind or named slice (``old`` is ``None``) or of an existing
+        one."""
+        if what == "kind":
+            form = self._kind_form(old)
+        elif what == "named_slice":
+            form = self._slice_form(old)
+        else:
             return
+        form.cancelled.connect(table.cancel_add)
+        form.resized.connect(table.refit_form)
+        table.open_form(what, old, form)
+        form.name.setFocus()
+
+    def _kind_form(self, old: str | None) -> KindForm:
         kind = None
         if old is not None and self._model is not None:
             kind = next((k for k in self._model.kinds if k.name == old), None)
         form = KindForm(self._model, kind)
         form.submitted.connect(lambda: self._kind_submitted(form, old))
-        form.cancelled.connect(table.cancel_add)
-        form.resized.connect(table.refit_form)
-        table.open_form(what, old, form)
-        form.name.setFocus()
+        return form
+
+    def _slice_form(self, old: str | None) -> SliceForm:
+        named = None
+        if old is not None and self._model is not None:
+            named = next((ns for ns in self._model.named_slices if ns.name == old), None)
+        form = SliceForm(self._model, named)
+        form.submitted.connect(lambda: self._slice_submitted(form, old))
+        return form
+
+    def _slice_submitted(self, form: SliceForm, old: str | None) -> None:
+        if old is None:
+            self.slice_added.emit(form.name.text(), form.groups())
+        else:
+            self.slice_set.emit(old, form.groups())
 
     def _kind_submitted(self, form: KindForm, old: str | None) -> None:
         if old is None:
@@ -1162,9 +1476,10 @@ class DictionaryPage(Page):
         self.params.set_words(self._list_rows("variant_param", list(m.variant_params), choices))
         slices = [WordRow("named_slice", ns.name, 0, [ns.name, " or ".join(
             " and ".join([f"{e}/{a} = {v}" for e, a, v in g.states] + [f"{q} = {x}" for q, x in g.params])
-            for g in ns.groups)], **_edges(i, len(m.named_slices)))
+            for g in ns.groups)], form=True, **_edges(i, len(m.named_slices)))
             for i, ns in enumerate(m.named_slices)]
-        self.slices.set_words(slices or [WordRow(None, None, 0, [DASH, ""])])
+        slices.append(AddRow("named_slice", (), 0))
+        self.slices.set_words(slices)
         if keep:
             self.verticalScrollBar().setValue(scroll)
 

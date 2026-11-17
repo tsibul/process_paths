@@ -153,6 +153,30 @@ QFrame#kindForm {{
     border-radius: {RADIUS};
 }}
 
+QFrame#sliceForm {{
+    background: {BG};
+    border: 1px solid {ACCENT};
+    border-radius: {RADIUS};
+}}
+
+QFrame#sliceGroup {{
+    background: {BG};
+    border: 1px solid {BORDER};
+    border-radius: {RADIUS};
+}}
+
+QLabel#groupTitle {{
+    font-size: 13px;
+    font-weight: 600;
+    color: {TEXT};
+}}
+
+QLabel#orLine {{
+    font-size: 13px;
+    font-weight: 600;
+    color: {TEXT2};
+}}
+
 QLabel#formLabel {{
     font-size: 13px;
     color: {TEXT2};
