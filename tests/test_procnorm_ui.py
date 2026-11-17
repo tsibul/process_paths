@@ -572,3 +572,24 @@ def test_out_of_comparison_group_has_numbers_reason_and_steps(twelve):
     assert c.cell("Н", "Title").split("\n") == ["Вариант Н", "Reason: чужая машина"]
     c.toggle("Н")
     assert c.steps("Н").rowCount() == 7
+
+
+def test_steps_table_cuts_no_word(twelve):
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QFontMetrics
+    from procnorm.ui.comparison import STEP_NUMERIC
+    t = _shown_at(twelve, 1100, "Ж")  # Ж has the long executor name
+    assert any(len(t.item(r, 2).text().split()) > 3 for r in range(t.rowCount()))
+    from PySide6.QtWidgets import QStyle
+    fm = QFontMetrics(t.font())
+    margin = t.style().pixelMetric(QStyle.PixelMetric.PM_FocusFrameHMargin, None, t) + 1
+    for c in range(t.columnCount()):
+        if c in STEP_NUMERIC:
+            continue
+        room = t.columnWidth(c) - 16 - 2 * margin  # item padding 8px and the style's text margin, each side
+        for r in range(t.rowCount()):
+            text = t.item(r, c).text()
+            for word in text.split():
+                assert fm.horizontalAdvance(word) <= room, (c, word)
+            need = fm.boundingRect(QRect(0, 0, room, 10000), Qt.TextFlag.TextWordWrap, text)
+            assert need.height() <= t.rowHeight(r), (c, text)

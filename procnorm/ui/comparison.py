@@ -11,7 +11,7 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QRect, QSize, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics
 from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-                               QPushButton, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
+                               QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from procnorm import export
@@ -33,6 +33,8 @@ HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is
 STEP_HEADERS = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope ×", "Executor ×", "Labour",
                 "Skips left", "Changes"]
 STEP_NUMERIC = {0, 5, 6, 7, 8, 9}
+PAD_X = 8  # horizontal item padding of the table stylesheet, px
+PAD_Y = 6  # vertical item padding and border of the table stylesheet, px
 CHANGES_SHARE = 2  # Changes gets twice the room of another text column of the steps table
 HEAD_LINE = 120  # widest second line of a column label, px; longer names are elided
 CHEVRON = 20  # room for ▸ / ▾ in the first column, px
@@ -129,13 +131,15 @@ class GroupHeader(QFrame):
 
 
 class WrapTable(Table):
-    """Steps table: ``Changes`` takes the rest of the width and wraps by words; no horizontal scroll."""
+    """Steps table: ``Changes`` takes the rest of the width and text wraps by words, never cutting one.
+
+    A horizontal scroll appears only when the widest words of the text columns alone exceed the width."""
 
     def __init__(self, headers: list[str], numeric: set[int]) -> None:
         super().__init__(headers, numeric)
         self.setWordWrap(True)
         self.setTextElideMode(Qt.TextElideMode.ElideNone)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
     def fit(self) -> None:
         super().fit()  # every column by content and header
@@ -143,7 +147,39 @@ class WrapTable(Table):
         self._natural = [self.columnWidth(c) for c in range(self.columnCount())]
         if self._natural:
             self._natural[-1] = max(self._natural[-1], self.sizeHintForColumn(self.columnCount() - 1))
+        self._floor = [self._widest_word(c) for c in range(self.columnCount())]
+        self._natural = [max(n, f) for n, f in zip(self._natural, self._floor)]
         self._wrap()
+
+    def _widest_word(self, c: int) -> int:
+        """Width of the widest single word of a column, header included, with the item padding."""
+        fm = self.fontMetrics()
+        head = QFont(self.font())
+        head.setPixelSize(13)
+        head.setBold(True)
+        hm = QFontMetrics(head)
+        words = [hm.horizontalAdvance(w) for w in self.horizontalHeaderItem(c).text().split()]
+        for r in range(self.rowCount()):
+            it = self.item(r, c)
+            words += [fm.horizontalAdvance(w) for w in (it.text().split() if it else [])]
+        return max(words, default=0) + 2 * self._pad()
+
+    def _pad(self) -> int:
+        """Space between a cell's edge and its text: stylesheet padding plus the style's text margin."""
+        return PAD_X + self.style().pixelMetric(QStyle.PixelMetric.PM_FocusFrameHMargin, None, self) + 1
+
+    def _fit_rows(self) -> None:
+        """Rows tall enough for every wrapped line (the stylesheet padding is not in Qt's own hint)."""
+        self.resizeRowsToContents()
+        fm = self.fontMetrics()
+        for r in range(self.rowCount()):
+            need = 0
+            for c in range(self.columnCount()):
+                it = self.item(r, c)
+                if it and it.text():
+                    box = QRect(0, 0, max(self.columnWidth(c) - 2 * self._pad(), 1), 100000)
+                    need = max(need, fm.boundingRect(box, Qt.TextFlag.TextWordWrap, it.text()).height())
+            self.setRowHeight(r, max(self.rowHeight(r), need + PAD_Y))
 
     def _wrap(self) -> None:
         """Numbers keep their width; the text columns share the rest, a narrow one getting all it needs
@@ -160,14 +196,15 @@ class WrapTable(Table):
             c = pool.pop(0)
             self.setColumnWidth(c, natural[c])
             room -= natural[c]
-        floor = self.horizontalHeader().minimumSectionSize()
+        floor = getattr(self, "_floor", [0] * len(natural))
+        share = room // (len(pool) + CHANGES_SHARE) if pool else 0
         for c in pool:
-            share = max(room // (len(pool) + CHANGES_SHARE), floor)
-            self.setColumnWidth(c, share)
+            self.setColumnWidth(c, max(share, floor[c]))
         room -= sum(self.columnWidth(c) for c in pool)
-        self.setColumnWidth(last, max(room, floor))
-        self.resizeRowsToContents()
-        self._content_width = 0  # never a horizontal scroll bar
+        self.setColumnWidth(last, max(room, floor[last]))
+        self._fit_rows()
+        total = sum(self.columnWidth(c) for c in range(len(natural)))
+        self._content_width = total  # wider than the view only when the words alone do not fit
         self._fit_height()
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
