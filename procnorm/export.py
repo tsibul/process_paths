@@ -10,11 +10,52 @@ import io
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm.calc import Comparison, Group, Row, compare, details, fmt, groups, money
+from procnorm.calc import Comparison, Group, Row, Step, compare, details, fmt, groups, money
 from procnorm.project import FINAL, Project
 
 DASH = "—"
 ARROW = "→"
+NOT_SET = "not set"
+NOT_REACHED = " (not reached)"
+
+
+def number(d: Decimal | None, form=money) -> str:
+    """A number as shown and exported: ``form(d)``, or ``not set`` for ``None``.
+
+    :param d: the number, ``None`` when not set.
+    :param form: :func:`money` or :func:`fmt`.
+    :return: text.
+    :rtype: str
+    """
+    return NOT_SET if d is None else form(d)
+
+
+def numbers(cmp: Comparison, r: Row) -> list[str]:
+    """Labour, total and skipped checks of a comparison row, as shown and exported.
+
+    A variant with a run error has no numbers: every cell is ``—``.
+
+    :param cmp: the table.
+    :param r: one of its rows.
+    :return: one text per labour column, the total, then one per slice.
+    :rtype: list[str]
+    """
+    if r.error is not None:
+        return [DASH] * (len(cmp.executors) + 1 + len(cmp.slice_names))
+    out = [number(r.labour[x]) for x in cmp.executors] + [number(r.total)]
+    return out + [number(s.total) + ("" if s.reached else NOT_REACHED) for s in r.slices]
+
+
+def step_numbers(s: Step, failed: bool) -> list[str]:
+    """Cost, scope coefficient, executor coefficient and labour of one step.
+
+    :param s: the step.
+    :param failed: the variant has a run error: every number is ``—``.
+    :return: four texts.
+    :rtype: list[str]
+    """
+    xs = (s.cost, s.scope_coefficient, s.executor_coefficient, s.labour)
+    return [DASH] * 4 if failed else [number(x, fmt) for x in xs]
 
 
 def _cell(text: object) -> str:
@@ -41,12 +82,7 @@ def _header(cmp: Comparison) -> list[str]:
 
 
 def _row(cmp: Comparison, r: Row) -> list[str]:
-    out = [r.code, r.title, SIDES.get(r.side, r.side), str(r.steps)]
-    out += [money(r.labour[x]) for x in cmp.executors]
-    out.append(money(r.total))
-    for s in r.slices:
-        out.append(money(s.total) + ("" if s.reached else " (not reached)"))
-    return out
+    return [r.code, r.title, SIDES.get(r.side, r.side), str(r.steps)] + numbers(cmp, r)
 
 
 def _group_name(g: Group) -> str:
@@ -98,9 +134,8 @@ def markdown(project: Project) -> str:
         out += [f"### {r.code}: {r.title}", ""]
         rows = [head]
         for s in details(project, r.code):
-            rows.append([str(s.number), s.kind, s.executor, s.instrument, s.scope, fmt(s.cost),
-                         fmt(s.scope_coefficient), fmt(s.executor_coefficient), fmt(s.labour),
-                         "; ".join(_change(c) for c in s.changes)])
+            rows.append([str(s.number), s.kind, s.executor, s.instrument, s.scope]
+                        + step_numbers(s, r.error is not None) + ["; ".join(_change(c) for c in s.changes)])
         out += _table(rows) + [""]
     return "\n".join(out)
 

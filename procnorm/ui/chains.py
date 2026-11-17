@@ -140,14 +140,21 @@ class ChainTable(Table):
     def __init__(self) -> None:
         super().__init__(HEADERS, {1})
         self.kinds: list[str] = []
+        self.failed: list[int] = []
         self.setWordWrap(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-    def set_chain(self, links: list[Link]) -> None:
-        """Replace all rows with the links of one path."""
+    def set_chain(self, links: list[Link], error: tuple[int, str] | None = None) -> None:
+        """Replace all rows with the links of one path.
+
+        :param links: the chain.
+        :param error: ``(call number, text)`` of a run error: that call is drawn in the error colour,
+            bold, and the text goes on the row under it.
+        """
         self.clearSpans()
         self.setRowCount(0)
         self.kinds = []
+        self.failed = []
         rows: list[tuple[str, object]] = []
         n = 0
         for link in links:
@@ -161,6 +168,8 @@ class ChainTable(Table):
                 marks.setdefault(number, []).append(name)
             for c in link.calls:
                 rows.append(("call", c))
+                if error is not None and c.number == error[0]:
+                    rows.append(("error", error[1]))
                 rows += [("slice", name) for name in marks.get(c.number, [])]
         self.setRowCount(len(rows))
         step_bg = QColor(style.STEP_BG)
@@ -193,9 +202,23 @@ class ChainTable(Table):
                 self.setItem(r, 2, it)
                 self.setSpan(r, 2, 1, 4)
             elif kind == "call":
+                bad = error is not None and data.number == error[0]
+                if bad:
+                    self.failed.append(r)
                 for c, text in enumerate([str(data.number), data.kind, data.executor, data.instrument,
                                           data.scope], 1):
-                    self.setItem(r, c, item(text, c in self.numeric))
+                    it = item(text, c in self.numeric)
+                    if bad:
+                        it.setForeground(QColor(style.ERR))
+                        f = it.font()
+                        f.setBold(True)
+                        it.setFont(f)
+                    self.setItem(r, c, it)
+            elif kind == "error":
+                it = item(data)
+                it.setForeground(QColor(style.ERR))
+                self.setItem(r, 1, it)
+                self.setSpan(r, 1, 1, 5)
             else:
                 self.setSpan(r, 0, 1, self.columnCount())
                 self.setCellWidget(r, 0, SliceMark(_slice_text(data), self._kind_left))
@@ -266,7 +289,8 @@ class ChainTable(Table):
 
     def rows(self) -> list[tuple[str, ...]]:
         """Rows as texts: ``("step", n, text)``, ``("call", #, kind, executor, instrument, scope)``,
-        ``("none", "No transitions")``, ``("slice", "slice “<name>” reached")``."""
+        ``("none", "No transitions")``, ``("slice", "slice “<name>” reached")``,
+        ``("error", "Error at transition N: …")`` under the failed call."""
         out: list[tuple[str, ...]] = []
         for r, kind in enumerate(self.kinds):
             if kind == "step":
@@ -275,9 +299,15 @@ class ChainTable(Table):
                 out.append(("none", self.item(r, 2).text()))
             elif kind == "call":
                 out.append(("call",) + tuple(self.item(r, c).text() for c in range(1, 6)))
+            elif kind == "error":
+                out.append(("error", self.item(r, 1).text()))
             else:
                 out.append(("slice", self.cellWidget(r, 0).text))
         return out
+
+    def failed_rows(self) -> list[int]:
+        """Rows of the failed call: one for a path with a run error, none otherwise."""
+        return list(self.failed)
 
 
 class ChainsPage(Page):
@@ -369,7 +399,7 @@ class ChainsPage(Page):
         parts.append(_count(r.steps, "transition"))
         self.title.setText(_title_html(r.code, r.title))
         self.meta.setText(SEP.join(parts))
-        self.table.set_chain(chain(self._project, code))
+        self.table.set_chain(chain(self._project, code), (r.error[0], r.reason) if r.error else None)
 
     # --- reading, for tests and other parts of the window
 
@@ -403,5 +433,5 @@ class ChainsPage(Page):
         return self.table.rows()
 
     def row_kinds(self) -> list[str]:
-        """``step``, ``call``, ``none`` or ``slice`` for every row of the chain."""
+        """``step``, ``call``, ``none``, ``slice`` or ``error`` for every row of the chain."""
         return list(self.table.kinds)

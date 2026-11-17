@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLay
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from procnorm import export
-from procnorm.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, money, series
+from procnorm.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, series
 from procnorm.project import FINAL, Project
 from procnorm.ui import style
 from procnorm.ui.labour_scale import LabourScale
@@ -161,9 +161,13 @@ class WrapTable(Table):
         head.setBold(True)
         hm = QFontMetrics(head)
         words = [hm.horizontalAdvance(w) for w in self.horizontalHeaderItem(c).text().split()]
+        nm = QFontMetrics(mono())
         for r in range(self.rowCount()):
             it = self.item(r, c)
-            words += [fm.horizontalAdvance(w) for w in (it.text().split() if it else [])]
+            if c in self.numeric:  # a number cell does not wrap: ``not set`` stays on one line
+                words += [nm.horizontalAdvance(it.text())] if it else []
+            else:
+                words += [fm.horizontalAdvance(w) for w in (it.text().split() if it else [])]
         return max(words, default=0) + 2 * self._pad()
 
     def _pad(self) -> int:
@@ -225,18 +229,19 @@ class StepsPanel(QFrame):
         box.setContentsMargins(34, 6, 10, 8)
         box.setSpacing(4)
         self.table = WrapTable(STEP_HEADERS, STEP_NUMERIC)
-        points = series(project, row.code)
+        failed = row.error is not None
+        points = series(project, row.code)  # none for a variant with a run error
         self.table.set_rows([
-            [str(s.number), s.kind, s.executor, s.instrument, s.scope, fmt(s.cost), fmt(s.scope_coefficient),
-             fmt(s.executor_coefficient), fmt(s.labour), str(p.skips_count),
-             "; ".join(f"{e}/{a}: {b if b is not None else DASH} {ARROW} {x if x is not None else DASH}"
-                       for e, a, b, x in s.changes)]
-            for s, p in zip(details(project, row.code), points)])
+            [str(s.number), s.kind, s.executor, s.instrument, s.scope] + export.step_numbers(s, failed)
+            + [DASH if failed else str(points[i].skips_count),
+               "; ".join(f"{e}/{a}: {b if b is not None else DASH} {ARROW} {x if x is not None else DASH}"
+                         for e, a, b, x in s.changes)]
+            for i, s in enumerate(details(project, row.code))])
         box.addWidget(self.table)
         self.skipped: list[QLabel] = []
         for s in row.slices:
             if s.skips:
-                what = ", ".join(f"{e}/{a} ({fmt(p)})" for e, a, p in s.skips)
+                what = ", ".join(f"{e}/{a} ({export.number(p, fmt)})" for e, a, p in s.skips)
                 w = label(f"Skipped checks, {_slice_label(s.name)}{NOT_REACHED if not s.reached else ''}: {what}")
                 w.setObjectName("skipped")
                 self.skipped.append(w)
@@ -271,7 +276,7 @@ class StepCell(QFrame):
         self.marker.setVisible(bool(point.slices))
         top.addWidget(self.marker, 0, Qt.AlignmentFlag.AlignTop)
         box.addLayout(top)
-        self.labour = QLabel(money(point.labour))
+        self.labour = QLabel(export.number(point.labour))
         self.skips = QLabel(f"Skips left: {point.skips_count}")
         self.skips.setStyleSheet(f"color: {style.ERR if point.skips_count else style.OK};")
         for w in (self.labour, self.skips):
@@ -454,8 +459,8 @@ def _sort_keys(cmp: Comparison) -> list[Callable[[Row], object]]:
                                            lambda r: r.steps]
     keys += [lambda r, x=x: r.labour[x] for x in cmp.executors]
     keys.append(lambda r: r.total)
-    keys += [lambda r, i=i: r.slices[i].total for i in range(len(cmp.slice_names))]
-    return keys
+    keys += [lambda r, i=i: r.slices[i].total if r.slices else None for i in range(len(cmp.slice_names))]
+    return keys  # None: a number not set or a run error
 
 
 class ComparisonPage(Page):
@@ -561,7 +566,9 @@ class ComparisonPage(Page):
             key = _sort_keys(self._cmp)[col]
             desc = order == Qt.SortOrder.DescendingOrder
             rows = [r for side in ("own", "other")
-                    for r in sorted((x for x in rows if x.side == side), key=key, reverse=desc)]
+                    for r in sorted((x for x in rows if x.side == side and key(x) is not None), key=key,
+                                    reverse=desc)
+                    + [x for x in rows if x.side == side and key(x) is None]]  # no number: last
         return rows
 
     def _render(self) -> None:
@@ -588,7 +595,8 @@ class ComparisonPage(Page):
                 head = GroupHeader(OUT, "", None, True)
             least = min(r.total for r in rows) if g.kind == "task" else None
             for r in rows:
-                self._items[r.code] = self._variant_item(top, r, g.kind != "task", r.total == least)
+                self._items[r.code] = self._variant_item(top, r, g.kind != "task",
+                                                         g.kind == "task" and r.total == least)
             top.setExpanded(True)
             t.setItemWidget(top, 0, head)
             head.ensurePolished()
@@ -601,15 +609,13 @@ class ComparisonPage(Page):
     def _variant_item(self, parent: QTreeWidgetItem, r: Row, grey: bool, least: bool) -> QTreeWidgetItem:
         cmp = self._cmp
         title = r.title + (f"\nReason: {r.reason}" if r.reason else "")
-        texts = [r.code, title, SIDE_TEXT.get(r.side, r.side), str(r.steps)]
-        texts += [money(r.labour[x]) for x in cmp.executors] + [money(r.total)]
-        texts += [money(s.total) + ("" if s.reached else NOT_REACHED) for s in r.slices]
+        texts = [r.code, title, SIDE_TEXT.get(r.side, r.side), str(r.steps)] + export.numbers(cmp, r)
         it = QTreeWidgetItem(parent, texts)
         it.setData(0, KIND, "variant")
         it.setData(0, CODE, r.code)
         it.setData(0, OWN, r.side == "own")
         it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-        first_skip = len(texts) - len(r.slices)
+        first_skip = len(texts) - len(cmp.slice_names)
         total = first_skip - 1
         for c in range(len(texts)):
             if c >= 3:
@@ -617,8 +623,8 @@ class ComparisonPage(Page):
                 f = mono()
                 f.setBold(c == total and least)
                 it.setFont(c, f)
-            if c >= first_skip:
-                s = r.slices[c - first_skip]
+            s = r.slices[c - first_skip] if c >= first_skip and r.slices else None
+            if s is not None and s.total is not None:
                 it.setForeground(c, QBrush(QColor(style.ERR if s.total > 0 else style.OK)))
             elif grey:
                 it.setForeground(c, QBrush(QColor(style.TEXT2)))

@@ -128,13 +128,15 @@ def _font(px: int, bold: bool = False) -> QFont:
 
 
 class LabourScale(QWidget):
-    """Labour scale of a group: rows are the given variants in the given order."""
+    """Labour scale of a group: rows are the given variants in the given order.
+
+    A variant with a number not set or a run error has no bar."""
 
     def __init__(self, project: Project, rows: list[Row]) -> None:
         super().__init__()
         names = [e.name for e in project.model.executors]
         colors = {e: style.SCALE_STEPS[i % len(style.SCALE_STEPS)] for i, e in enumerate(names)}
-        self._rows = [_row(project, r, colors) for r in rows]
+        self._rows = [_row(project, r, colors) for r in rows if not (r.missing or r.error)]
         self._end = max((r.total for r in self._rows), default=Decimal(0))
         self._ticks = _ticks(self._end)
         used = {s.executor for r in self._rows for s in r.segments}

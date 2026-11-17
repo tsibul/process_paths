@@ -67,10 +67,9 @@ class LineCharts(QWidget):
         """Replace the lines by those of ``rows``, in their order.
 
         :param project: a checked project; ``None`` clears the lines.
-        :param rows: variants to draw; only ``code`` and ``side`` are used.
+        :param rows: variants to draw; a variant with a number not set or a run error is not drawn.
         """
-        if project is None:
-            rows = []
+        rows = [r for r in rows if not (r.missing or r.error)] if project is not None else []
         order = [v.code for v in project.model.variants] if project else []
         pts = {r.code: [start_point(project, r.code)] + series(project, r.code) for r in rows}
         self._fill(self.labour, rows, pts, order, lambda p: p.labour)
