@@ -14,6 +14,8 @@ OK = "#15803D"
 ACCENT = "#4F46E5"
 ON_ACCENT = "#FFFFFF"
 TINT = "#EEF2FF"
+STEP_BG = "#F7F8FF"
+WARN = "#B45309"
 RADIUS = "8px"
 
 STYLE = f"""
@@ -73,6 +75,16 @@ QLabel#sn {{ color: {TEXT2}; padding-top: 8px; border-bottom: 1px solid {BORDER}
 QLabel#colCode {{ font-weight: 700; }}
 QLabel#cellKind {{ font-size: 13px; color: {TEXT2}; }}
 QLabel#pill {{ font-size: 11px; color: {ACCENT}; background: {TINT}; border-radius: 8px; padding: 0 6px; }}
+QFrame#pathList {{ background: {BG}; border: 1px solid {BORDER}; border-radius: {RADIUS}; }}
+QLabel#listHead {{ background: {SUB}; font-size: 13px; font-weight: 700; padding: 6px 10px;
+                  border-bottom: 1px solid {BORDER}; border-top-left-radius: {RADIUS};
+                  border-top-right-radius: {RADIUS}; }}
+QFrame#path {{ background: {BG}; border: none; border-bottom: 1px solid {BORDER}; }}
+QFrame#path[own="true"] {{ border-left: 3px solid {ACCENT}; }}
+QFrame#path[cur="true"] {{ background: {TINT}; }}
+QFrame#path[grey="true"] QLabel#pathTitle {{ color: {TEXT2}; }}
+QLabel#warn {{ font-size: 13px; color: {WARN}; }}
+QLabel#chainTitle {{ font-size: 16px; }}
 QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}

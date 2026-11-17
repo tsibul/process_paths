@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Main window of procnorm, version 1: stored projects, remarks, three read-only tabs."""
+"""Main window of procnorm, version 1: stored projects, remarks, four read-only tabs."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout
 
 from procnorm.project import load_file
 from procnorm.store import Store, default_path
+from procnorm.ui.chains import ChainsPage
 from procnorm.ui.comparison import ComparisonPage
 from procnorm.ui.pages import DictionaryPage, NormPage
 from procnorm.ui.remarks import RemarksPanel
@@ -71,6 +72,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.dictionary, "Dictionary")
         self.tabs.addTab(self.norm, "Normalization && variants")
         self.tabs.addTab(self.comparison, "Comparison")
+        self.chains = ChainsPage()
+        self.tabs.addTab(self.chains, "Step chains")
         self.tabs.setCurrentWidget(self.comparison)
         lay.addWidget(self.tabs, 1)
         self.setCentralWidget(body)
@@ -113,7 +116,7 @@ class MainWindow(QMainWindow):
     def _open(self, pid: int | None) -> None:
         self.current_id = pid
         project = self.store.get(pid) if pid is not None else None
-        for page in (self.dictionary, self.norm, self.comparison):
+        for page in (self.dictionary, self.norm, self.comparison, self.chains):
             page.show_project(project)
         for b in (self.load_over_button, self.save_button, self.copy_button, self.delete_button):
             b.setEnabled(pid is not None)
