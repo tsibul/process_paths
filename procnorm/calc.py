@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
-from process_paths.engine import Slice, run_variant
+from process_paths.engine import Slice, TransitionError, apply, initial_slice, run_variant, variant_entities
 from process_paths.model import Variant
 from process_paths.norm import find_slice
 
@@ -24,15 +24,15 @@ class SliceResult:
     :ivar name: named slice, or ``"final"``.
     :ivar index: slice number (0 is the initial slice).
     :ivar reached: whether the named slice condition held; an unreached slice is the final one.
-    :ivar skips: ``[(entity, axis, price)]``.
-    :ivar total: sum of the prices.
+    :ivar skips: ``[(entity, axis, price)]``; ``price`` is ``None`` when not set.
+    :ivar total: sum of the prices; ``None`` when a price of a skip is not set.
     """
 
     name: str
     index: int
     reached: bool
-    skips: list[tuple[str, str, Decimal]]
-    total: Decimal
+    skips: list[tuple[str, str, Decimal | None]]
+    total: Decimal | None
 
 
 @dataclass
@@ -43,22 +43,31 @@ class Row:
     :ivar title: variant title.
     :ivar side: ``"own"`` or ``"other"``.
     :ivar steps: number of calls.
-    :ivar labour: ``{executor: labour}`` for the table columns.
-    :ivar total: total labour.
-    :ivar slices: named slices in dictionary order, then the final slice.
+    :ivar labour: ``{executor: labour}`` for the table columns; ``None`` when not set (a number
+        is missing, or the run failed).
+    :ivar total: total labour; ``None`` when not set.
+    :ivar slices: named slices in dictionary order, then the final slice; empty when the run failed.
     :ivar task: task of the variant, ``None`` when absent.
-    :ivar reason: reason of ``out_of_comparison``, ``None`` for a compared variant.
+    :ivar reason: why the variant is out of comparison: the run error (``Error at transition N:
+        …``), else the missing numbers (``Not set: …``), else its ``out_of_comparison``; ``None``
+        for a compared variant.
+    :ivar missing: normalization numbers this variant needs and the project lacks, e.g.
+        ``cost of Wash``, ``coefficient of executor X``, ``coefficient of scope Y``,
+        ``skip price of E/a``.
+    :ivar error: ``(call number, reason)`` of the run error, ``None`` when the run passes.
     """
 
     code: str
     title: str
     side: str
     steps: int
-    labour: dict[str, Decimal]
-    total: Decimal
+    labour: dict[str, Decimal | None]
+    total: Decimal | None
     slices: list[SliceResult]
     task: str | None = None
     reason: str | None = None
+    missing: list[str] = field(default_factory=list)
+    error: tuple[int, str] | None = None
 
 
 @dataclass
@@ -102,23 +111,24 @@ class Point:
     :ivar number: call number from 1.
     :ivar kind: kind of transition.
     :ivar executor: executor.
-    :ivar labour: cumulative labour after the step.
+    :ivar labour: cumulative labour after the step; ``None`` from the first step whose labour is
+        not set.
     :ivar skips: ``[(entity, axis)]`` of the skipped checks on the slice after the step.
     :ivar skips_count: ``len(skips)``.
-    :ivar skips_total: sum of the prices of the skips.
+    :ivar skips_total: sum of the prices of the skips; ``None`` when a price is not set.
     :ivar done_total: sum of the prices of the done checks (axis in the slice, with a value,
-        not the first one).
+        not the first one); ``None`` when a price is not set.
     :ivar slices: names of the named slices reached at this step.
     """
 
     number: int
     kind: str
     executor: str
-    labour: Decimal
+    labour: Decimal | None
     skips: list[tuple[str, str]]
     skips_count: int
-    skips_total: Decimal
-    done_total: Decimal
+    skips_total: Decimal | None
+    done_total: Decimal | None
     slices: list[str]
 
 
@@ -135,7 +145,9 @@ class Step:
     :ivar scope_coefficient: coefficient of the scope.
     :ivar executor_coefficient: coefficient of the executor.
     :ivar labour: cost × scope coefficient × executor coefficient.
-    :ivar changes: ``[(entity, axis, before, after)]``.
+    :ivar changes: ``[(entity, axis, before, after)]``; empty from the failed call on.
+
+    A number that is not set is ``None``; in a variant with a run error every number is ``None``.
     """
 
     number: int
@@ -143,10 +155,10 @@ class Step:
     executor: str
     instrument: str
     scope: str
-    cost: Decimal
-    scope_coefficient: Decimal
-    executor_coefficient: Decimal
-    labour: Decimal
+    cost: Decimal | None
+    scope_coefficient: Decimal | None
+    executor_coefficient: Decimal | None
+    labour: Decimal | None
     changes: list[tuple[str, str, str | None, str | None]]
 
 
@@ -171,16 +183,34 @@ class Link:
         return self.text is not None and not self.calls
 
 
-def _cost(project: Project, kind: str) -> Decimal:
-    return project.norm.kind_costs.get(kind, ZERO)
+def _cost(project: Project, kind: str) -> Decimal | None:
+    """Cost of a kind; 0 for an absent zero-weight kind, ``None`` when not set."""
+    cost = project.norm.kind_costs.get(kind)
+    if cost is None and project.model.kind(kind).zero_weight:
+        return ZERO
+    return cost
 
 
-def _step_labour(project: Project, call) -> Decimal:
+def _product(*xs: Decimal | None) -> Decimal | None:
+    if any(x is None for x in xs):
+        return None
+    out = xs[0]
+    for x in xs[1:]:
+        out *= x
+    return out
+
+
+def _add(a: Decimal | None, b: Decimal | None) -> Decimal | None:
+    return None if a is None or b is None else a + b
+
+
+def _step_labour(project: Project, call) -> Decimal | None:
     n = project.norm
-    return _cost(project, call.kind) * n.scope_coefficients[call.scope] * n.executor_coefficients[call.executor]
+    return _product(_cost(project, call.kind), n.scope_coefficients.get(call.scope),
+                    n.executor_coefficients.get(call.executor))
 
 
-def _skips(project: Project, s: Slice) -> list[tuple[str, str, Decimal]]:
+def _skips(project: Project, s: Slice) -> list[tuple[str, str, Decimal | None]]:
     """Check axes of the slice with no value or on the first value."""
     out = []
     for e, a in check_axes(project.model):
@@ -188,31 +218,70 @@ def _skips(project: Project, s: Slice) -> list[tuple[str, str, Decimal]]:
             continue
         first = project.model.entity(e).axis(a).values[0]
         if s[(e, a)] is None or s[(e, a)] == first:
-            out.append((e, a, project.norm.skip_prices[(e, a)]))
+            out.append((e, a, project.norm.skip_prices.get((e, a))))
     return out
+
+
+def _sum(prices) -> Decimal | None:
+    total = ZERO
+    for p in prices:
+        total = _add(total, p)
+    return total
 
 
 def _slice_result(project: Project, name: str, index: int, reached: bool, s: Slice) -> SliceResult:
     found = _skips(project, s)
-    return SliceResult(name, index, reached, found, sum((p for _, _, p in found), ZERO))
+    return SliceResult(name, index, reached, found, _sum(p for _, _, p in found))
 
 
 def _columns(project: Project) -> list[str]:
-    """Executors with coefficient above zero used in at least one call, in dictionary order."""
+    """Executors with a set coefficient above zero used in at least one call, in dictionary order."""
     used = {c.executor for v in project.model.variants for c in v.calls}
     return [x.name for x in project.model.executors
-            if x.name in used and project.norm.executor_coefficients[x.name] > 0]
+            if x.name in used and project.norm.executor_coefficients.get(x.name, ZERO) > 0]
+
+
+def _missing(project: Project, v: Variant) -> list[str]:
+    """Normalization numbers the variant needs and the project lacks, in dictionary order."""
+    m, n = project.model, project.norm
+    kinds = {c.kind for c in v.calls}
+    executors = {c.executor for c in v.calls}
+    scopes = {c.scope for c in v.calls}
+    entities = set(variant_entities(m, v))
+    out = [f"cost of {k.name}" for k in m.kinds if k.name in kinds and _cost(project, k.name) is None]
+    out += [f"coefficient of executor {x.name}" for x in m.executors
+            if x.name in executors and x.name not in n.executor_coefficients]
+    out += [f"coefficient of scope {x}" for x in m.scopes
+            if x in scopes and x not in n.scope_coefficients]
+    out += [f"skip price of {e}/{a}" for e, a in check_axes(m)
+            if e in entities and (e, a) not in n.skip_prices]
+    return out
+
+
+def _reason(project: Project, v: Variant, missing: list[str]) -> str | None:
+    error = project.errors.get(v.code)
+    if error is not None:
+        return f"Error at transition {error[0]}: {error[1]}"
+    if missing:
+        return "Not set: " + ", ".join(missing)
+    return v.out_of_comparison or None
 
 
 def _row(project: Project, v: Variant, columns: list[str]) -> Row:
+    missing = _missing(project, v)
+    error = project.errors.get(v.code)
+    reason = _reason(project, v, missing)
+    if error is not None:
+        return Row(v.code, v.title, project.sides[v.code], len(v.calls), {x: None for x in columns}, None,
+                   [], project.tasks.get(v.code), reason, missing, error)
     slices = run_variant(project.model, v)
-    labour = {x: ZERO for x in columns}
-    total = ZERO
+    labour: dict[str, Decimal | None] = {x: ZERO for x in columns}
+    total: Decimal | None = ZERO
     for c in v.calls:
         w = _step_labour(project, c)
-        total += w
+        total = _add(total, w)
         if c.executor in labour:
-            labour[c.executor] += w
+            labour[c.executor] = _add(labour[c.executor], w)
     last = len(slices) - 1
     results = []
     for ns in project.model.named_slices:
@@ -221,30 +290,33 @@ def _row(project: Project, v: Variant, columns: list[str]) -> Row:
         results.append(_slice_result(project, ns.name, idx, i is not None, slices[idx]))
     results.append(_slice_result(project, FINAL, last, True, slices[last]))
     return Row(v.code, v.title, project.sides[v.code], len(v.calls), labour, total, results,
-               project.tasks.get(v.code), v.out_of_comparison or None)
+               project.tasks.get(v.code), reason, missing, error)
 
 
 def compare(project: Project) -> Comparison:
     """Build the comparison table.
 
-    :param project: a checked project.
+    A variant with a run error or a missing number goes out of comparison with that reason.
+
+    :param project: a checked project (strict or lenient).
     :return: the table.
     :rtype: Comparison
     """
     columns = _columns(project)
     rows, excluded, excluded_rows = [], [], []
     for v in project.model.variants:
-        if v.out_of_comparison:
-            excluded.append((v.code, v.title, v.out_of_comparison))
-            excluded_rows.append(_row(project, v, columns))
+        r = _row(project, v, columns)
+        if r.reason is not None:
+            excluded.append((v.code, v.title, r.reason))
+            excluded_rows.append(r)
         else:
-            rows.append(_row(project, v, columns))
+            rows.append(r)
     names = [ns.name for ns in project.model.named_slices] + [FINAL]
     return Comparison(columns, names, rows, excluded, project.norm.uncounted_errors, excluded_rows)
 
 
 def _ordered(rows: list[Row]) -> list[Row]:
-    return sorted(rows, key=lambda r: (r.side != "own", r.total, r.code))
+    return sorted(rows, key=lambda r: (r.side != "own", r.total is None, r.total or ZERO, r.code))
 
 
 def groups(comparison: Comparison) -> list[Group]:
@@ -280,24 +352,41 @@ def details(project: Project, code: str) -> list[Step]:
     :rtype: list[Step]
     """
     v = next(x for x in project.model.variants if x.code == code)
-    slices = run_variant(project.model, v)
+    failed = code in project.errors
+    slices = _run_until_error(project, v) if failed else run_variant(project.model, v)
     n = project.norm
     out = []
     for i, c in enumerate(v.calls, 1):
-        before, after = slices[i - 1], slices[i]
-        changes = [(e, a, before.get((e, a)), after.get((e, a)))
-                   for (e, a) in after if before.get((e, a)) != after.get((e, a))]
-        out.append(Step(i, c.kind, c.executor, c.instrument, c.scope, _cost(project, c.kind),
-                        n.scope_coefficients[c.scope], n.executor_coefficients[c.executor],
-                        _step_labour(project, c), changes))
+        changes = []
+        if i < len(slices):
+            before, after = slices[i - 1], slices[i]
+            changes = [(e, a, before.get((e, a)), after.get((e, a)))
+                       for (e, a) in after if before.get((e, a)) != after.get((e, a))]
+        if failed:
+            out.append(Step(i, c.kind, c.executor, c.instrument, c.scope, None, None, None, None, changes))
+        else:
+            out.append(Step(i, c.kind, c.executor, c.instrument, c.scope, _cost(project, c.kind),
+                            n.scope_coefficients.get(c.scope), n.executor_coefficients.get(c.executor),
+                            _step_labour(project, c), changes))
     return out
 
 
-def _done_total(project: Project, s: Slice) -> Decimal:
-    total = ZERO
+def _run_until_error(project: Project, v: Variant) -> list[Slice]:
+    """The slices of a variant up to the failed call (that call has none)."""
+    slices = [initial_slice(project.model, v)]
+    try:
+        for i in range(1, len(v.calls) + 1):
+            slices.append(apply(project.model, slices[-1], v, i))
+    except TransitionError:
+        pass
+    return slices
+
+
+def _done_total(project: Project, s: Slice) -> Decimal | None:
+    total: Decimal | None = ZERO
     for e, a in check_axes(project.model):
         if (e, a) in s and s[(e, a)] is not None and s[(e, a)] != project.model.entity(e).axis(a).values[0]:
-            total += project.norm.skip_prices[(e, a)]
+            total = _add(total, project.norm.skip_prices.get((e, a)))
     return total
 
 
@@ -306,9 +395,11 @@ def series(project: Project, code: str) -> list[Point]:
 
     :param project: a checked project.
     :param code: variant code.
-    :return: one point per call.
+    :return: one point per call; none for a variant with a run error.
     :rtype: list[Point]
     """
+    if code in project.errors:
+        return []
     v = next(x for x in project.model.variants if x.code == code)
     slices = run_variant(project.model, v)
     reached: dict[int, list[str]] = {}
@@ -318,10 +409,10 @@ def series(project: Project, code: str) -> list[Point]:
             reached.setdefault(i, []).append(ns.name)
     out, labour = [], ZERO
     for i, c in enumerate(v.calls, 1):
-        labour += _step_labour(project, c)
+        labour = _add(labour, _step_labour(project, c))
         found = _skips(project, slices[i])
         out.append(Point(i, c.kind, c.executor, labour, [(e, a) for e, a, _ in found], len(found),
-                         sum((p for _, _, p in found), ZERO), _done_total(project, slices[i]),
+                         _sum(p for _, _, p in found), _done_total(project, slices[i]),
                          reached.get(i, [])))
     return out
 
@@ -332,14 +423,15 @@ def start_point(project: Project, code: str) -> Point:
     :param project: a checked project.
     :param code: variant code.
     :return: a point with ``number`` 0, empty ``kind`` and ``executor``, zero labour and no
-        reached slices; it goes before the points of :func:`series`.
+        reached slices; it goes before the points of :func:`series`. A variant with a run error
+        has it too: the initial slice does not depend on the calls.
     :rtype: Point
     """
     v = next(x for x in project.model.variants if x.code == code)
-    s0 = run_variant(project.model, v)[0]
+    s0 = initial_slice(project.model, v)
     found = _skips(project, s0)
     return Point(0, "", "", ZERO, [(e, a) for e, a, _ in found], len(found),
-                 sum((p for _, _, p in found), ZERO), _done_total(project, s0), [])
+                 _sum(p for _, _, p in found), _done_total(project, s0), [])
 
 
 def chain(project: Project, code: str) -> list[Link]:
