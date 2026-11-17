@@ -18,6 +18,10 @@ STEP_BG = "#F7F8FF"
 WARN = "#B45309"
 MISSING_BG = "#FEF3C7"  # a number cell not set
 OFF = "#D4D4D8"  # an arrow that cannot move its word
+# The amber line about variants that got errors after a dictionary edit: text, fill, left edge.
+AMBER_TEXT = "#92400E"
+AMBER_BG = "#FFFBEB"
+AMBER_EDGE = "#D97706"
 RADIUS = "8px"
 # Labour scale: (fill, text) of a step by the executor's place in the dictionary; status strip; grid.
 SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF"), ("#C7D2FE", TEXT),
@@ -141,5 +145,51 @@ QLineEdit#addField:focus {{
 QLabel#tag {{
     font-size: 12px;
     color: {TEXT2};
+}}
+
+QFrame#kindForm {{
+    background: {BG};
+    border: 1px solid {ACCENT};
+    border-radius: {RADIUS};
+}}
+
+QLabel#formLabel {{
+    font-size: 13px;
+    color: {TEXT2};
+}}
+
+QFrame#kindForm QCheckBox {{
+    font-size: 13px;
+    background: transparent;
+}}
+
+QFrame#kindForm QCheckBox::indicator {{
+    width: 12px;
+    height: 12px;
+    background: {BG};
+    border: 1px solid {TEXT2};
+    border-radius: 3px;
+}}
+
+QFrame#kindForm QCheckBox::indicator:checked {{
+    background: {ACCENT};
+    border-color: {ACCENT};
+}}
+
+QPushButton#addLink {{
+    font-size: 13px;
+    color: {ACCENT};
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    text-align: left;
+}}
+
+QLabel#amber {{
+    font-size: 13px;
+    color: {AMBER_TEXT};
+    background: {AMBER_BG};
+    border-left: 3px solid {AMBER_EDGE};
+    padding: 7px 12px;
 }}
 """

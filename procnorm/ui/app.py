@@ -90,6 +90,7 @@ class MainWindow(QMainWindow):
         self.store = store
         self.settings = settings
         self.current_id: int | None = None
+        self._amber: list[str] = []  # variants that got errors after a dictionary edit
         self.setWindowTitle("procnorm")
         self.setStyleSheet(STYLE)
         self.resize(1100, 780)
@@ -141,6 +142,8 @@ class MainWindow(QMainWindow):
         self.dictionary.word_moved.connect(self.move_word)
         self.dictionary.existence_set.connect(self.set_existence)
         self.dictionary.batch_set.connect(self.set_batch_scope)
+        self.dictionary.kind_added.connect(self.add_kind)
+        self.dictionary.kind_set.connect(self.set_kind)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -246,6 +249,8 @@ class MainWindow(QMainWindow):
 
     def _open(self, pid: int | None) -> None:
         self.current_id = pid
+        self._amber = []
+        self.dictionary.show_amber([])
         self._set_offer(False)
         self._set_dot(False)
         project = self.store.get(pid) if pid is not None else None
@@ -348,7 +353,7 @@ class MainWindow(QMainWindow):
                 line = f"{short}: {line}"
             self.dictionary.show_refusal(what, line, places.split("\n") if places else [])
             return False
-        self._save_edit(new)
+        self._save_edit(new, dictionary=True)
         return True
 
     def add_word(self, what: str, name: str | tuple[str, ...], first_value: str | None = None,
@@ -374,7 +379,7 @@ class MainWindow(QMainWindow):
         if new is None:
             self._refuse_word(what, remarks, f"add {what.replace('_', ' ')}")
             return False
-        self._save_edit(new)
+        self._save_edit(new, dictionary=True)
         return True
 
     def move_word(self, what: str, old: str | tuple[str, ...], delta: int) -> bool:
@@ -396,7 +401,7 @@ class MainWindow(QMainWindow):
                 shown = "/".join(old)
             self._refuse_word(what, remarks, f"{what.replace('_', ' ')} {shown}")
             return False
-        self._save_edit(new)
+        self._save_edit(new, dictionary=True)
         return True
 
     def set_existence(self, name: str, absent: str) -> bool:
@@ -412,7 +417,7 @@ class MainWindow(QMainWindow):
         if new is None:
             self._refuse_word("existence_axis", remarks, "existence axis")
             return False
-        self._save_edit(new)
+        self._save_edit(new, dictionary=True)
         return True
 
     def set_batch_scope(self, scope: str) -> bool:
@@ -428,15 +433,57 @@ class MainWindow(QMainWindow):
         if new is None:
             self._refuse_word("batch_scope", remarks, "batch scope")
             return False
-        self._save_edit(new)
+        self._save_edit(new, dictionary=True)
         return True
 
-    def _refuse_word(self, what: str, remarks: list, own: str) -> None:
+    def add_kind(self, name: str, structure: dict) -> bool:
+        """Add a transition kind, from the kind form of the Dictionary tab.
+
+        Accepted: written at once, every tab recalculated with its view kept; the form closes.
+        Refused: nothing is written, a red line under the kinds says why and the form stays open
+        with what was chosen.
+
+        :param name: the typed name.
+        :param structure: see ``edit.add_kind``.
+        :return: whether the kind was added.
+        :rtype: bool
+        """
+        return self._put_kind(edit.add_kind, "add kind", name, structure)
+
+    def set_kind(self, name: str, structure: dict) -> bool:
+        """Change a transition kind, from the kind form of the Dictionary tab; as
+        :meth:`add_kind`.
+
+        :param name: the kind.
+        :param structure: see ``edit.set_kind``.
+        :return: whether the kind was changed.
+        :rtype: bool
+        """
+        return self._put_kind(edit.set_kind, "set kind", name, structure)
+
+    def _put_kind(self, fn, own: str, name: str, structure: dict) -> bool:
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = fn(data, name, structure)
+        if new is None:
+            self._refuse_word("kind", remarks, (own, f"kind {name.strip()}"))
+            return False
+        self._save_edit(new, dictionary=True)
+        return True
+
+    def _refuse_word(self, what: str, remarks: list, own: str | tuple[str, ...]) -> None:
         """Show a refused dictionary edit under its table: remarks of the edited word itself
-        without their place, the others with it."""
+        without their place, the others with it.
+
+        :param own: the place of the edited word's own remarks, or several such places.
+        """
+        owns = own
+        if isinstance(own, str):
+            owns = (own,)
         texts = []
         for r in remarks:
-            if r.where == own:
+            if r.where in owns:
                 texts.append(r.text)
             else:
                 texts.append(str(r))
@@ -446,12 +493,26 @@ class MainWindow(QMainWindow):
             rest = places.split("\n")
         self.dictionary.show_refusal(what, line, rest)
 
-    def _save_edit(self, data: dict) -> None:
-        """Write an accepted edit and refill every tab, keeping its view."""
+    def _save_edit(self, data: dict, dictionary: bool = False) -> None:
+        """Write an accepted edit and refill every tab, keeping its view.
+
+        The amber line of the Dictionary tab names the variants that got errors after a
+        dictionary edit; a variant leaves it when an edit of any kind removes its error.
+
+        :param dictionary: whether the edit came from the Dictionary tab.
+        """
+        before = set(self.store.get(self.current_id).errors)
         self.store.save(self.current_id, data)
         project = self.store.get(self.current_id)
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
             page.show_project(project, keep=True)
+        amber = []
+        for code in project.errors:
+            fresh = dictionary and code not in before
+            if fresh or code in self._amber:
+                amber.append(code)
+        self._amber = amber
+        self.dictionary.show_amber(amber)
 
     # --- actions without dialogs (driven by tests)
 

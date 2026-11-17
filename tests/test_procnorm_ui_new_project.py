@@ -143,10 +143,9 @@ def test_empty_dictionary_tables_show_dash_or_add_row(win, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
     win.new_button.click()
     page = win.dictionary
-    for table in (page.kinds, page.slices):
-        assert table.rowCount() == 1
-        assert table.item(0, 0).text() == "—"
-    for table in (page.entities, page.executors, page.instruments, page.params):
+    assert page.slices.rowCount() == 1
+    assert page.slices.item(0, 0).text() == "—"
+    for table in (page.kinds, page.entities, page.executors, page.instruments, page.params):
         assert table.rowCount() == 1
         assert table.item(0, 0).text().startswith("+ Add ")
     assert page.scopes.item(0, 0).text() == "batch"

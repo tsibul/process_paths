@@ -9,11 +9,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
+from PySide6.QtCore import QModelIndex, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFrame, QHBoxLayout, QLabel,
-                               QLineEdit, QPushButton, QScrollArea, QStyledItemDelegate,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFrame, QGridLayout,
+                               QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
+                               QStyledItemDelegate, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from procnorm.calc import fmt
 from procnorm.project import Project, check_axes
@@ -72,6 +72,7 @@ OPEN, SHUT = "▾", "▸"  # an expanded and a collapsed entity
 ARROW_WIDTH = 28  # px of an entity cell that count as the arrow
 ADD = Qt.ItemDataRole.UserRole + 3  # (what, owner) of an add row's cell
 ADD_TEXTS = {
+    "kind": "+ Add kind",
     "entity": "+ Add entity",
     "axis": "+ Add axis",
     "value": "+ Add value",
@@ -90,6 +91,12 @@ NAME_HINTS = {
     "variant_param": "parameter name",
 }
 SPECIAL = "special"  # refusal key of the row with the existence axis and the batch scope
+FORM_WORDS = ("kind",)  # words added and changed in a form under their row
+EDIT = "✎"
+START_HINT = ("Start with entities, their axes and values. Then add kinds, executors, instruments "
+              "and scopes. Add variants on the Step chains tab.")
+ZERO_NOTE = "Zero weight clears the cost of this kind."
+CHECK_NOTE = "a check changes the axis it checks; a skipped one is priced"
 
 
 @dataclass
@@ -104,6 +111,7 @@ class WordRow:
     :param down: whether the word can move down in its list.
     :param removable: whether the row has ``✕``.
     :param tag: a grey tag in place of ``✕``.
+    :param form: whether the row has ``✎``, which opens the form of the word under the row.
     """
 
     what: str | None
@@ -114,6 +122,7 @@ class WordRow:
     down: bool = False
     removable: bool = True
     tag: str = ""
+    form: bool = False
 
 
 @dataclass
@@ -210,6 +219,288 @@ class AddEditor(QWidget):
         return self.name.text(), first, executor
 
 
+def _pick(width: int) -> QComboBox:
+    """A small list of a form."""
+    combo = QComboBox()
+    combo.setObjectName("pick")
+    combo.setMinimumWidth(width)
+    return combo
+
+
+def _refill(combo: QComboBox, names: list[str]) -> None:
+    """Replace the items of a list without signals; the first one is chosen."""
+    combo.blockSignals(True)
+    combo.clear()
+    combo.addItems(names)
+    if names:
+        combo.setCurrentIndex(0)
+    combo.blockSignals(False)
+
+
+def _choose(combo: QComboBox, name: str) -> None:
+    """Choose an item by its text, if the list has it."""
+    index = combo.findText(name)
+    if index >= 0:
+        combo.setCurrentIndex(index)
+
+
+def _form_label(text: str) -> QLabel:
+    w = QLabel(text)
+    w.setObjectName("formLabel")
+    return w
+
+
+class _Words:
+    """Entities, their axes and the values of an axis, as the lists of a form take them."""
+
+    def __init__(self, model) -> None:
+        self.axes: dict[str, list[str]] = {}
+        self.values: dict[tuple[str, str], list[str]] = {}
+        if model is None:
+            return
+        for e in model.entities:
+            self.axes[e.name] = [a.name for a in e.axes]
+            for a in e.axes:
+                self.values[(e.name, a.name)] = list(a.values)
+
+    def entities(self) -> list[str]:
+        return list(self.axes)
+
+    def axes_of(self, entity: str) -> list[str]:
+        return self.axes.get(entity, [])
+
+    def values_of(self, entity: str, axis: str) -> list[str]:
+        return self.values.get((entity, axis), [])
+
+
+class ConditionRow(QWidget):
+    """A row of a kind's condition: entity, axis and value lists, and ``✕``. The axis list
+    follows the entity, the value list follows the axis."""
+
+    removed = Signal()
+
+    def __init__(self, words: _Words, triple: tuple[str, str, str] | None = None) -> None:
+        super().__init__()
+        self.words = words
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+        self.entity = _pick(110)
+        self.axis = _pick(110)
+        self.value = _pick(110)
+        for combo in (self.entity, self.axis, self.value):
+            lay.addWidget(combo)
+        self.remove_button = _icon(REMOVE, "Remove the condition")
+        self.remove_button.clicked.connect(self.removed)
+        lay.addWidget(self.remove_button)
+        lay.addStretch(1)
+        _refill(self.entity, words.entities())
+        self._entity_changed()
+        self.entity.currentIndexChanged.connect(self._entity_changed)
+        self.axis.currentIndexChanged.connect(self._axis_changed)
+        if triple is not None:
+            entity, axis, value = triple
+            _choose(self.entity, entity)
+            _choose(self.axis, axis)
+            _choose(self.value, value)
+
+    def _entity_changed(self) -> None:
+        _refill(self.axis, self.words.axes_of(self.entity.currentText()))
+        self._axis_changed()
+
+    def _axis_changed(self) -> None:
+        values = self.words.values_of(self.entity.currentText(), self.axis.currentText())
+        _refill(self.value, values)
+
+    def values(self) -> tuple[str, str, str]:
+        """The chosen entity, axis and value."""
+        return self.entity.currentText(), self.axis.currentText(), self.value.currentText()
+
+
+class KindForm(QFrame):
+    """The form of a transition kind: name; entity, axis, "from" and "to" lists, each filled by
+    the one before; condition rows; ``Check``; ``Zero weight`` with its note; ``Add`` (a new kind)
+    or ``Apply`` (a changed kind) and ``Cancel``. Enter in the name submits, Esc cancels;
+    ``resized`` is emitted when a condition row comes or goes.
+
+    :param model: the dictionary the lists are filled from.
+    :param kind: the kind to change; ``None`` for a new kind.
+    """
+
+    submitted = Signal()
+    cancelled = Signal()
+    resized = Signal()
+
+    def __init__(self, model, kind=None) -> None:
+        super().__init__()
+        self.setObjectName("kindForm")
+        self.words = _Words(model)
+        self.adding = kind is None
+        self._rows: list[ConditionRow] = []
+        grid = QGridLayout(self)
+        grid.setContentsMargins(12, 10, 12, 10)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(1, 1)
+
+        self.name = QLineEdit()
+        self.name.setObjectName("addField")
+        self.name.setPlaceholderText("kind name")
+        self.name.setMinimumWidth(150)
+        self.name.returnPressed.connect(self.submitted)
+        grid.addWidget(_form_label("Name"), 0, 0)
+        grid.addLayout(self._line([self.name]), 0, 1)
+
+        self.entity = _pick(150)
+        self.axis = _pick(150)
+        grid.addWidget(_form_label("Entity"), 1, 0)
+        grid.addLayout(self._line([self.entity, _form_label("Axis"), self.axis]), 1, 1)
+
+        self.source = _pick(150)
+        self.target = _pick(150)
+        grid.addWidget(_form_label("From"), 2, 0)
+        grid.addLayout(self._line([self.source, _form_label("To"), self.target]), 2, 1)
+
+        self.condition_box = QVBoxLayout()
+        self.condition_box.setContentsMargins(0, 0, 0, 0)
+        self.condition_box.setSpacing(5)
+        self.add_condition = QPushButton("+ Add condition")
+        self.add_condition.setObjectName("addLink")
+        self.add_condition.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.add_condition.clicked.connect(lambda: self._add_row(None))
+        self.condition_box.addWidget(self.add_condition, 0, Qt.AlignmentFlag.AlignLeft)
+        condition = _form_label("Condition")
+        grid.addWidget(condition, 3, 0, Qt.AlignmentFlag.AlignTop)
+        grid.addLayout(self.condition_box, 3, 1)
+
+        self.check = QCheckBox("Check")
+        check_note = _form_label(CHECK_NOTE)
+        grid.addLayout(self._line([self.check, check_note]), 4, 1)
+
+        self.zero_weight = QCheckBox("Zero weight")
+        self.note = QLineEdit()
+        self.note.setObjectName("addField")
+        self.note.setPlaceholderText("note")
+        self.note.setMinimumWidth(240)
+        self.note.setEnabled(False)
+        self.zero_weight.toggled.connect(self.note.setEnabled)
+        grid.addLayout(self._line([self.zero_weight, self.note]), 5, 1)
+        self.zero_line = label(ZERO_NOTE, "note")
+        grid.addWidget(self.zero_line, 6, 1)
+
+        self.submit_button = QPushButton("Add" if self.adding else "Apply")
+        self.submit_button.setObjectName("small")
+        self.submit_button.setProperty("primary", True)
+        self.submit_button.clicked.connect(self.submitted)
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setObjectName("small")
+        self.cancel_button.clicked.connect(self.cancelled)
+        grid.addLayout(self._line([self.submit_button, self.cancel_button]), 7, 0, 1, 2)
+
+        _refill(self.entity, self.words.entities())
+        self._entity_changed()
+        self.entity.currentIndexChanged.connect(self._entity_changed)
+        self.axis.currentIndexChanged.connect(self._axis_changed)
+        if kind is not None:
+            self._fill(kind)
+
+    @staticmethod
+    def _line(widgets: list[QWidget]) -> QHBoxLayout:
+        """Widgets side by side, left-aligned."""
+        lay = QHBoxLayout()
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+        for w in widgets:
+            lay.addWidget(w)
+        lay.addStretch(1)
+        return lay
+
+    def _fill(self, kind) -> None:
+        """Show a kind of the dictionary; its name cannot be changed here."""
+        self.name.setText(kind.name)
+        self.name.setReadOnly(True)
+        self.name.setToolTip("To rename the kind, double-click its name in the table")
+        _choose(self.entity, kind.entity)
+        _choose(self.axis, kind.axis)
+        _choose(self.source, kind.source)
+        _choose(self.target, kind.target)
+        for triple in kind.requires:
+            self._add_row(tuple(triple))
+        self.check.setChecked(bool(kind.check))
+        self.zero_weight.setChecked(bool(kind.zero_weight))
+        self.note.setText(kind.zero_weight_note or "")
+
+    def _entity_changed(self) -> None:
+        _refill(self.axis, self.words.axes_of(self.entity.currentText()))
+        self._axis_changed()
+
+    def _axis_changed(self) -> None:
+        values = self.words.values_of(self.entity.currentText(), self.axis.currentText())
+        _refill(self.source, values)
+        _refill(self.target, values)
+        if len(values) > 1:
+            self.target.setCurrentIndex(1)
+
+    def _add_row(self, triple: tuple[str, str, str] | None) -> None:
+        row = ConditionRow(self.words, triple)
+        row.removed.connect(lambda r=row: self._remove_row(r))
+        self.condition_box.insertWidget(len(self._rows), row)
+        row.show()
+        self._rows.append(row)
+        self.resized.emit()
+
+    def _remove_row(self, row: ConditionRow) -> None:
+        self._rows.remove(row)
+        self.condition_box.removeWidget(row)
+        row.hide()
+        row.deleteLater()
+        self.resized.emit()
+
+    def conditions(self) -> list[ConditionRow]:
+        """The condition rows, top to bottom."""
+        return list(self._rows)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        if event.key() == Qt.Key.Key_Escape:
+            self.cancelled.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def structure(self) -> dict:
+        """Everything but the name, in the shape ``edit.add_kind`` takes; the note only with
+        ``Zero weight``."""
+        structure = {
+            "entity": self.entity.currentText(),
+            "axis": self.axis.currentText(),
+            "from": self.source.currentText(),
+            "to": self.target.currentText(),
+            "requires": [list(row.values()) for row in self._rows],
+            "check": self.check.isChecked(),
+            "zero_weight": self.zero_weight.isChecked(),
+        }
+        if self.zero_weight.isChecked():
+            structure["zero_weight_note"] = self.note.text()
+        return structure
+
+
+class FormCell(QWidget):
+    """The cell that holds a form across a whole table row. Its width does not count when the
+    table sizes its columns; its height is the form's."""
+
+    def __init__(self, form: QWidget) -> None:
+        super().__init__()
+        self.form = form
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(36, 4, 10, 8)
+        lay.addWidget(form)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        margins = self.layout().contentsMargins()
+        height = self.form.sizeHint().height() + margins.top() + margins.bottom()
+        return QSize(0, height)
+
+
 class WordDelegate(QStyledItemDelegate):
     """Editor of a word's name: a changed name is handed to the table, the cell itself is not
     written (the page refills it after the edit)."""
@@ -234,7 +525,9 @@ class WordDelegate(QStyledItemDelegate):
 class WordTable(Table):
     """A dictionary table whose word cells are renamed by a double click; each word row ends with
     ``↑ ↓``, which move the word in its list, and ``✕``, which deletes the word. A click on an add
-    row opens the input of a new word in that row."""
+    row opens the input of a new word in that row. A word of ``FORM_WORDS`` is added and changed
+    in a form under its row instead: its add row and its ``✎`` emit
+    ``form_requested(what, old)``, ``old`` is ``None`` for a new word."""
 
     edited = Signal(str, object, str)
     removed = Signal(str, object)
@@ -242,6 +535,7 @@ class WordTable(Table):
     added = Signal(str, object, str, object, object)  # what, owner, name, first value, executor
     add_opened = Signal()
     add_closed = Signal()
+    form_requested = Signal(str, object)
 
     def __init__(self, headers: list[str]) -> None:
         super().__init__(headers + [""])
@@ -257,6 +551,9 @@ class WordTable(Table):
         self._adds: dict[tuple[str, tuple[str, ...]], tuple[int, AddRow]] = {}
         self._editor: AddEditor | None = None
         self._editor_row = -1
+        self._edits: dict[tuple[str, object], QPushButton] = {}
+        self._form: QWidget | None = None
+        self._form_row = -1
         self.cellClicked.connect(self._clicked)
 
     def _cells(self, row: WordRow | AddRow) -> list[str]:
@@ -273,10 +570,12 @@ class WordTable(Table):
         """
         self._editor = None
         self._editor_row = -1
+        self.close_form()
         self.set_rows([self._cells(row) for row in rows])
         self.clearSelection()
         self._buttons = {}
         self._arrows = {}
+        self._edits = {}
         self._tags = {}
         self._adds = {}
         for r, row in enumerate(rows):
@@ -307,6 +606,13 @@ class WordTable(Table):
         lay = QHBoxLayout(box)
         lay.setContentsMargins(6, 0, 6, 0)
         lay.setSpacing(2)
+        if row.form:
+            pencil = _icon(EDIT, "Edit")
+            pencil.clicked.connect(
+                lambda _=False, w=what, o=old: self.form_requested.emit(w, o)
+            )
+            lay.addWidget(pencil)
+            self._edits[(what, old)] = pencil
         for delta, text, tip, on in ((-1, UP, "Move up", row.up), (1, DOWN, "Move down", row.down)):
             arrow = _icon(text, tip)
             arrow.setEnabled(on)
@@ -345,6 +651,10 @@ class WordTable(Table):
         """The ``↑`` (``delta`` -1) or ``↓`` (+1) of a word; ``None`` when absent."""
         return self._arrows.get((what, old, delta))
 
+    def edit_button(self, what: str, old: object) -> QPushButton | None:
+        """The ``✎`` of a word; ``None`` when absent."""
+        return self._edits.get((what, old))
+
     def tag(self, what: str, old: object) -> str:
         """The grey tag of a word's row; empty when none."""
         label_ = self._tags.get((what, old))
@@ -371,8 +681,13 @@ class WordTable(Table):
         if it is None:
             return
         data = it.data(ADD)
-        if data is not None:
-            self.open_add(*data)
+        if data is None:
+            return
+        what, owner = data
+        if what in FORM_WORDS:
+            self.form_requested.emit(what, None)
+            return
+        self.open_add(what, owner)
 
     def open_add(self, what: str, owner: tuple[str, ...] = ()) -> None:
         """Open the input of a new word in its add row, the last cell of the row."""
@@ -393,20 +708,76 @@ class WordTable(Table):
         self.added.emit(what, owner, name, first, executor)
 
     def cancel_add(self) -> None:
-        """Close the input of a new word without adding it."""
-        if self._editor is None:
+        """Close the input of a new word or the open form without a change."""
+        if self._editor is None and self._form is None:
             return
         self.close_add()
         self.add_closed.emit()
 
     def close_add(self) -> None:
-        """Close the input of a new word, if open."""
+        """Close the input of a new word and the form, if open."""
+        self.close_form()
         if self._editor is None:
             return
         self.removeCellWidget(self._editor_row, self.columnCount() - 1)
         self._editor = None
         self._editor_row = -1
         self.fit()
+
+    # --- form under a row
+
+    def form(self) -> QWidget | None:
+        """The open form; ``None`` when closed."""
+        return self._form
+
+    def open_form(self, what: str, old: object, form: QWidget) -> None:
+        """Open a form in a new row under the word's row, or under the add row when ``old`` is
+        ``None``. Another open input or form of the table goes."""
+        self.close_add()
+        if old is None:
+            r = self._adds[(what, ())][0]
+        else:
+            r = self.word_item(what, old).row()
+        r += 1
+        self.insertRow(r)
+        for c in range(self.columnCount()):
+            blank = QTableWidgetItem("")
+            blank.setFlags(Qt.ItemFlag.ItemIsEnabled)
+            self.setItem(r, c, blank)
+        self.setSpan(r, 0, 1, self.columnCount())
+        self.setCellWidget(r, 0, FormCell(form))
+        self._shift_adds(r, 1)
+        self._form = form
+        self._form_row = r
+        self.fit()
+        self.add_opened.emit()
+
+    def refit_form(self) -> None:
+        """Take the new height of the open form."""
+        if self._form is None:
+            return
+        cell = self.cellWidget(self._form_row, 0)
+        self._form.layout().invalidate()
+        cell.layout().invalidate()
+        self.fit()
+
+    def close_form(self) -> None:
+        """Close the open form, if any, and take its row away."""
+        if self._form is None:
+            return
+        r = self._form_row
+        self._form = None
+        self._form_row = -1
+        self.removeCellWidget(r, 0)
+        self.removeRow(r)
+        self._shift_adds(r, -1)
+        self.fit()
+
+    def _shift_adds(self, row: int, delta: int) -> None:
+        """Move the remembered rows of the add rows at ``row`` and below by ``delta``."""
+        for key, (r, add) in list(self._adds.items()):
+            if r >= row:
+                self._adds[key] = (r + delta, add)
 
 
 class EntityTable(WordTable):
@@ -437,7 +808,9 @@ class DictionaryPage(Page):
     the edit and refills the page. A word is added in the last row of its list
     (``word_added(what, name, first value, executor)``) and moved by ``↑ ↓`` of its row
     (``word_moved(what, old, delta)``). The row above the tables sets the existence axis
-    (``existence_set(name, absent)``) and the batch scope (``batch_set(scope)``).
+    (``existence_set(name, absent)``) and the batch scope (``batch_set(scope)``). A kind is added
+    and changed in a form under its row (``kind_added(name, structure)``,
+    ``kind_set(name, structure)``).
     """
 
     word_edited = Signal(str, object, str)
@@ -446,6 +819,8 @@ class DictionaryPage(Page):
     word_moved = Signal(str, object, int)
     existence_set = Signal(str, str)
     batch_set = Signal(str)
+    kind_added = Signal(str, object)
+    kind_set = Signal(str, object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -453,8 +828,17 @@ class DictionaryPage(Page):
         self._shown: object | None = None
         self._special_now: tuple[str, str] | None = None
         self._batch_now: str | None = None
+        self._model = None
         self.box.addWidget(label("Dictionary", "h2"))
         self._special_row()
+        self.amber = label("")
+        self.amber.setObjectName("amber")
+        self.amber.setWordWrap(True)
+        self.amber.hide()
+        self.box.addWidget(self.amber)
+        self.start_hint = label("", "note")
+        self.start_hint.hide()
+        self.box.addWidget(self.start_hint)
         self.hint = label(HINT, "note")
         self.box.addWidget(self.hint)
         self._collapsed: set[str] = set()  # entities folded in this session
@@ -543,6 +927,7 @@ class DictionaryPage(Page):
         t.added.connect(self._added)
         t.add_opened.connect(lambda table=t: self._close_other_adds(table))
         t.add_closed.connect(self.clear_refusal)
+        t.form_requested.connect(lambda what, old, table=t: self._open_form(table, what, old))
         col.addWidget(t)
         line = label("", "err")
         places = label("")
@@ -611,6 +996,60 @@ class DictionaryPage(Page):
         else:
             full = name
         self.word_added.emit(what, full, first, executor)
+
+    # --- kind form
+
+    def edit_button(self, what: str, old: object) -> QPushButton | None:
+        """The ``✎`` of a word; ``None`` when the word has none."""
+        return self.table_of(what).edit_button(what, old)
+
+    def kind_form(self) -> KindForm | None:
+        """The open form of a kind; ``None`` when closed."""
+        return self.kinds.form()
+
+    def _open_form(self, table: WordTable, what: str, old: object) -> None:
+        """Open the form of a new kind (``old`` is ``None``) or of an existing one."""
+        if what != "kind":
+            return
+        kind = None
+        if old is not None and self._model is not None:
+            kind = next((k for k in self._model.kinds if k.name == old), None)
+        form = KindForm(self._model, kind)
+        form.submitted.connect(lambda: self._kind_submitted(form, old))
+        form.cancelled.connect(table.cancel_add)
+        form.resized.connect(table.refit_form)
+        table.open_form(what, old, form)
+        form.name.setFocus()
+
+    def _kind_submitted(self, form: KindForm, old: str | None) -> None:
+        if old is None:
+            self.kind_added.emit(form.name.text(), form.structure())
+        else:
+            self.kind_set.emit(old, form.structure())
+
+    # --- amber line
+
+    def show_amber(self, codes: list[str]) -> None:
+        """Show the amber line about the variants that got errors after a dictionary edit;
+        an empty list hides it."""
+        if not codes:
+            self.amber.setText("")
+            self.amber.hide()
+            return
+        if len(codes) == 1:
+            count = "1 path has"
+        else:
+            count = f"{len(codes)} paths have"
+        text = (f"{count} errors after this change: {', '.join(codes)}. "
+                "Fix them on the Step chains tab.")
+        self.amber.setText(text)
+        self.amber.show()
+
+    def amber_text(self) -> str:
+        """The text of the amber line; empty when hidden."""
+        if self.amber.isHidden():
+            return ""
+        return self.amber.text()
 
     # --- collapsing
 
@@ -690,11 +1129,15 @@ class DictionaryPage(Page):
         scroll = self.verticalScrollBar().value()
         self.clear_refusal()
         if p is None:
+            self._model = None
+            self._show_start_hint(False)
             self._show_special(None)
             for t in self.tables():
                 t.set_words([])
             return
         m = p.model
+        self._model = m
+        self._show_start_hint(not m.variants)
         self._show_special(m)
         self.entities.set_words(self._entity_rows(m))
         self._collapsed &= {e.name for e in m.entities}
@@ -705,9 +1148,10 @@ class DictionaryPage(Page):
             "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),
             CHECK if k.check else "",
             (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""],
-            **_edges(i, len(m.kinds)))
+            form=True, **_edges(i, len(m.kinds)))
             for i, k in enumerate(m.kinds)]
-        self.kinds.set_words(kinds or [WordRow(None, None, 0, [DASH, "", "", "", "", ""])])
+        kinds.append(AddRow("kind", (), 0))
+        self.kinds.set_words(kinds)
         executors = [x.name for x in m.executors]
         self.executors.set_words(self._list_rows("executor", executors))
         self.instruments.set_words(self._list_rows("instrument", list(m.instruments)))
@@ -724,6 +1168,15 @@ class DictionaryPage(Page):
         if keep:
             self.verticalScrollBar().setValue(scroll)
 
+
+    def _show_start_hint(self, shown: bool) -> None:
+        """Show or hide the grey line on where to start in a project without variants."""
+        if shown:
+            self.start_hint.setText(START_HINT)
+            self.start_hint.show()
+        else:
+            self.start_hint.setText("")
+            self.start_hint.hide()
 
     def _show_special(self, m) -> None:
         """Fill the row of the existence axis and the batch scope; ``None`` empties it."""
