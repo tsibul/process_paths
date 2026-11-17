@@ -96,6 +96,33 @@ class Group:
 
 
 @dataclass
+class Point:
+    """State of a variant after one step.
+
+    :ivar number: call number from 1.
+    :ivar kind: kind of transition.
+    :ivar executor: executor.
+    :ivar labour: cumulative labour after the step.
+    :ivar skips: ``[(entity, axis)]`` of the skipped checks on the slice after the step.
+    :ivar skips_count: ``len(skips)``.
+    :ivar skips_total: sum of the prices of the skips.
+    :ivar done_total: sum of the prices of the done checks (axis in the slice, with a value,
+        not the first one).
+    :ivar slices: names of the named slices reached at this step.
+    """
+
+    number: int
+    kind: str
+    executor: str
+    labour: Decimal
+    skips: list[tuple[str, str]]
+    skips_count: int
+    skips_total: Decimal
+    done_total: Decimal
+    slices: list[str]
+
+
+@dataclass
 class Step:
     """One call of a variant.
 
@@ -242,6 +269,39 @@ def details(project: Project, code: str) -> list[Step]:
         out.append(Step(i, c.kind, c.executor, c.instrument, c.scope, _cost(project, c.kind),
                         n.scope_coefficients[c.scope], n.executor_coefficients[c.executor],
                         _step_labour(project, c), changes))
+    return out
+
+
+def _done_total(project: Project, s: Slice) -> Decimal:
+    total = ZERO
+    for e, a in check_axes(project.model):
+        if (e, a) in s and s[(e, a)] is not None and s[(e, a)] != project.model.entity(e).axis(a).values[0]:
+            total += project.norm.skip_prices[(e, a)]
+    return total
+
+
+def series(project: Project, code: str) -> list[Point]:
+    """Labour, skips and reached slices after each step of one variant.
+
+    :param project: a checked project.
+    :param code: variant code.
+    :return: one point per call.
+    :rtype: list[Point]
+    """
+    v = next(x for x in project.model.variants if x.code == code)
+    slices = run_variant(project.model, v)
+    reached: dict[int, list[str]] = {}
+    for ns in project.model.named_slices:
+        i = find_slice(v, slices, ns)
+        if i is not None:
+            reached.setdefault(i, []).append(ns.name)
+    out, labour = [], ZERO
+    for i, c in enumerate(v.calls, 1):
+        labour += _step_labour(project, c)
+        found = _skips(project, slices[i])
+        out.append(Point(i, c.kind, c.executor, labour, [(e, a) for e, a, _ in found], len(found),
+                         sum((p for _, _, p in found), ZERO), _done_total(project, slices[i]),
+                         reached.get(i, [])))
     return out
 
 

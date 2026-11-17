@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.calc import compare, details, fmt, groups
+from procnorm.calc import compare, details, fmt, groups, series
 from procnorm.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
@@ -243,3 +243,73 @@ def test_empty_groups_absent():
     g = groups(compare(project_of(base())))
     assert [x.kind for x in g] == ["no-pair"]
     assert [r.code for r in g[0].rows] == ["А", "Б", "В"]
+
+
+# ---------- series ----------
+
+def test_series_a(project):
+    pts = series(project, "А")
+    assert [p.number for p in pts] == list(range(1, 8))
+    assert [p.kind for p in pts][:3] == ["Проверить карманы", "Разобрать по цветам", "Запустить машину"]
+    assert [p.executor for p in pts][3] == "Машина"
+    assert [p.labour for p in pts][:4] == [D(2), D(5), D("5.4"), D("5.4")]
+    p1, p2 = pts[0], pts[1]
+    assert p1.skips == [("Бельё", "цвета")] and p1.skips_count == 1 and p1.skips_total == D(3)
+    assert p1.done_total == D(5)
+    assert p2.skips == [] and p2.skips_count == 0 and p2.skips_total == D(0) and p2.done_total == D(8)
+    assert pts[-1].done_total == D(8)
+
+
+def test_series_last_point_equals_row(project):
+    for code, row in rows(project).items():
+        pts = series(project, code)
+        assert len(pts) == row.steps
+        assert pts[-1].labour == row.total
+        final = row.slices[-1]
+        assert pts[-1].skips_total == final.total
+        assert pts[-1].skips_count == len(final.skips)
+        assert pts[-1].skips == [(e, a) for e, a, _ in final.skips]
+        assert all(a.labour <= b.labour for a, b in zip(pts, pts[1:]))
+
+
+def test_series_slice_marker(project):
+    pts = series(project, "А")
+    assert [p.slices for p in pts] == [[], [], [], ["постирано"], [], [], []]
+    pts = series(project, "Б")
+    assert [p.slices for p in pts] == [[], ["постирано"], [], [], []]
+
+
+def test_series_unreached_slice_has_no_marker():
+    d = base()
+    d["named_slices"]["карманы"] = {"any": [{"states": [["Бельё", "карманы", "проверены"]]}]}
+    p = project_of(d)
+    assert [x.slices for x in series(p, "А")][:4] == [["карманы"], [], [], ["постирано"]]
+    assert all(x.slices in ([], ["постирано"]) for x in series(p, "Б"))
+    assert not any("карманы" in x.slices for x in series(p, "Б"))
+
+
+def test_series_check_reverted_counts_as_skip_again():
+    d = base()
+    d["kinds"].append({"name": "Снять проверку", "entity": "Бельё", "axis": "карманы",
+                       "from": "проверены", "to": "не проверены"})
+    d["normalization"]["kind_costs"]["Снять проверку"] = 1
+    v = next(x for x in d["variants"] if x["code"] == "А")
+    v["calls"] = [["Проверить карманы", "Человек", "руки", "каждая вещь"],
+                  ["Снять проверку", "Человек", "руки", "каждая вещь"]]
+    pts = series(project_of(d), "А")
+    assert pts[0].skips == [("Бельё", "цвета")] and pts[0].done_total == D(5)
+    assert pts[1].skips == [("Бельё", "карманы"), ("Бельё", "цвета")]
+    assert pts[1].skips_total == D(8) and pts[1].done_total == D(0)
+    assert pts[1].labour == D(3)
+
+
+def test_series_without_checks_is_zero():
+    d = base()
+    d["normalization"]["axis_skip_prices"] = {}
+    for k in d["kinds"]:
+        k.pop("check", None)
+    d["variants"] = [v for v in d["variants"] if v["code"] == "Б"]
+    pts = series(project_of(d), "Б")
+    assert len(pts) == 5
+    assert all(p.skips == [] and p.skips_count == 0 and p.skips_total == D(0) and p.done_total == D(0)
+               for p in pts)
