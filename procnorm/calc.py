@@ -150,6 +150,27 @@ class Step:
     changes: list[tuple[str, str, str | None, str | None]]
 
 
+@dataclass
+class Link:
+    """One human step of a variant with its transitions.
+
+    :ivar text: the step as the human said it; ``None`` for the single link of a variant
+        without ``steps``.
+    :ivar calls: the transitions of the step, in order.
+    :ivar slices: ``[(call number, slice name)]``: the named slices reached at calls of this link
+        (a marker goes after that call).
+    """
+
+    text: str | None
+    calls: list[Step]
+    slices: list[tuple[int, str]] = field(default_factory=list)
+
+    @property
+    def empty(self) -> bool:
+        """A human step with no transitions."""
+        return self.text is not None and not self.calls
+
+
 def _cost(project: Project, kind: str) -> Decimal:
     return project.norm.kind_costs.get(kind, ZERO)
 
@@ -303,6 +324,48 @@ def series(project: Project, code: str) -> list[Point]:
                          sum((p for _, _, p in found), ZERO), _done_total(project, slices[i]),
                          reached.get(i, [])))
     return out
+
+
+def chain(project: Project, code: str) -> list[Link]:
+    """Human steps of one variant with their transitions and slice markers.
+
+    :param project: a checked project.
+    :param code: variant code.
+    :return: the links; one link with ``text`` ``None`` and all calls if the variant has no
+        ``steps``.
+    :rtype: list[Link]
+    """
+    calls = details(project, code)
+    marks = [(p.number, n) for p in series(project, code) for n in p.slices]
+    steps = project.steps.get(code)
+    sizes = [(None, len(calls))] if steps is None else steps
+    out, pos = [], 0
+    for text, n in sizes:
+        part = calls[pos:pos + n]
+        pos += n
+        out.append(Link(text, part, [m for m in marks if pos - n < m[0] <= pos]))
+    return out
+
+
+def empty_steps(project: Project, code: str) -> int:
+    """Number of human steps of one variant without transitions.
+
+    :param project: a checked project.
+    :param code: variant code.
+    :return: the count; 0 for a variant without ``steps``.
+    :rtype: int
+    """
+    return sum(1 for text, n in (project.steps.get(code) or []) if n == 0)
+
+
+def project_empty_steps(project: Project) -> int:
+    """Number of human steps without transitions over all variants of the project.
+
+    :param project: a checked project.
+    :return: the count.
+    :rtype: int
+    """
+    return sum(empty_steps(project, v.code) for v in project.model.variants)
 
 
 def money(d: Decimal) -> str:

@@ -10,7 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.calc import compare, details, fmt, groups, series
+from procnorm.calc import (Link, chain, compare, details, empty_steps, fmt, groups, project_empty_steps,
+                           series)
 from procnorm.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
@@ -314,3 +315,75 @@ def test_series_without_checks_is_zero():
     assert len(pts) == 5
     assert all(p.skips == [] and p.skips_count == 0 and p.skips_total == D(0) and p.done_total == D(0)
                for p in pts)
+
+
+# ---------- chain ----------
+
+def with_steps(**by_code):
+    d = base()
+    for v in d["variants"]:
+        if v["code"] in by_code:
+            v["steps"] = [{"text": t, "calls": n} for t, n in by_code[v["code"]]]
+    return project_of(d)
+
+
+def test_chain_without_steps_is_one_link(project):
+    links = chain(project, "Б")
+    assert len(links) == 1 and isinstance(links[0], Link)
+    assert links[0].text is None
+    assert links[0].calls == details(project, "Б")
+    assert links[0].slices == [(2, "постирано")]
+    assert not links[0].empty
+
+
+def test_chain_transitions_in_order_each_once():
+    p = with_steps(А=[("Загрузить", 2), ("Ждать", 1), ("Проверить", 3), ("Развесить", 1)])
+    links = chain(p, "А")
+    assert [x.text for x in links] == ["Загрузить", "Ждать", "Проверить", "Развесить"]
+    assert [[c.number for c in x.calls] for x in links] == [[1, 2], [3], [4, 5, 6], [7]]
+    assert [c for x in links for c in x.calls] == details(p, "А")
+
+
+def test_chain_empty_step():
+    p = with_steps(Б=[("Решить", 0), ("Всё", 5), ("Конец", 0)])
+    links = chain(p, "Б")
+    assert [x.text for x in links] == ["Решить", "Всё", "Конец"]
+    assert [x.empty for x in links] == [True, False, True]
+    assert links[0].calls == [] and links[0].slices == []
+    assert [c.number for c in links[1].calls] == [1, 2, 3, 4, 5]
+
+
+def test_chain_slice_marker_after_the_right_transition():
+    p = with_steps(А=[("Загрузить", 2), ("Ждать", 2), ("Остальное", 3)])
+    links = chain(p, "А")
+    assert [x.slices for x in links] == [[], [(4, "постирано")], []]
+    assert links[1].slices == [(4, "постирано")]
+
+
+def test_chain_unreached_slice_has_no_marker():
+    d = base()
+    d["named_slices"]["карманы"] = {"any": [{"states": [["Бельё", "карманы", "проверены"]]}]}
+    p = project_of(d)
+    marks = [m for x in chain(p, "Б") for m in x.slices]
+    assert all(name != "карманы" for _, name in marks)
+    assert [m for x in chain(p, "А") for m in x.slices][0] == (1, "карманы")
+
+
+def test_chain_markers_match_series(project):
+    for code in ("А", "Б", "В"):
+        expected = [(p.number, n) for p in series(project, code) for n in p.slices]
+        assert [m for x in chain(project, code) for m in x.slices] == expected
+
+
+def test_empty_steps_counts():
+    p = with_steps(А=[("а", 0), ("б", 7), ("в", 0), ("г", 0)], Б=[("а", 5)])
+    assert empty_steps(p, "А") == 3
+    assert empty_steps(p, "Б") == 0
+    assert empty_steps(p, "В") == 0
+    assert project_empty_steps(p) == 3
+
+
+def test_project_empty_steps_without_steps(project):
+    assert project_empty_steps(project) == 0
+    p = with_steps(А=[("а", 0), ("б", 7)], Б=[("а", 0), ("б", 5)])
+    assert project_empty_steps(p) == 2
