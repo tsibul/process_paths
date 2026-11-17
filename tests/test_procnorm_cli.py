@@ -44,7 +44,7 @@ def test_table_markdown(capsys):
 def test_table_csv(capsys):
     assert main(["table", LAUNDRY, "--csv"]) == 0
     rows = list(csv.reader(io.StringIO(capsys.readouterr().out)))
-    assert len(rows) == 4 and rows[0][0] == "Code"
+    assert len(rows) == 4 and rows[0][:2] == ["Group", "Code"]
 
 
 def test_table_broken(tmp_path, capsys):

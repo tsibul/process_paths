@@ -10,8 +10,8 @@ import io
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm.calc import Comparison, Row, compare, details, fmt, money
-from procnorm.project import Project
+from procnorm.calc import Comparison, Group, Row, compare, details, fmt, groups, money
+from procnorm.project import FINAL, Project
 
 DASH = "—"
 ARROW = "→"
@@ -28,21 +28,38 @@ def _table(rows: list[list[str]]) -> list[str]:
     return lines
 
 
+SIDES = {"own": "Ours", "other": "Theirs"}
+NO_PAIR = "No comparable variant"
+NO_PAIR_NOTE = "Not compared: no other variant has the same task"
+OUT = "Out of comparison"
+
+
 def _header(cmp: Comparison) -> list[str]:
-    return (["Code", "Title", "Side", "Steps"] + [f"Labour: {x}" for x in cmp.executors]
-            + ["Labour total"] + [f"Skips at {n}" for n in cmp.slice_names])
+    return (["Code", "Title", "Side", "Steps"] + [f"Labour · {x}" for x in cmp.executors]
+            + ["Labour · total"]
+            + [f"Skipped checks, {'end' if n == FINAL else n}" for n in cmp.slice_names])
 
 
 def _row(cmp: Comparison, r: Row) -> list[str]:
-    out = [r.code, r.title, r.side, str(r.steps)] + [money(r.labour[x]) for x in cmp.executors]
+    out = [r.code, r.title, SIDES.get(r.side, r.side), str(r.steps)]
+    out += [money(r.labour[x]) for x in cmp.executors]
     out.append(money(r.total))
     for s in r.slices:
         out.append(money(s.total) + ("" if s.reached else " (not reached)"))
     return out
 
 
+def _group_name(g: Group) -> str:
+    if g.kind == "task":
+        return f"Task: {g.task}"
+    return NO_PAIR if g.kind == "no-pair" else OUT
+
+
 def _grid(cmp: Comparison) -> list[list[str]]:
-    return [_header(cmp)] + [_row(cmp, r) for r in cmp.rows]
+    out = [["Group"] + _header(cmp) + ["Reason"]]
+    for g in groups(cmp):
+        out += [[_group_name(g)] + _row(cmp, r) + [r.reason or ""] for r in g.rows]
+    return out
 
 
 def _change(c: tuple[str, str, str | None, str | None]) -> str:
@@ -61,11 +78,15 @@ def markdown(project: Project) -> str:
     out = [f"# {project.name}", ""]
     if project.description:
         out += [project.description, ""]
-    out += _table(_grid(cmp)) + [""]
-    if cmp.excluded:
-        out += ["## Out of comparison", ""]
-        out += [f"- {code}: {title} ({reason})" for code, title, reason in cmp.excluded]
-        out.append("")
+    for g in groups(cmp):
+        out += [f"## {_group_name(g)}", ""]
+        if g.kind == "task":
+            out += [f"{len(g.rows)} variants", ""]
+        elif g.kind == "no-pair":
+            out += [NO_PAIR_NOTE, ""]
+        head = _header(cmp) + (["Reason"] if g.kind == "out" else [])
+        body = [_row(cmp, r) + ([r.reason or ""] if g.kind == "out" else []) for r in g.rows]
+        out += _table([head] + body) + [""]
     if cmp.uncounted_errors:
         out += ["## Uncounted errors", ""]
         for group, items in cmp.uncounted_errors.items():
@@ -73,7 +94,7 @@ def markdown(project: Project) -> str:
     out += ["## Details", ""]
     head = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope coef.", "Executor coef.",
             "Labour", "Change"]
-    for r in cmp.rows:
+    for r in cmp.rows + cmp.excluded_rows:
         out += [f"### {r.code}: {r.title}", ""]
         rows = [head]
         for s in details(project, r.code):
