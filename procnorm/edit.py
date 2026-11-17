@@ -1109,3 +1109,100 @@ def set_kind(data: dict, name: str, structure: dict) -> tuple[dict | None, list[
     :rtype: tuple[dict | None, list[Remark]]
     """
     return _put_kind(data, "set kind", name, structure, False)
+
+
+# ---------- named slices ----------
+
+def _slice_refuse(what: str, reason: str) -> tuple[None, list[Remark]]:
+    return None, [Remark(what, reason)]
+
+
+def _slice_group(group: object) -> tuple[dict | None, str | None]:
+    """Make the group of the file from the group given by the caller.
+
+    The group is a list of rows (a triple ``(entity, axis, value)`` or a pair
+    ``(variant parameter, executor)``), or a dictionary with the keys ``states`` and ``params``.
+
+    :return: ``(group, None)``, or ``(None, reason)`` when the group has a wrong shape or is empty.
+    """
+    if isinstance(group, dict):
+        unknown = sorted(str(key) for key in group if key not in ("states", "params"))
+        if unknown:
+            return None, f"unknown fields: {', '.join(unknown)}"
+        rows = list(group.get("states") or []) + list(group.get("params") or [])
+    elif isinstance(group, (list, tuple)):
+        rows = list(group)
+    else:
+        return None, "a group must be a list of rows"
+    states = []
+    params = []
+    for row in rows:
+        is_row = isinstance(row, (list, tuple)) and all(isinstance(x, str) for x in row)
+        if not is_row or len(row) not in (2, 3):
+            return None, f"a row must be three texts or two texts: {row!r}"
+        if len(row) == 3:
+            states.append(list(row))
+        else:
+            params.append(list(row))
+    if not states and not params:
+        return None, "empty group"
+    entry = {}
+    if states:
+        entry["states"] = states
+    if params:
+        entry["params"] = params
+    return entry, None
+
+
+def _put_slice(data: dict, what: str, name: object, groups: object, adding: bool
+               ) -> tuple[dict | None, list[Remark]]:
+    if not isinstance(name, str) or not name.strip():
+        return _slice_refuse(what, "slice name must be a text, not empty")
+    name = name.strip()
+    if name == FINAL:
+        return _slice_refuse(what, f"the name {FINAL!r} is reserved for the final slice")
+    if not isinstance(groups, (list, tuple)) or not groups:
+        return _slice_refuse(what, "a slice needs at least one group")
+    entries = []
+    for group in groups:
+        entry, reason = _slice_group(group)
+        if reason:
+            return _slice_refuse(what, reason)
+        entries.append(entry)
+    new = copy.deepcopy(data)
+    slices = new.setdefault("named_slices", {})
+    if adding and name in slices:
+        return _slice_refuse(what, f"named slice name is taken: {name}")
+    if not adding and name not in slices:
+        return _slice_refuse(what, f"no such named slice: {name}")
+    slices[name] = {"any": entries}
+    return _checked(new)
+
+
+def add_slice(data: dict, name: str, groups: list) -> tuple[dict | None, list[Remark]]:
+    """Add a named slice at the end of the named slices.
+
+    :param data: the parsed project file; not changed.
+    :param name: the new name; spaces around it are dropped. ``final`` is reserved.
+    :param groups: the groups "or"; each group is a list of rows "and": a triple
+        ``(entity, axis, value)`` or a pair ``(variant parameter, executor)``. A group may also
+        be a dictionary ``{"states": [...], "params": [...]}`` as in the file.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused: a taken, empty
+        or reserved name, no groups, an empty group, a wrong row, or what the lenient read
+        refuses (unknown entity, axis, value, variant parameter or executor).
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    return _put_slice(data, "add slice", name, groups, True)
+
+
+def set_slice(data: dict, name: str, groups: list) -> tuple[dict | None, list[Remark]]:
+    """Change all the groups of a named slice; the name and the place stay.
+
+    :param data: the parsed project file; not changed.
+    :param name: the existing named slice.
+    :param groups: see :func:`add_slice`.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when there is no such slice or the edit is
+        refused as in :func:`add_slice`.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    return _put_slice(data, "set slice", name, groups, False)
