@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QRect, QSize, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics
-from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
                                QPushButton, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -33,6 +33,7 @@ HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is
 STEP_HEADERS = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope ×", "Executor ×", "Labour",
                 "Skips left", "Changes"]
 STEP_NUMERIC = {0, 5, 6, 7, 8, 9}
+CHANGES_SHARE = 2  # Changes gets twice the room of another text column of the steps table
 HEAD_LINE = 120  # widest second line of a column label, px; longer names are elided
 CHEVRON = 20  # room for ▸ / ▾ in the first column, px
 STRIPE = 3  # accent stripe of our rows, px
@@ -127,6 +128,53 @@ class GroupHeader(QFrame):
             box.addWidget(self.note)
 
 
+class WrapTable(Table):
+    """Steps table: ``Changes`` takes the rest of the width and wraps by words; no horizontal scroll."""
+
+    def __init__(self, headers: list[str], numeric: set[int]) -> None:
+        super().__init__(headers, numeric)
+        self.setWordWrap(True)
+        self.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def fit(self) -> None:
+        super().fit()  # every column by content and header
+        self.horizontalHeader().setStretchLastSection(False)
+        self._natural = [self.columnWidth(c) for c in range(self.columnCount())]
+        if self._natural:
+            self._natural[-1] = max(self._natural[-1], self.sizeHintForColumn(self.columnCount() - 1))
+        self._wrap()
+
+    def _wrap(self) -> None:
+        """Numbers keep their width; the text columns share the rest, a narrow one getting all it needs
+        and ``Changes`` (the last) at least ``CHANGES_SHARE`` shares plus what is left."""
+        natural = getattr(self, "_natural", [])
+        if not natural:
+            return
+        last = len(natural) - 1
+        room = self.viewport().width() - sum(natural[c] for c in self.numeric)
+        pool = sorted((c for c in range(last) if c not in self.numeric), key=lambda c: natural[c])
+        for c in self.numeric:
+            self.setColumnWidth(c, natural[c])
+        while pool and natural[pool[0]] <= room // (len(pool) + CHANGES_SHARE):
+            c = pool.pop(0)
+            self.setColumnWidth(c, natural[c])
+            room -= natural[c]
+        floor = self.horizontalHeader().minimumSectionSize()
+        for c in pool:
+            share = max(room // (len(pool) + CHANGES_SHARE), floor)
+            self.setColumnWidth(c, share)
+        room -= sum(self.columnWidth(c) for c in pool)
+        self.setColumnWidth(last, max(room, floor))
+        self.resizeRowsToContents()
+        self._content_width = 0  # never a horizontal scroll bar
+        self._fit_height()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().resizeEvent(event)
+        self._wrap()
+
+
 class StepsPanel(QFrame):
     """Steps of one variant under its row, then its skipped checks by slice."""
 
@@ -137,7 +185,7 @@ class StepsPanel(QFrame):
         box = QVBoxLayout(self)
         box.setContentsMargins(34, 6, 10, 8)
         box.setSpacing(4)
-        self.table = Table(STEP_HEADERS, STEP_NUMERIC)
+        self.table = WrapTable(STEP_HEADERS, STEP_NUMERIC)
         points = series(project, row.code)
         self.table.set_rows([
             [str(s.number), s.kind, s.executor, s.instrument, s.scope, fmt(s.cost), fmt(s.scope_coefficient),
@@ -335,9 +383,11 @@ class GroupTree(QTreeWidget):
         hh = self.header()
         hh.setStretchLastSection(False)
         for c in range(self.columnCount()):
+            hh.setSectionResizeMode(c, QHeaderView.ResizeMode.Interactive)
             head = max((fm.horizontalAdvance(x) for x in self.headerItem().text(c).split("\n")), default=0)
             self.setColumnWidth(c, max(self.sizeHintForColumn(c), head + extra))
-        hh.setStretchLastSection(True)
+        if self.columnCount() > 1:
+            hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Title takes the rest
         self.sync_heights()
 
     def sync_heights(self) -> None:

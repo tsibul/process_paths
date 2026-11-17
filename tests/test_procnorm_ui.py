@@ -513,3 +513,62 @@ def test_screenshot_compare_steps(twelve):
     page.resize(1200, page.sizeHint().height())
     QApplication.processEvents()
     assert page.grab().save(out)
+
+
+# --- fixes of the live run (piece 7)
+
+def _shown_at(win, width, code):
+    c = win.comparison
+    c.toggle(code)
+    win.resize(width, 900)
+    win.show()
+    QApplication.processEvents()
+    return c.steps(code)
+
+
+def test_steps_table_fits_1100_and_changes_wrap(twelve):
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QFontMetrics
+    t = _shown_at(twelve, 1100, "А")
+    last = t.columnCount() - 1
+    assert t.horizontalHeaderItem(last).text() == "Changes"
+    assert t.horizontalScrollBar().maximum() == 0
+    assert not t.horizontalScrollBar().isVisible()
+    assert sum(t.columnWidth(c) for c in range(t.columnCount())) <= t.viewport().width()
+    fm = QFontMetrics(t.font())
+    taller = False
+    for r in range(t.rowCount()):
+        text = t.item(r, last).text()
+        need = fm.boundingRect(QRect(0, 0, t.columnWidth(last) - 16, 10000), Qt.TextFlag.TextWordWrap, text)
+        assert need.height() <= t.rowHeight(r), text
+        taller = taller or t.rowHeight(r) > fm.lineSpacing() * 1.5
+    assert taller  # at 1100 px at least one change takes two lines
+
+
+def test_title_stretches_not_last_column(twelve):
+    c = twelve.comparison
+    _shown_at(twelve, 1100, "Б")
+    hh = c.tree.header()
+    from PySide6.QtWidgets import QHeaderView
+    assert not hh.stretchLastSection()
+    assert hh.sectionResizeMode(c.headers().index("Title")) == QHeaderView.ResizeMode.Stretch
+    last = c.tree.columnCount() - 1
+    assert c.tree.columnWidth(last) < c.tree.columnWidth(1)
+
+
+def test_numeric_headers_right_aligned(twelve):
+    c = twelve.comparison
+    h = c.tree.headerItem()
+    for i, key in enumerate(c.headers()):
+        right = bool(Qt.AlignmentFlag(h.textAlignment(i)) & Qt.AlignmentFlag.AlignRight)
+        assert right == (i >= 3), key
+
+
+def test_out_of_comparison_group_has_numbers_reason_and_steps(twelve):
+    c = twelve.comparison
+    assert c.group_headers()[-1].title.text() == "Out of comparison"
+    assert c.codes()[-1] == "Н"
+    assert c.cell("Н", "Labour · total") == "8.40"
+    assert c.cell("Н", "Title").split("\n") == ["Вариант Н", "Reason: чужая машина"]
+    c.toggle("Н")
+    assert c.steps("Н").rowCount() == 7
