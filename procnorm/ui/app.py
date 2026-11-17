@@ -30,6 +30,7 @@ from procnorm.ui.tables import label
 
 LAST = "last_project"
 NEW_NAME = "New project"
+NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = "Project files (*.json);;All files (*)"
 
 
@@ -299,16 +300,27 @@ class MainWindow(QMainWindow):
             with ``(code, after, [kind, executor, instrument, scope], step)``; numbers from 1. Also
             ``copy`` and ``delete`` with ``(code,)`` and ``rename`` with ``(code, new code, title)``.
             Delete asks ``confirm`` first; a copy is chosen, after a delete the neighbour is chosen.
+            ``header`` with ``(code, field, value)`` changes one field of
+            :func:`procnorm.edit.set_variant`; ``new`` with ``()`` adds a variant ``New N``
+            and chooses it.
         :return: whether the edit was accepted.
         :rtype: bool
         """
         if self.current_id is None:
             return False
+        if op == "new":
+            return self._new_variant()
         if op == "delete" and not self.confirm(f"Delete {args[0]}?"):
             return False
+        if op == "header":
+            code, field_, value = args
+            args = (code,)
+            fields = {field_: value}
+        else:
+            fields = {}
         fn = {"move": move_call, "remove": remove_call, "add": add_call, "copy": copy_variant,
-              "delete": delete_variant, "rename": rename_variant}[op]
-        data, remarks = fn(self.store.get(self.current_id).data, *args)
+              "delete": delete_variant, "rename": rename_variant, "header": edit.set_variant}[op]
+        data, remarks = fn(self.store.get(self.current_id).data, *args, **fields)
         if data is None:
             own = f"variant {args[0]}"
             self.chains.show_refusal("; ".join(r.text if r.where == own else str(r) for r in remarks))
@@ -323,6 +335,30 @@ class MainWindow(QMainWindow):
             at = codes.index(args[0]) if args[0] in codes else 0
             self.chains.choose_next(rest[min(at, len(rest) - 1)] if rest else None)
         self._save_edit(data)
+        return True
+
+    def _new_variant(self) -> bool:
+        """Add the variant ``New N`` with the first free ``N`` and choose it."""
+        data = self.store.get(self.current_id).data
+        taken = set()
+        for v in data.get("variants", []):
+            taken.add(v.get("code"))
+        n = 1
+        while f"New {n}" in taken:
+            n += 1
+        code = f"New {n}"
+        new, remarks = edit.add_variant(data, code, NEW_TITLE)
+        if new is None:
+            texts = []
+            for r in remarks:
+                if r.where == "add variant":
+                    texts.append(r.text)
+                else:
+                    texts.append(str(r))
+            self.chains.show_refusal("; ".join(texts))
+            return False
+        self.chains.choose_next(code)
+        self._save_edit(new)
         return True
 
     def edit_word(self, op: str, what: str, old: str | tuple[str, ...], name: str = "") -> bool:

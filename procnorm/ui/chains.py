@@ -3,7 +3,9 @@
 
 """Step chains tab: the paths by group on the left, the human steps of one path with their transitions.
 
-The header holds the editable code and title and the buttons ``Copy`` and ``Delete``.
+The header holds the editable code and title and the buttons ``Copy`` and ``Delete``; under them
+the side, the task, the reason to keep the path out of comparison and the variant parameters.
+``New`` above the path list adds a variant.
 Each transition has the buttons ``↑ ↓ ✕ +`` right of ``Scope``; ``+`` opens an input row under it. The
 tab only asks for an edit (``edit_requested``); the window applies it and refills the tab."""
 
@@ -14,8 +16,9 @@ from html import escape
 
 from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
-from PySide6.QtWidgets import (QComboBox, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton,
-                               QStyle, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QHBoxLayout, QHeaderView,
+                               QLabel, QLineEdit, QPushButton, QRadioButton, QStyle, QVBoxLayout,
+                               QWidget)
 
 from procnorm.calc import Link, Row, chain, compare, empty_steps, groups
 from procnorm.project import Project
@@ -38,6 +41,8 @@ SEP = " · "
 UP, DOWN, REMOVE, ADD = "↑", "↓", "✕", "+"
 TIPS = {UP: "Move up", DOWN: "Move down", REMOVE: "Remove", ADD: "Add transition below"}
 FIELDS = ("kind", "executor", "instrument", "scope")
+TASK_HINT = "variants with the same task are compared"
+SIDES = ("own", "other")
 
 
 def _count(n: int, one: str) -> str:
@@ -498,7 +503,9 @@ class ChainsPage(Page):
     ``edit_requested(op, args)`` asks the window for an edit of the chosen path; ``args`` start with
     its code: ``("move", (code, number, ±1))``, ``("remove", (code, number))``,
     ``("add", (code, after, call, step))``, ``("copy", (code,))``, ``("delete", (code,))``,
-    ``("rename", (code, new code, title))``.
+    ``("rename", (code, new code, title))``, ``("header", (code, field, value))`` with a field of
+    :func:`procnorm.edit.set_variant` (``side``, ``task``, ``out_of_comparison``, ``params``).
+    ``("new", ())`` asks for a new variant.
     """
 
     edit_requested = Signal(str, tuple)
@@ -518,6 +525,7 @@ class ChainsPage(Page):
         self.list_box = QVBoxLayout(self.list)
         self.list_box.setContentsMargins(1, 1, 1, 1)
         self.list_box.setSpacing(0)
+        self.list_box.addWidget(self._new_row())
         split.addWidget(self.list, 0, Qt.AlignmentFlag.AlignTop)
         right = QVBoxLayout()
         right.setSpacing(0)
@@ -546,6 +554,7 @@ class ChainsPage(Page):
         self.meta.setObjectName("groupNote")
         head.addWidget(self.meta, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         right.addLayout(head)
+        right.addWidget(self._header_fields())
         self.table = ChainTable()
         self.table.edit.connect(self._edit)
         right.addWidget(self.table)
@@ -558,6 +567,79 @@ class ChainsPage(Page):
         self.box.addLayout(split)
         self.box.addStretch(1)
 
+    def _new_row(self) -> QWidget:
+        """The row of ``New`` at the top of the path list."""
+        row = QWidget()
+        row.setObjectName("newRow")
+        line = QHBoxLayout(row)
+        line.setContentsMargins(10, 8, 10, 8)
+        self.new_button = QPushButton("New")
+        self.new_button.setObjectName("small")
+        self.new_button.setProperty("primary", True)
+        self.new_button.setToolTip("Add a variant")
+        self.new_button.clicked.connect(lambda: self.edit_requested.emit("new", ()))
+        line.addWidget(self.new_button)
+        line.addStretch(1)
+        return row
+
+    def _header_fields(self) -> QWidget:
+        """Side, task, out of comparison with its reason, and a list of executors per parameter."""
+        self.fields = QWidget()
+        self.fields.setObjectName("chainFields")
+        rows = QVBoxLayout(self.fields)
+        rows.setContentsMargins(4, 0, 10, 10)
+        rows.setSpacing(8)
+
+        first = QHBoxLayout()
+        first.setSpacing(8)
+        first.addWidget(self._field_label("Side"))
+        self.ours_radio = QRadioButton(SIDE_TEXT["own"][2:])
+        self.theirs_radio = QRadioButton(SIDE_TEXT["other"][2:])
+        self.side_group = QButtonGroup(self)
+        self.side_group.addButton(self.ours_radio, 0)
+        self.side_group.addButton(self.theirs_radio, 1)
+        self.side_group.idClicked.connect(self._side_clicked)
+        first.addWidget(self.ours_radio)
+        first.addWidget(self.theirs_radio)
+        first.addSpacing(10)
+        first.addWidget(self._field_label("Task"))
+        self.task_edit = QLineEdit()
+        self.task_edit.setPlaceholderText("task")
+        self.task_edit.setMinimumWidth(220)
+        self.task_edit.editingFinished.connect(self._task_left)
+        first.addWidget(self.task_edit)
+        self.task_hint = QLabel(TASK_HINT)
+        self.task_hint.setObjectName("note")
+        first.addWidget(self.task_hint)
+        first.addStretch(1)
+        rows.addLayout(first)
+
+        second = QHBoxLayout()
+        second.setSpacing(8)
+        self.out_check = QCheckBox("Out of comparison")
+        self.out_check.clicked.connect(self._out_clicked)
+        second.addWidget(self.out_check)
+        self.reason_edit = QLineEdit()
+        self.reason_edit.setPlaceholderText("reason")
+        self.reason_edit.setMinimumWidth(220)
+        self.reason_edit.editingFinished.connect(self._reason_left)
+        second.addWidget(self.reason_edit)
+        self.params_line = QHBoxLayout()
+        self.params_line.setSpacing(8)
+        second.addLayout(self.params_line)
+        second.addStretch(1)
+        rows.addLayout(second)
+
+        self.param_boxes: dict[str, QComboBox] = {}
+        self.fields.hide()
+        return self.fields
+
+    @staticmethod
+    def _field_label(text: str) -> QLabel:
+        lab = QLabel(text)
+        lab.setObjectName("fieldLabel")
+        return lab
+
     # --- filling
 
     def show_project(self, p: Project | None, keep: bool = False) -> None:
@@ -569,8 +651,8 @@ class ChainsPage(Page):
         chosen = self._current if keep else None
         scroll = self.verticalScrollBar().value()
         self._project = p
-        while self.list_box.count():
-            w = self.list_box.takeAt(0).widget()
+        while self.list_box.count() > 1:  # the row of New stays
+            w = self.list_box.takeAt(1).widget()
             if w is not None:
                 w.hide()
                 w.deleteLater()
@@ -609,6 +691,7 @@ class ChainsPage(Page):
         self._current = code
         for c, it in self._items.items():
             it.set_selected(c == code)
+        self._fill_fields(code)
         if code is None:
             self._set_head("", "")
             self.meta.setText("")
@@ -650,6 +733,101 @@ class ChainsPage(Page):
         if (code, title) != (r.code, r.title):
             self.edit_requested.emit("rename", (r.code, code, title))
 
+    def _stored(self, code: str | None) -> dict | None:
+        """The variant as stored in the project file; ``None`` for no path."""
+        if code is None or self._project is None:
+            return None
+        variants = self._project.data.get("variants", [])
+        return next((v for v in variants if v.get("code") == code), None)
+
+    def _fill_fields(self, code: str | None) -> None:
+        """Put the stored header of a path into the fields; hide them for no path."""
+        v = self._stored(code)
+        if v is None:
+            self.fields.hide()
+            return
+        self.fields.show()
+        side = v.get("side", "own")
+        self.ours_radio.setChecked(side == "own")
+        self.theirs_radio.setChecked(side == "other")
+        task = v.get("task") or ""
+        self.task_edit.setText(task)
+        self.task_edit.setCursorPosition(0)
+        self.task_hint.setVisible(not task)
+        reason = v.get("out_of_comparison") or ""
+        self.out_check.setChecked(bool(reason))
+        self.reason_edit.setText(reason)
+        self.reason_edit.setEnabled(bool(reason))
+        self._fill_params(v.get("params") or {})
+
+    def _fill_params(self, params: dict) -> None:
+        """A label and a list of executors for every variant parameter of the project."""
+        while self.params_line.count():
+            w = self.params_line.takeAt(0).widget()
+            if w is not None:
+                w.hide()
+                w.deleteLater()
+        self.param_boxes = {}
+        m = self._project.model
+        executors = [x.name for x in m.executors]
+        names = self._project.data.get("variant_params", [])
+        for k, name in enumerate(names):
+            if k == 0:
+                self.params_line.addSpacing(10)
+            self.params_line.addWidget(self._field_label(name))
+            box = QComboBox()
+            box.setObjectName("pick")
+            box.addItems(executors)
+            box.setCurrentIndex(box.findText(params.get(name, "")))
+            box.activated.connect(lambda _=0, n=name: self._param_chosen(n))
+            self.params_line.addWidget(box)
+            self.param_boxes[name] = box
+
+    def _header(self, field_: str, value) -> None:
+        if self._current is not None:
+            self.edit_requested.emit("header", (self._current, field_, value))
+
+    def _side_clicked(self, index: int) -> None:
+        v = self._stored(self._current)
+        if v is not None and v.get("side") != SIDES[index]:
+            self._header("side", SIDES[index])
+
+    def _task_left(self) -> None:
+        v = self._stored(self._current)
+        task = self.task_edit.text().strip()
+        if v is not None and task != (v.get("task") or ""):
+            self._header("task", task)
+
+    def _out_clicked(self, checked: bool) -> None:
+        """A tick only opens the reason; the path leaves comparison once a reason is typed.
+        Taking the tick off brings the path back."""
+        v = self._stored(self._current)
+        if v is None:
+            return
+        self.reason_edit.setEnabled(checked)
+        if checked:
+            self.reason_edit.setFocus()
+            return
+        self.reason_edit.setText("")
+        if v.get("out_of_comparison"):
+            self._header("out_of_comparison", "")
+
+    def _reason_left(self) -> None:
+        v = self._stored(self._current)
+        if v is None or not self.out_check.isChecked():
+            return
+        reason = self.reason_edit.text().strip()
+        if reason != (v.get("out_of_comparison") or ""):
+            self._header("out_of_comparison", reason)
+
+    def _param_chosen(self, name: str) -> None:
+        v = self._stored(self._current)
+        if v is None:
+            return
+        params = dict(v.get("params") or {})
+        params[name] = self.param_boxes[name].currentText()
+        self._header("params", params)
+
     def choose_next(self, code: str | None) -> None:
         """Name the path to show after the next ``show_project(keep=True)``; unknown codes are ignored."""
         self._current = code
@@ -659,6 +837,7 @@ class ChainsPage(Page):
         r = self._rows.get(self._current) if self._current else None
         if r is not None:
             self._set_head(r.code, r.title)
+            self._fill_fields(r.code)
         self.refusal.setText(text)
         self.refusal.show()
 

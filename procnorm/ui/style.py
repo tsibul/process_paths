@@ -209,6 +209,59 @@ QPushButton#addLink {{
     text-align: left;
 }}
 
+QLabel#fieldLabel {{
+    font-size: 13px;
+    font-weight: 700;
+}}
+
+QWidget#chainFields QLineEdit {{
+    font-size: 13px;
+    background: {BG};
+    border: 1px solid {BORDER};
+    border-radius: 4px;
+    padding: 3px 8px;
+}}
+
+QWidget#chainFields QLineEdit:focus {{
+    border-color: {ACCENT};
+}}
+
+QWidget#chainFields QLineEdit:disabled {{
+    background: {SUB};
+}}
+
+QWidget#chainFields QRadioButton,
+QWidget#chainFields QCheckBox {{
+    font-size: 13px;
+    background: transparent;
+}}
+
+QWidget#chainFields QCheckBox::indicator {{
+    width: 12px;
+    height: 12px;
+    background: {BG};
+    border: 1px solid {TEXT2};
+    border-radius: 3px;
+}}
+
+QWidget#chainFields QCheckBox::indicator:checked {{
+    background: {ACCENT};
+    border-color: {ACCENT};
+}}
+
+QWidget#chainFields QRadioButton::indicator {{
+    width: 10px;
+    height: 10px;
+    background: {BG};
+    border: 1px solid {TEXT2};
+    border-radius: 6px;
+}}
+
+QWidget#chainFields QRadioButton::indicator:checked {{
+    background: {ACCENT};
+    border-color: {ACCENT};
+}}
+
 QLabel#amber {{
     font-size: 13px;
     color: {AMBER_TEXT};
