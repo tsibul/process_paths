@@ -64,6 +64,9 @@ REMOVE = "✕"
 ADD_NOTE = "To add words, load a new file."
 PLACES_SHOWN = 10  # places of a refused deletion listed; the rest are counted
 WORD = Qt.ItemDataRole.UserRole + 2  # (what, old) of a dictionary word's cell
+HINT = "Double-click a name to rename it."
+OPEN, SHUT = "▾", "▸"  # an expanded and a collapsed entity
+ARROW_WIDTH = 28  # px of an entity cell that count as the arrow
 
 
 class WordDelegate(QStyledItemDelegate):
@@ -74,11 +77,15 @@ class WordDelegate(QStyledItemDelegate):
         super().__init__(table)
         self.table = table
 
+    def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa: N802 (Qt name)
+        what, old = index.data(WORD)
+        editor.setText(old[-1] if isinstance(old, tuple) else old)
+
     def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:  # noqa: N802 (Qt name)
         text = editor.text()
-        if text.strip() == index.data(Qt.ItemDataRole.DisplayRole):
-            return
         what, old = index.data(WORD)
+        if text.strip() == (old[-1] if isinstance(old, tuple) else old):
+            return
         # Later: the editor is still closing, the table is refilled after the edit.
         QTimer.singleShot(0, lambda: self.table.edited.emit(what, old, text))
 
@@ -145,6 +152,26 @@ class WordTable(Table):
         return self._buttons.get((what, old))
 
 
+class EntityTable(WordTable):
+    """The table of entities: an entity row is a header that collapses its axes and values;
+    ``toggled(entity)`` is emitted by a click on its arrow or on the empty cells of the row."""
+
+    toggled = Signal(str)
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        index = self.indexAt(event.position().toPoint())
+        head = self.item(index.row(), 0) if index.isValid() else None
+        data = head.data(WORD) if head is not None else None
+        if data is not None and data[0] == "entity":
+            on_arrow = (index.column() == 0 and
+                        event.position().x() - self.visualRect(index).left() < ARROW_WIDTH)
+            if on_arrow or index.column() != 0:
+                self.toggled.emit(data[1])
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
+
 class DictionaryPage(Page):
     """Entities, kinds, executors, instruments, scopes, variant parameters, named slices.
 
@@ -165,8 +192,12 @@ class DictionaryPage(Page):
         self.box.addWidget(self.info)
         self.add_note = label(ADD_NOTE, "note")
         self.box.addWidget(self.add_note)
+        self.hint = label(HINT, "note")
+        self.box.addWidget(self.hint)
+        self._collapsed: set[str] = set()  # entities folded in this session
         self.box.addWidget(label("ENTITY → AXES → VALUES", "h3"))
-        self.entities = self._words(self.box, ["Entity", "Axis", "Value", "Inherits from"])
+        self.entities = self._words(self.box, ["Entity", "Axis", "Value", "Inherits from"], EntityTable)
+        self.entities.toggled.connect(self.toggle_entity)
         self.box.addWidget(label("TRANSITION KINDS", "h3"))
         self.kinds = self._words(self.box, ["Kind", "Entity", "Axis: from → to", "Condition", "Check",
                                             "Zero weight"])
@@ -185,8 +216,8 @@ class DictionaryPage(Page):
         self.slices = self._words(self.box, ["Slice", "Reached when"])
         self.box.addStretch(1)
 
-    def _words(self, col: QVBoxLayout, headers: list[str]) -> WordTable:
-        t = WordTable(headers)
+    def _words(self, col: QVBoxLayout, headers: list[str], cls: type[WordTable] = WordTable) -> WordTable:
+        t = cls(headers)
         t.edited.connect(self.word_edited)
         t.removed.connect(self.word_removed)
         col.addWidget(t)
@@ -219,6 +250,27 @@ class DictionaryPage(Page):
         """The ``✕`` of a word; ``None`` when there is no such word."""
         return self.table_of(what).remove_button(what, old)
 
+    # --- collapsing
+
+    def toggle_entity(self, name: str) -> None:
+        """Collapse an entity to its row, or expand it again."""
+        self._collapsed ^= {name}
+        self._fold()
+
+    def _fold(self) -> None:
+        """Show the arrows and hide the rows of the collapsed entities."""
+        t = self.entities
+        owner = None
+        for r in range(t.rowCount()):
+            it = t.item(r, 0)
+            data = it.data(WORD)
+            if data is not None and data[0] == "entity":
+                owner = data[1]
+                it.setText(f"{SHUT if owner in self._collapsed else OPEN} {owner}")
+            else:
+                t.setRowHidden(r, owner in self._collapsed)
+        t.fit()
+
     # --- refusal
 
     def show_refusal(self, what: str, line: str, places: list[str] = ()) -> None:
@@ -236,6 +288,9 @@ class DictionaryPage(Page):
             rest.setText("\n".join(shown))
             rest.show()
         self._shown = t
+        last = rest if places else red
+        # Later: the layout has not placed the lines yet.
+        QTimer.singleShot(0, lambda: self.ensureWidgetVisible(last))
 
     def clear_refusal(self) -> None:
         """Hide the refusal."""
@@ -283,6 +338,9 @@ class DictionaryPage(Page):
                              ["", a.name, "", ", ".join(f"{se}/{sa}" for se, sa in a.inherit)]))
                 rows += [("value", (e.name, a.name, v), 2, ["", "", v, ""]) for v in a.values]
         self.entities.set_words(rows)
+        self._collapsed &= {e.name for e in m.entities}
+        self._fold()
+        self.entities.setColumnHidden(3, not any(a.inherit for e in m.entities for a in e.axes))
         self.kinds.set_words([("kind", k.name, 0, [
             k.name, k.entity, f"{k.axis}: {k.source} {ARROW} {k.target}",
             "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),

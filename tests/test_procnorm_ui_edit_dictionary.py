@@ -8,13 +8,14 @@ import copy
 import json
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLineEdit
 
 from procnorm import edit
 from procnorm.store import Store
 from procnorm.ui.app import MainWindow
+from procnorm.ui.pages import WORD
 from tests.test_procnorm_edit_delete import with_spares
 
 NOTE = "To add words, load a new file."
@@ -88,7 +89,7 @@ def _rename(w, what, old, text):
     QApplication.processEvents()
     editor = t.viewport().findChild(QLineEdit)
     assert editor is not None
-    assert editor.text() == it.text()
+    assert editor.text() == it.text().removeprefix("▾ ").removeprefix("▸ ")
     editor.selectAll()
     editor.setText(text)
     QTest.keyClick(editor, Qt.Key.Key_Return)
@@ -131,7 +132,7 @@ def test_grey_line_about_adding_words(win):
 def test_every_word_has_editable_cell_and_remove_button(win, what, old):
     page = win.dictionary
     it = page.word_item(what, old)
-    assert it.text() == (old[-1] if isinstance(old, tuple) else old)
+    assert it.text().removeprefix("▾ ") == (old[-1] if isinstance(old, tuple) else old)
     assert it.flags() & Qt.ItemFlag.ItemIsEditable
     assert page.remove_button(what, old).text() == "✕"
 
@@ -154,7 +155,7 @@ def test_rename_every_sort_changes_database(win, store, what, old):
     expected, _ = edit.rename(before, what, old, "Zed")
     assert _data(store, pid) == expected
     new = old[:-1] + ("Zed",) if isinstance(old, tuple) else "Zed"
-    assert win.dictionary.word_item(what, new).text() == "Zed"
+    assert win.dictionary.word_item(what, new).text().removeprefix("▾ ") == "Zed"
 
 
 def test_renamed_kind_shown_on_all_tabs_numbers_unchanged(win):
@@ -253,3 +254,144 @@ def test_refusal_goes_after_next_edit(win, no_confirm):
     assert win.dictionary.refusal_text()
     _rename(win, "instrument", "Tape", "Glue")
     assert win.dictionary.refusal_text() == ""
+
+
+# ---------- hint, collapsing entities, inherit column, refusal in view ----------
+
+HINT = "Double-click a name to rename it."
+
+
+def _entity_rows(w, name):
+    """Rows of the entity table that belong to an entity: its header row, then the rest."""
+    t = w.dictionary.entities
+    head = w.dictionary.word_item("entity", name).row()
+    rows = [head]
+    r = head + 1
+    while r < t.rowCount() and t.item(r, 0).data(WORD) is None:
+        rows.append(r)
+        r += 1
+    return rows
+
+
+def test_grey_hint_about_renaming_above_tables(win):
+    page = win.dictionary
+    assert page.hint.text() == HINT and not page.hint.isHidden()
+    assert page.hint.objectName() == "note" == page.add_note.objectName()
+    assert page.hint.geometry().bottom() < page.entities.geometry().top()
+
+
+def test_entities_expanded_by_default(win):
+    page = win.dictionary
+    t = page.entities
+    assert page.word_item("entity", "Order").text() == "▾ Order"
+    assert not any(t.isRowHidden(r) for r in range(t.rowCount()))
+
+
+def test_toggle_collapses_and_expands_entity(win):
+    page = win.dictionary
+    t = page.entities
+    rows = _entity_rows(win, "Order")
+    assert len(rows) > 1
+    page.toggle_entity("Order")
+    assert page.word_item("entity", "Order").text() == "▸ Order"
+    assert not t.isRowHidden(rows[0])
+    assert all(t.isRowHidden(r) for r in rows[1:])
+    other = _entity_rows(win, "Box")
+    assert not any(t.isRowHidden(r) for r in other)
+    page.toggle_entity("Order")
+    assert page.word_item("entity", "Order").text() == "▾ Order"
+    assert not any(t.isRowHidden(r) for r in rows)
+
+
+def test_collapsed_table_is_shorter(win):
+    t = win.dictionary.entities
+    full = t.height()
+    win.dictionary.toggle_entity("Order")
+    assert t.height() < full
+
+
+def test_click_on_arrow_toggles(win):
+    page = win.dictionary
+    t = page.entities
+    it = page.word_item("entity", "Order")
+    rect = t.visualItemRect(it)
+    QTest.mouseClick(t.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft() + QPoint(8, rect.height() // 2))
+    _settle()
+    assert page.word_item("entity", "Order").text() == "▸ Order"
+
+
+def test_click_on_header_row_empty_cell_toggles(win):
+    page = win.dictionary
+    t = page.entities
+    it = page.word_item("entity", "Order")
+    rect = t.visualRect(t.model().index(it.row(), 1))
+    QTest.mouseClick(t.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
+    _settle()
+    assert page.word_item("entity", "Order").text() == "▸ Order"
+
+
+def test_rename_entity_edits_name_without_arrow(win, store):
+    pid = win.current_id
+    before = _data(store, pid)
+    _rename(win, "entity", "Spare entity", "Zed")
+    assert _data(store, pid) == edit.rename(before, "entity", "Spare entity", "Zed")[0]
+
+
+def test_collapse_survives_refill_after_edit(win):
+    page = win.dictionary
+    page.toggle_entity("Order")
+    _rename(win, "instrument", "Tape", "Glue")
+    t = page.entities
+    assert page.word_item("entity", "Order").text() == "▸ Order"
+    assert all(t.isRowHidden(r) for r in _entity_rows(win, "Order")[1:])
+    assert page.word_item("entity", "Box").text() == "▾ Box"
+
+
+def test_collapse_state_not_saved_to_disk(win, store):
+    before = _data(store, win.current_id)
+    win.dictionary.toggle_entity("Order")
+    assert _data(store, win.current_id) == before
+
+
+def test_inherits_column_shown_when_an_axis_inherits(win):
+    t = win.dictionary.entities
+    assert t.horizontalHeaderItem(3).text() == "Inherits from"
+    assert not t.isColumnHidden(3)
+
+
+def test_inherits_column_hidden_when_no_axis_inherits(win, store):
+    data = _data(store, win.current_id)
+    for e in data["entities"]:
+        for a in e["axes"]:
+            a.pop("inherit", None)
+    store.save(win.current_id, data)
+    win.dictionary.show_project(store.get(win.current_id))
+    assert win.dictionary.entities.isColumnHidden(3)
+
+
+def _visible(page, widget):
+    top = widget.mapTo(page.viewport(), QPoint(0, 0)).y()
+    return top >= 0 and top + widget.height() <= page.viewport().height()
+
+
+def test_refusal_scrolled_into_view_on_delete(win, no_confirm):
+    page = win.dictionary
+    page.verticalScrollBar().setValue(0)
+    _settle()
+    _remove(win, "scope", "Each")
+    _settle()
+    line = page._refusals[page.scopes][0]
+    assert not line.isHidden()
+    assert page.verticalScrollBar().value() > 0
+    assert _visible(page, line)
+
+
+def test_refusal_scrolled_into_view_on_rename(win):
+    page = win.dictionary
+    page.verticalScrollBar().setValue(0)
+    _settle()
+    _rename(win, "executor", "Clerk", "Robot")
+    _settle()
+    line = page._refusals[page.executors][0]
+    assert not line.isHidden()
+    assert _visible(page, line)
