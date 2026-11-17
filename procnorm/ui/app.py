@@ -15,7 +15,8 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from procnorm.calc import empty_steps, project_empty_steps
-from procnorm.edit import add_call, move_call, remove_call, set_number
+from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
+                           rename_variant, set_number)
 from procnorm.project import Project, load_file
 from procnorm.store import Store, default_path
 from procnorm.ui.chains import ChainsPage
@@ -278,18 +279,32 @@ class MainWindow(QMainWindow):
         written, a red line under the chain says why.
 
         :param op: ``move`` with ``(code, number, ±1)``, ``remove`` with ``(code, number)``, ``add``
-            with ``(code, after, [kind, executor, instrument, scope], step)``; numbers from 1.
+            with ``(code, after, [kind, executor, instrument, scope], step)``; numbers from 1. Also
+            ``copy`` and ``delete`` with ``(code,)`` and ``rename`` with ``(code, new code, title)``.
+            Delete asks ``confirm`` first; a copy is chosen, after a delete the neighbour is chosen.
         :return: whether the edit was accepted.
         :rtype: bool
         """
         if self.current_id is None:
             return False
-        fn = {"move": move_call, "remove": remove_call, "add": add_call}[op]
+        if op == "delete" and not self.confirm(f"Delete {args[0]}?"):
+            return False
+        fn = {"move": move_call, "remove": remove_call, "add": add_call, "copy": copy_variant,
+              "delete": delete_variant, "rename": rename_variant}[op]
         data, remarks = fn(self.store.get(self.current_id).data, *args)
         if data is None:
             own = f"variant {args[0]}"
             self.chains.show_refusal("; ".join(r.text if r.where == own else str(r) for r in remarks))
             return False
+        if op == "copy":
+            self.chains.choose_next(copy_code(args[0]))
+        elif op == "rename":
+            self.chains.choose_next(args[1].strip())
+        elif op == "delete":
+            codes = self.chains.codes()
+            rest = [c for c in codes if c != args[0]]
+            at = codes.index(args[0]) if args[0] in codes else 0
+            self.chains.choose_next(rest[min(at, len(rest) - 1)] if rest else None)
         self._save_edit(data)
         return True
 

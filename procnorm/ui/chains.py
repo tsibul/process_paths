@@ -3,6 +3,7 @@
 
 """Step chains tab: the paths by group on the left, the human steps of one path with their transitions.
 
+The header holds the editable code and title and the buttons ``Copy`` and ``Delete``.
 Each transition has the buttons ``↑ ↓ ✕ +`` right of ``Scope``; ``+`` opens an input row under it. The
 tab only asks for an edit (``edit_requested``); the window applies it and refills the tab."""
 
@@ -13,8 +14,8 @@ from html import escape
 
 from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
-from PySide6.QtWidgets import (QComboBox, QFrame, QHBoxLayout, QHeaderView, QLabel, QPushButton, QStyle,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton,
+                               QStyle, QVBoxLayout, QWidget)
 
 from procnorm.calc import Link, Row, chain, compare, empty_steps, groups
 from procnorm.project import Project
@@ -76,7 +77,15 @@ class PathItem(QFrame):
         box.addWidget(self.title)
         self.meta = QLabel(f"{SIDE_TEXT.get(row.side, row.side)}{SEP}{_count(row.steps, 'transition')}")
         self.meta.setObjectName("groupNote")
-        box.addWidget(self.meta)
+        under = QHBoxLayout()
+        under.setContentsMargins(0, 0, 0, 0)
+        under.addWidget(self.meta, 1)
+        self.mark = None
+        if row.error:
+            self.mark = QLabel("error")
+            self.mark.setObjectName("err")
+            under.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignRight)
+        box.addLayout(under)
         self.warn = None
         if empty:
             self.warn = QLabel(f"{_count(empty, 'step')} without transitions")
@@ -102,6 +111,10 @@ class PathItem(QFrame):
     def meta_text(self) -> str:
         """``● Ours`` / ``○ Theirs`` · ``N transitions``."""
         return self.meta.text()
+
+    def error_text(self) -> str | None:
+        """``error`` for a path whose run failed; ``None`` otherwise."""
+        return self.mark.text() if self.mark is not None else None
 
     def warn_text(self) -> str | None:
         """``N step(s) without transitions``; ``None`` when every step has transitions."""
@@ -484,7 +497,8 @@ class ChainsPage(Page):
 
     ``edit_requested(op, args)`` asks the window for an edit of the chosen path; ``args`` start with
     its code: ``("move", (code, number, ±1))``, ``("remove", (code, number))``,
-    ``("add", (code, after, call, step))``.
+    ``("add", (code, after, call, step))``, ``("copy", (code,))``, ``("delete", (code,))``,
+    ``("rename", (code, new code, title))``.
     """
 
     edit_requested = Signal(str, tuple)
@@ -508,10 +522,26 @@ class ChainsPage(Page):
         right = QVBoxLayout()
         right.setSpacing(0)
         head = QHBoxLayout()
-        head.setContentsMargins(10, 0, 10, 8)
-        self.title = QLabel("")
-        self.title.setObjectName("chainTitle")
-        head.addWidget(self.title, 1)
+        head.setContentsMargins(0, 0, 10, 8)
+        head.setSpacing(6)
+        self.code_edit = QLineEdit()
+        self.code_edit.setObjectName("chainCode")
+        self.code_edit.setToolTip("Code")
+        self.title_edit = QLineEdit()
+        self.title_edit.setObjectName("chainTitle")
+        self.title_edit.setToolTip("Title")
+        for e in (self.code_edit, self.title_edit):
+            e.editingFinished.connect(self._renamed)
+        head.addWidget(self.code_edit, 0)
+        head.addWidget(self.title_edit, 1)
+        self.copy_button = QPushButton("Copy")
+        self.copy_button.setObjectName("small")
+        self.copy_button.clicked.connect(lambda: self._edit("copy", ()))
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.setObjectName("small")
+        self.delete_button.clicked.connect(lambda: self._edit("delete", ()))
+        head.addWidget(self.copy_button, 0)
+        head.addWidget(self.delete_button, 0)
         self.meta = QLabel("")
         self.meta.setObjectName("groupNote")
         head.addWidget(self.meta, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
@@ -580,7 +610,7 @@ class ChainsPage(Page):
         for c, it in self._items.items():
             it.set_selected(c == code)
         if code is None:
-            self.title.setText("")
+            self._set_head("", "")
             self.meta.setText("")
             self.table.set_chain([])
             return
@@ -591,7 +621,7 @@ class ChainsPage(Page):
             parts.append(f"Task: {r.task}")
         parts.append(STEPS_NOT_GIVEN if steps is None else _count(len(steps), "step"))
         parts.append(_count(r.steps, "transition"))
-        self.title.setText(_title_html(r.code, r.title))
+        self._set_head(r.code, r.title)
         self.meta.setText(SEP.join(parts))
         self.table.set_chain(chain(self._project, code), (r.error[0], r.reason) if r.error else None)
 
@@ -601,8 +631,34 @@ class ChainsPage(Page):
         if self._current is not None:
             self.edit_requested.emit(op, (self._current,) + tuple(args))
 
+    def _set_head(self, code: str, title: str) -> None:
+        for e, text in ((self.code_edit, code), (self.title_edit, title)):
+            e.setText(text)
+            e.setCursorPosition(0)
+        bold = QFont(self.code_edit.font())
+        bold.setBold(True)
+        self.code_edit.setFixedWidth(QFontMetrics(bold).horizontalAdvance(code) + 28)
+        for b in (self.copy_button, self.delete_button):
+            b.setEnabled(bool(code))
+
+    def _renamed(self) -> None:
+        """Code or title left by the user: ask for a rename if either changed."""
+        r = self._rows.get(self._current) if self._current else None
+        if r is None:
+            return
+        code, title = self.code_edit.text().strip(), self.title_edit.text().strip()
+        if (code, title) != (r.code, r.title):
+            self.edit_requested.emit("rename", (r.code, code, title))
+
+    def choose_next(self, code: str | None) -> None:
+        """Name the path to show after the next ``show_project(keep=True)``; unknown codes are ignored."""
+        self._current = code
+
     def show_refusal(self, text: str) -> None:
-        """Show under the chain why an edit was refused."""
+        """Show under the chain why an edit was refused, and give the header its stored texts back."""
+        r = self._rows.get(self._current) if self._current else None
+        if r is not None:
+            self._set_head(r.code, r.title)
         self.refusal.setText(text)
         self.refusal.show()
 
@@ -630,7 +686,7 @@ class ChainsPage(Page):
         return self._current
 
     def head_title(self) -> str:
-        """``<code> <title>`` of the chosen path, without markup."""
+        """``<code> <title>`` of the chosen path as stored, without markup."""
         r = self._rows.get(self._current) if self._current else None
         return f"{r.code} {r.title}" if r else ""
 

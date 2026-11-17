@@ -97,7 +97,9 @@ QFrame#path[own="true"] {{ border-left: 3px solid {ACCENT}; }}
 QFrame#path[cur="true"] {{ background: {TINT}; }}
 QFrame#path[grey="true"] QLabel#pathTitle {{ color: {TEXT2}; }}
 QLabel#warn {{ font-size: 13px; color: {WARN}; }}
-QLabel#chainTitle {{ font-size: 16px; }}
+QLineEdit#chainCode, QLineEdit#chainTitle {{ font-size: 16px; border: 1px solid transparent; background: transparent; padding: 2px 4px; }}
+QLineEdit#chainCode {{ font-weight: 700; }}
+QLineEdit#chainCode:hover, QLineEdit#chainTitle:hover, QLineEdit#chainCode:focus, QLineEdit#chainTitle:focus {{ border-color: {BORDER}; background: {BG}; }}
 QFrame#offer {{ background: {TINT}; border: none; border-left: 3px solid {ACCENT}; }}
 QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
