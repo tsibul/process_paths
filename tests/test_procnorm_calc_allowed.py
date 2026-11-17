@@ -130,3 +130,48 @@ def test_unknown_variant_or_place_is_refused():
         allowed_kinds(project, "А", count + 1)
     with pytest.raises(IndexError):
         slice_at(project, "А", -1)
+
+
+# Made-up project: two entities; the variant names none, so its entities are those of its calls.
+TEA = {
+    "format": 1,
+    "name": "Tea",
+    "existence_axis": {"name": "exists", "absent": "no"},
+    "entities": [
+        {"name": "Cup", "axes": [{"name": "state", "values": ["dirty", "clean"]}]},
+        {"name": "Pot", "axes": [{"name": "water", "values": ["cold", "hot"]}]},
+    ],
+    "kinds": [
+        {"name": "Wash", "entity": "Cup", "axis": "state", "from": "dirty", "to": "clean"},
+        {"name": "Boil", "entity": "Pot", "axis": "water", "from": "cold", "to": "hot"},
+    ],
+    "executors": ["Host"],
+    "instruments": ["Hands"],
+    "scopes": ["All"],
+    "batch_scope": "All",
+    "variants": [
+        {"code": "T", "title": "Tea", "side": "own", "calls": [["Wash", "Host", "Hands", "All"]]},
+        {"code": "E", "title": "Empty", "side": "own", "calls": []},
+    ],
+    "normalization": {
+        "kind_costs": {"Wash": 1, "Boil": 1},
+        "executor_coefficients": {"Host": 1},
+        "scope_coefficients": {"All": 1},
+        "axis_skip_prices": {},
+    },
+}
+
+
+@pytest.mark.parametrize("code", ["T", "E"])
+def test_kind_of_an_entity_new_to_the_variant_is_allowed_like_add_call(code):
+    data = json.loads(json.dumps(TEA))
+    project = project_of(data)
+    count = len(variant_of(project, code).calls)
+    result = allowed_kinds(project, code, count)
+    for kind in ("Wash", "Boil"):
+        new, remarks = add_call(data, code, count, [kind, "Host", "Hands", "All"])
+        assert remarks == []
+        errors = project_of(new).errors.get(code)
+        failed = errors is not None and errors[0] == count + 1
+        assert (result[kind] is None) == (not failed), (code, kind)
+    assert result["Boil"] is None

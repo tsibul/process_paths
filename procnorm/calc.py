@@ -428,13 +428,24 @@ def allowed_kinds(project: Project, code: str, after: int) -> dict[str, str | No
     template = v.calls[0] if v.calls else Call("", "", "", "")
     result: dict[str, str | None] = {}
     for k in kinds:
-        probe = replace(v, calls=v.calls[:after] + (replace(template, kind=k.name),))
-        try:
-            apply(project.model, here, probe, after + 1)
-            result[k.name] = None
-        except TransitionError as exc:
-            result[k.name] = exc.reason
+        added = (replace(template, kind=k.name),)
+        # the whole variant with the call added, as add_call makes it: a kind of an entity new
+        # to the variant brings that entity into the slices
+        probe = replace(v, calls=v.calls[:after] + added + v.calls[after:])
+        result[k.name] = _reason_at(project, probe, after + 1)
     return result
+
+
+def _reason_at(project: Project, v: Variant, number: int) -> str | None:
+    """Why the run of a variant fails at transition ``number``; ``None`` when it does not."""
+    s = initial_slice(project.model, v)
+    try:
+        for i in range(1, number + 1):
+            s = apply(project.model, s, v, i)
+    except TransitionError as exc:
+        if i == number:
+            return exc.reason
+    return None
 
 
 def _done_total(project: Project, s: Slice) -> Decimal | None:
