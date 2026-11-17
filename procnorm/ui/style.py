@@ -58,6 +58,21 @@ QFrame#group[grey="true"] QLabel#groupTitle {{ color: {TEXT2}; }}
 QLabel#groupNote {{ font-size: 13px; color: {TEXT2}; }}
 QFrame#steps {{ background: {SUB}; border: none; border-bottom: 1px solid {BORDER}; }}
 QLabel#skipped {{ font-size: 13px; color: {TEXT}; }}
+QPushButton#small {{ font-size: 13px; padding: 3px 10px; }}
+QFrame#viewHead {{ background: {TINT}; border: 1px solid {BORDER}; border-bottom: none;
+                  border-top-left-radius: {RADIUS}; border-top-right-radius: {RADIUS}; }}
+QFrame#grid {{ background: {BG}; border: 1px solid {BORDER}; }}
+QFrame#hc {{ background: {SUB}; border: none; border-bottom: 1px solid {BORDER};
+            border-left: 1px solid {BORDER}; }}
+QFrame#hc[own="true"], QFrame#cell[own="true"] {{ border-left: 3px solid {ACCENT}; }}
+QFrame#cell {{ background: {BG}; border: none; border-bottom: 1px solid {BORDER};
+              border-left: 1px solid {BORDER}; }}
+QFrame#empty {{ background: {SUB}; border: none; border-bottom: 1px solid {BORDER};
+               border-left: 1px solid {BORDER}; }}
+QLabel#sn {{ color: {TEXT2}; padding-top: 8px; border-bottom: 1px solid {BORDER}; }}
+QLabel#colCode {{ font-weight: 700; }}
+QLabel#cellKind {{ font-size: 13px; color: {TEXT2}; }}
+QLabel#pill {{ font-size: 11px; color: {ACCENT}; background: {TINT}; border-radius: 8px; padding: 0 6px; }}
 QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}

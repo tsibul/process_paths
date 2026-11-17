@@ -410,3 +410,106 @@ def test_screenshot_twelve(twelve):
     page.resize(1200, page.sizeHint().height())
     QApplication.processEvents()
     assert page.grab().save(out)
+
+
+# --- Compare steps view (piece 6)
+
+def _series(win, code):
+    from procnorm.calc import series
+    from procnorm.project import load_file
+    project, _ = load_file(win.twelve_path)
+    return series(project, code)
+
+
+def test_compare_button_only_in_task_groups(twelve):
+    c = twelve.comparison
+    assert [h.compare is not None for h in c.group_headers()] == [True, True, True, False, False]
+    assert all(h.compare.text() == "Compare steps" for h in c.group_headers()[:3])
+
+
+def test_compare_steps_columns_and_rows(twelve):
+    c = twelve.comparison
+    c.group_headers()[1].compare.click()  # Постирать загрузку: Г 5, А 7, Б 5, В 6 steps
+    v = c.steps_view
+    assert v is not None and not v.isHidden() and c.tree.isHidden()
+    assert v.title.text() == f"Task: {T_WASH}"
+    assert v.codes() == ["Г", "А", "Б", "В"]
+    assert v.heads()[0] == ("Г", "Вариант Г", "● Ours")
+    assert v.heads()[2] == ("Б", "Вариант Б", "○ Theirs")
+    assert v.step_count() == 7
+    assert v.cell(6, "Г") is None and v.cell(7, "Г") is None and v.cell(7, "В") is None
+    assert v.cell(7, "А") is not None
+
+
+def test_compare_steps_cells_equal_series(twelve):
+    c = twelve.comparison
+    c.group_headers()[1].compare.click()
+    v = c.steps_view
+    for code in v.codes():
+        points = _series(twelve, code)
+        for p in points:
+            cell = v.cell(p.number, code)
+            from procnorm.calc import money
+            assert cell.lines() == [p.kind, money(p.labour), f"Skips left: {p.skips_count}"]
+            assert cell.marker_text() == " ".join(f"{n} ✓" for n in p.slices)
+    assert v.cell(4, "А").marker_text() == "постирано ✓"  # Постирать is step 4 of А
+    assert v.cell(2, "Б").marker_text() == "постирано ✓"
+    assert v.cell(1, "Б").marker_text() == ""
+
+
+def test_compare_steps_last_cell_bold_equals_table(twelve):
+    c = twelve.comparison
+    c.group_headers()[1].compare.click()
+    v = c.steps_view
+    for code in v.codes():
+        n = len(_series(twelve, code))
+        for step in range(1, n + 1):
+            assert v.cell(step, code).bold() == (step == n)
+        last = v.cell(n, code).lines()
+        assert last[1] == c.cell(code, "Labour · total")
+        ends = {"А": 0, "Г": 2, "Б": 2, "В": 1}  # skipped checks at the end
+        assert last[2] == f"Skips left: {ends[code]}"
+
+
+def test_compare_steps_follows_filter_and_sort(twelve):
+    c = twelve.comparison
+    c.sort("Labour · total", Qt.SortOrder.DescendingOrder)
+    c.set_side("other")
+    c.group_headers()[1].compare.click()
+    assert c.steps_view.codes() == ["В", "Б"]
+    assert c.steps_view.step_count() == 6
+
+
+def test_back_to_table_keeps_state(twelve):
+    c = twelve.comparison
+    c.toggle("Б")
+    c.sort("Labour · total", Qt.SortOrder.DescendingOrder)
+    c.set_side("other")
+    before = c.codes()
+    c.group_headers()[1].compare.click()
+    assert not all(b.isEnabled() for b in c.side_buttons.buttons())
+    c.steps_view.back.click()
+    assert c.steps_view is None
+    assert not c.tree.isHidden()
+    assert c.codes() == before
+    assert c.open_codes() == ["Б"]
+    assert c.tree.header().sortIndicatorSection() == c.headers().index("Labour · total")
+    assert c.tree.header().sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
+    assert all(b.isEnabled() for b in c.side_buttons.buttons())
+    assert [b.isChecked() for b in c.side_buttons.buttons()] == [False, False, True]
+
+
+def test_screenshot_compare_steps(twelve):
+    """Offscreen picture of the Compare steps view."""
+    out = os.environ.get("PROCNORM_SHOT_STEPS")
+    if not out:
+        pytest.skip("set PROCNORM_SHOT_STEPS to a .png path")
+    c = twelve.comparison
+    c.group_headers()[1].compare.click()
+    twelve.resize(1200, 900)
+    twelve.show()
+    QApplication.processEvents()
+    page = c.widget()
+    page.resize(1200, page.sizeHint().height())
+    QApplication.processEvents()
+    assert page.grab().save(out)
