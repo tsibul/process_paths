@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Panel with the remarks of a file that did not load."""
+"""Panel with the remarks of a file that did not load or a project that was not created."""
 
 from __future__ import annotations
 
@@ -12,6 +12,10 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QPlainTextEdit, QPushButton, 
 
 from procnorm.project import Remark
 from procnorm.ui.tables import label
+
+
+FILE_NOTE = "Nothing was stored. Fix the file and load it again."
+NAME_NOTE = "Nothing was stored. Enter a name and try again."
 
 
 class RemarksPanel(QFrame):
@@ -38,7 +42,8 @@ class RemarksPanel(QFrame):
         self.text.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
         self.text.setMaximumHeight(220)
         lay.addWidget(self.text)
-        lay.addWidget(label("Nothing was stored. Fix the file and load it again.", "note"))
+        self.note = label(FILE_NOTE, "note")
+        lay.addWidget(self.note)
         self.hide()
 
     def show_remarks(self, path: Path, remarks: list[Remark]) -> None:
@@ -46,6 +51,15 @@ class RemarksPanel(QFrame):
         self._lines = [str(r) for r in remarks]
         self.count_label.setText(f"{len(self._lines)} remark(s) — {Path(path).name} was not loaded")
         self.text.setPlainText("\n".join(self._lines))
+        self.note.setText(FILE_NOTE)
+        self.show()
+
+    def show_name_remarks(self, remarks: list[Remark]) -> None:
+        """Show why a new project was not created."""
+        self._lines = [str(r) for r in remarks]
+        self.count_label.setText(f"{len(self._lines)} remark(s) — the project was not created")
+        self.text.setPlainText("\n".join(self._lines))
+        self.note.setText(NAME_NOTE)
         self.show()
 
     def lines(self) -> list[str]:

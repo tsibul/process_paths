@@ -337,7 +337,7 @@ class DictionaryPage(Page):
                 rows.append(("axis", (e.name, a.name), 1,
                              ["", a.name, "", ", ".join(f"{se}/{sa}" for se, sa in a.inherit)]))
                 rows += [("value", (e.name, a.name, v), 2, ["", "", v, ""]) for v in a.values]
-        self.entities.set_words(rows)
+        self.entities.set_words(rows or [(None, None, 0, [DASH, "", "", ""])])
         self._collapsed &= {e.name for e in m.entities}
         self._fold()
         self.entities.setColumnHidden(3, not any(a.inherit for e in m.entities for a in e.axes))
@@ -346,9 +346,11 @@ class DictionaryPage(Page):
             "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),
             CHECK if k.check else "",
             (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""])
-            for k in m.kinds])
-        self.executors.set_words([("executor", x.name, 0, [x.name]) for x in m.executors])
-        self.instruments.set_words([("instrument", x, 0, [x]) for x in m.instruments])
+            for k in m.kinds] or [(None, None, 0, [DASH, "", "", "", "", ""])])
+        self.executors.set_words([("executor", x.name, 0, [x.name]) for x in m.executors]
+                                 or [(None, None, 0, [DASH])])
+        self.instruments.set_words([("instrument", x, 0, [x]) for x in m.instruments]
+                                   or [(None, None, 0, [DASH])])
         self.scopes.set_words([("scope", s, 0, [s, CHECK if s == m.batch_scope else ""]) for s in m.scopes])
         self.params.set_words([("variant_param", x, 0, [x]) for x in m.variant_params]
                               or [(None, None, 0, [DASH])])

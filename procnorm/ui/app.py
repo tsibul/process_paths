@@ -11,14 +11,15 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
-from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
-                               QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout,
+                               QInputDialog, QLabel, QMainWindow, QMessageBox, QPushButton,
+                               QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from procnorm.calc import empty_steps, project_empty_steps
 from procnorm import edit
 from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
                            rename_variant, set_number)
-from procnorm.project import Project, load_file
+from procnorm.project import Project, load_file, read_project
 from procnorm.store import Store, default_path
 from procnorm.ui.chains import ChainsPage
 from procnorm.ui.comparison import ComparisonPage
@@ -28,6 +29,7 @@ from procnorm.ui.style import ACCENT, STYLE
 from procnorm.ui.tables import label
 
 LAST = "last_project"
+NEW_NAME = "New project"
 JSON_FILTER = "Project files (*.json);;All files (*)"
 
 
@@ -105,6 +107,7 @@ class MainWindow(QMainWindow):
         self.projects = QComboBox()
         self.projects.currentIndexChanged.connect(self._project_chosen)
         bar.addWidget(self.projects, 1)
+        self.new_button = self._button(bar, "New", self.on_new)
         self.load_button = self._button(bar, "Load", self.on_load)
         self.load_over_button = self._button(bar, "Load over", self.on_load_over)
         self.save_button = self._button(bar, "Save file", self.on_save)
@@ -381,6 +384,29 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Loaded {Path(path).name} over the project")
         return True
 
+    def new_project(self, name: str) -> bool:
+        """Create an empty project, select it and open the Dictionary tab.
+
+        An empty name stores nothing and shows the remark.
+
+        :param name: the project name.
+        :return: whether the project was created.
+        :rtype: bool
+        """
+        data, remarks = edit.empty_project(name)
+        if data is None:
+            self.remarks_panel.show_name_remarks(remarks)
+            return False
+        project, remarks = read_project(data, strict=False)
+        if project is None:
+            self.remarks_panel.show_name_remarks(remarks)
+            return False
+        self.remarks_panel.hide()
+        self.refresh(self.store.add(project))
+        self.tabs.setCurrentWidget(self.dictionary)
+        self.statusBar().showMessage(f"Created {project.name}")
+        return True
+
     def save_path(self, path: Path) -> None:
         """Write the selected project's file."""
         Path(path).write_text(self.store.text(self.current_id), encoding="utf-8")
@@ -409,7 +435,17 @@ class MainWindow(QMainWindow):
         """Show a problem."""
         QMessageBox.warning(self, "procnorm", text)
 
+    def ask_name(self, text: str) -> str | None:
+        """Ask the name of a new project; ``None`` when cancelled."""
+        name, ok = QInputDialog.getText(self, "Project name", "Project name:", text=text)
+        return name if ok else None
+
     # --- actions with file dialogs
+
+    def on_new(self) -> None:
+        name = self.ask_name(NEW_NAME)
+        if name is not None:
+            self.new_project(name)
 
     def on_load(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load project file", "", JSON_FILTER)
