@@ -597,36 +597,62 @@ def test_steps_table_cuts_no_word(twelve):
 
 # --- charts and labour scale on the comparison tab
 
-def _chart_codes(c):
-    return [s.name() for s in c.charts.labour.chart().series()]
+def _shown_charts(c):
+    from procnorm.ui.line_charts import LineCharts
+    return [w for w in c.findChildren(LineCharts) if w.isVisibleTo(c)]
 
 
-def test_charts_under_the_table_with_shown_rows_without_out(twelve):
+def _lines(view):
+    return [s.name() for s in view.chart().series()]
+
+
+def test_table_view_has_no_line_charts(twelve):
     c = twelve.comparison
-    assert c.box.indexOf(c.charts) > c.box.indexOf(c.tree)
-    assert not c.charts.isHidden()
-    assert _chart_codes(c) == [x for x in DEFAULT if x != "Н"]
-    assert _chart_codes(c) == [s.name() for s in c.charts.checks.chart().series()]
+    assert not hasattr(c, "charts")
+    assert _shown_charts(c) == []
 
 
-def test_charts_follow_side_filter_and_sort(twelve):
+def test_compare_steps_charts_with_view_columns_under_scale(twelve):
+    c = twelve.comparison
+    for i in range(len(c.group_headers())):
+        h = c.group_headers()[i]
+        if h.compare is None:
+            continue
+        h.compare.click()
+        v = c.steps_view
+        assert _shown_charts(c) == [v.charts]
+        assert v.charts.parent() is v
+        assert v.layout().indexOf(v.charts) > v.layout().indexOf(v.scale)
+        assert _lines(v.charts.labour) == v.codes()
+        assert _lines(v.charts.checks) == v.codes()
+        v.back.click()
+
+
+def test_two_groups_never_share_lines(twelve):
+    c = twelve.comparison
+    c.group_headers()[0].compare.click()
+    first = set(_lines(c.steps_view.charts.labour))
+    c.steps_view.back.click()
+    c.group_headers()[1].compare.click()
+    second = set(_lines(c.steps_view.charts.labour))
+    assert first and second and not first & second
+
+
+def test_compare_steps_charts_follow_side_filter(twelve):
     c = twelve.comparison
     c.set_side("other")
-    assert _chart_codes(c) == [x for x in c.codes() if x != "Н"]
-    assert "А" not in _chart_codes(c) and "Б" in _chart_codes(c)
-    c.set_side("own")
-    assert _chart_codes(c) == c.codes()
-    c.sort("Labour · total", Qt.SortOrder.DescendingOrder)
-    assert _chart_codes(c) == [x for x in c.codes() if x != "Н"]
+    c.group_headers()[1].compare.click()
+    v = c.steps_view
+    assert set(v.codes()) == {"Б", "В"}
+    assert _lines(v.charts.labour) == v.codes()
+    assert _lines(v.charts.checks) == v.codes()
 
 
-def test_charts_hidden_in_compare_steps_and_back(twelve):
+def test_back_to_table_no_charts(twelve):
     c = twelve.comparison
     c.group_headers()[1].compare.click()
-    assert c.charts.isHidden()
     c.steps_view.back.click()
-    assert not c.charts.isHidden()
-    assert _chart_codes(c) == [x for x in DEFAULT if x != "Н"]
+    assert _shown_charts(c) == []
 
 
 def test_scale_in_compare_steps_with_view_columns(twelve):
@@ -636,11 +662,3 @@ def test_scale_in_compare_steps_with_view_columns(twelve):
     v = c.steps_view
     assert [r.code for r in v.scale.rows()] == v.codes()
     assert v.scale.parent() is v and not v.scale.isHidden()
-
-
-def test_charts_empty_without_project_and_old_lines_gone(twelve):
-    c = twelve.comparison
-    assert _chart_codes(c)
-    c.show_project(None)
-    assert _chart_codes(c) == []
-    assert [s.name() for s in c.charts.checks.chart().series()] == []
