@@ -17,6 +17,12 @@ TINT = "#EEF2FF"
 STEP_BG = "#F7F8FF"
 WARN = "#B45309"
 RADIUS = "8px"
+# Labour scale: (fill, text) of a step by the executor's place in the dictionary; status strip; grid.
+SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF"), ("#C7D2FE", TEXT),
+               ("#818CF8", TEXT))
+SCALE_OPEN = "#F2B8B8"
+SCALE_DONE = "#BBE5C8"
+SCALE_GRID = "#F0F0F4"
 
 STYLE = f"""
 QWidget {{ background: {BG}; color: {TEXT}; font-size: 15px; }}
