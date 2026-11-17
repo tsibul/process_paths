@@ -191,7 +191,7 @@ def test_reopen_store_keeps_project(app, tmp_path):
 
 def test_dictionary_tab(loaded):
     t = loaded.dictionary.all_text()
-    for word in ("Бельё", "карманы", "не проверены, проверены", "Проверить карманы",
+    for word in ("Бельё", "карманы", "не проверены", "проверены", "Проверить карманы",
                  "не проверены → проверены", "Цикл стирки/наличие = есть", "ожидание, труда нет",
                  "Человек", "сушилка", "вся загрузка", "постирано"):
         assert word in t

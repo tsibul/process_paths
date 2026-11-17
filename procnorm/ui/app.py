@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from procnorm.calc import empty_steps, project_empty_steps
+from procnorm import edit
 from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
                            rename_variant, set_number)
 from procnorm.project import Project, load_file
@@ -131,6 +132,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(body)
         self.norm.number_edited.connect(self.edit_number)
         self.chains.edit_requested.connect(self.edit_chain)
+        self.dictionary.word_edited.connect(lambda what, old, name: self.edit_word("rename", what, old, name))
+        self.dictionary.word_removed.connect(lambda what, old: self.edit_word("delete", what, old))
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -308,15 +311,45 @@ class MainWindow(QMainWindow):
         self._save_edit(data)
         return True
 
+    def edit_word(self, op: str, what: str, old: str | tuple[str, ...], name: str = "") -> bool:
+        """Rename or delete a dictionary word of the selected project, from the Dictionary tab.
+
+        Accepted: written at once, every tab recalculated with its view kept. Refused: nothing is
+        written, a red line under the word's table says why; a used word is not deleted, and the
+        places where it is used are listed. A word is deleted without a question.
+
+        :param op: ``rename`` or ``delete``.
+        :param what: one of ``edit.WORDS``.
+        :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+        :param name: the new name, for ``rename``.
+        :return: whether the edit was accepted.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        if op == "rename":
+            new, remarks = edit.rename(data, what, old, name)
+        else:
+            new, remarks = edit.delete(data, what, old)
+        if new is None:
+            short = old[-1] if isinstance(old, tuple) else old
+            own = f"{what.replace('_', ' ')} {'/'.join(old) if isinstance(old, tuple) else old}"
+            text = "; ".join(r.text if r.where == own else str(r) for r in remarks)
+            line, _, places = text.partition("\n")
+            if op == "rename" and remarks[0].where == own:
+                line = f"{short}: {line}"
+            self.dictionary.show_refusal(what, line, places.split("\n") if places else [])
+            return False
+        self._save_edit(new)
+        return True
+
     def _save_edit(self, data: dict) -> None:
         """Write an accepted edit and refill every tab, keeping its view."""
         self.store.save(self.current_id, data)
         project = self.store.get(self.current_id)
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
-            if page is self.dictionary:
-                page.show_project(project)
-            else:
-                page.show_project(project, keep=True)
+            page.show_project(project, keep=True)
 
     # --- actions without dialogs (driven by tests)
 

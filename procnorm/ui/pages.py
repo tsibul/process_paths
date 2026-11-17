@@ -1,7 +1,8 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Tabs Dictionary (read-only), and Normalization with variants (numbers edited in place)."""
+"""Tabs Dictionary (words renamed and deleted in place), and Normalization with variants (numbers
+edited in place)."""
 
 from __future__ import annotations
 
@@ -9,8 +10,8 @@ from decimal import Decimal
 
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QLabel, QLineEdit, QScrollArea,
-                               QStyledItemDelegate, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QScrollArea, QStyledItemDelegate, QVBoxLayout, QWidget)
 
 from procnorm.calc import fmt
 from procnorm.project import Project, check_axes
@@ -59,70 +60,245 @@ def _end(col: QVBoxLayout) -> None:
     col.addStretch(1)
 
 
+REMOVE = "✕"
+ADD_NOTE = "To add words, load a new file."
+PLACES_SHOWN = 10  # places of a refused deletion listed; the rest are counted
+WORD = Qt.ItemDataRole.UserRole + 2  # (what, old) of a dictionary word's cell
+
+
+class WordDelegate(QStyledItemDelegate):
+    """Editor of a word's name: a changed name is handed to the table, the cell itself is not
+    written (the page refills it after the edit)."""
+
+    def __init__(self, table: WordTable) -> None:
+        super().__init__(table)
+        self.table = table
+
+    def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:  # noqa: N802 (Qt name)
+        text = editor.text()
+        if text.strip() == index.data(Qt.ItemDataRole.DisplayRole):
+            return
+        what, old = index.data(WORD)
+        # Later: the editor is still closing, the table is refilled after the edit.
+        QTimer.singleShot(0, lambda: self.table.edited.emit(what, old, text))
+
+
+class WordTable(Table):
+    """A dictionary table whose word cells are renamed by a double click; each word row ends with
+    ``✕``, which deletes the word."""
+
+    edited = Signal(str, object, str)
+    removed = Signal(str, object)
+
+    def __init__(self, headers: list[str]) -> None:
+        super().__init__(headers + [""])
+        self.setItemDelegate(WordDelegate(self))
+        self.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked
+                             | QAbstractItemView.EditTrigger.EditKeyPressed)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._buttons: dict[tuple[str, object], QPushButton] = {}
+
+    def set_words(self, rows: list[tuple[str | None, object, int, list[str]]]) -> None:
+        """Fill the table.
+
+        :param rows: ``(what, old, column of the name, cells)``; ``what`` is ``None`` for a row
+            without a word (a dash).
+        """
+        self.set_rows([cells + [""] for _, _, _, cells in rows])
+        self.clearSelection()
+        self._buttons = {}
+        last = self.columnCount() - 1
+        for r, (what, old, col, _) in enumerate(rows):
+            if what is None:
+                continue
+            it = self.item(r, col)
+            it.setData(WORD, (what, old))
+            it.setFlags(it.flags() | Qt.ItemFlag.ItemIsEditable)
+            it.setToolTip("Double-click to rename")
+            box = QWidget()
+            lay = QHBoxLayout(box)
+            lay.setContentsMargins(6, 0, 6, 0)
+            b = QPushButton(REMOVE)
+            b.setObjectName("icon")
+            b.setToolTip("Delete")
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.clicked.connect(lambda _=False, w=what, o=old: self.removed.emit(w, o))
+            lay.addWidget(b)
+            lay.addStretch(1)
+            self.setCellWidget(r, last, box)
+            self._buttons[(what, old)] = b
+        self.fit()
+
+    def word_item(self, what: str, old: object):
+        """The name cell of a word; ``None`` when absent."""
+        for r in range(self.rowCount()):
+            for c in range(self.columnCount()):
+                it = self.item(r, c)
+                if it is not None and it.data(WORD) == (what, old):
+                    return it
+        return None
+
+    def remove_button(self, what: str, old: object) -> QPushButton | None:
+        """The ``✕`` of a word; ``None`` when absent."""
+        return self._buttons.get((what, old))
+
+
 class DictionaryPage(Page):
-    """Entities, kinds, executors, instruments, scopes, variant parameters, named slices."""
+    """Entities, kinds, executors, instruments, scopes, variant parameters, named slices.
+
+    A word is renamed by a double click in its cell and deleted by ``✕`` of its row:
+    ``word_edited(what, old, name)`` and ``word_removed(what, old)`` are emitted, the window applies
+    the edit and refills the page. Words are added only by loading a new file.
+    """
+
+    word_edited = Signal(str, object, str)
+    word_removed = Signal(str, object)
 
     def __init__(self) -> None:
         super().__init__()
+        self._refusals: dict[WordTable, tuple[QLabel, QLabel]] = {}
+        self._shown: WordTable | None = None
         self.box.addWidget(label("Dictionary", "h2"))
         self.info = label("", "note")
         self.box.addWidget(self.info)
+        self.add_note = label(ADD_NOTE, "note")
+        self.box.addWidget(self.add_note)
         self.box.addWidget(label("ENTITY → AXES → VALUES", "h3"))
-        self.entities = Table(["Entity", "Axis", "Values", "Inherits from"])
-        self.box.addWidget(self.entities)
+        self.entities = self._words(self.box, ["Entity", "Axis", "Value", "Inherits from"])
         self.box.addWidget(label("TRANSITION KINDS", "h3"))
-        self.kinds = Table(["Kind", "Entity", "Axis: from → to", "Condition", "Check", "Zero weight"])
-        self.box.addWidget(self.kinds)
+        self.kinds = self._words(self.box, ["Kind", "Entity", "Axis: from → to", "Condition", "Check",
+                                            "Zero weight"])
         left, right = self.columns()
         left.addWidget(label("EXECUTORS", "h3"))
-        self.executors = Table(["Executor"])
-        left.addWidget(self.executors)
+        self.executors = self._words(left, ["Executor"])
         left.addWidget(label("INSTRUMENTS", "h3"))
-        self.instruments = Table(["Instrument"])
-        left.addWidget(self.instruments)
+        self.instruments = self._words(left, ["Instrument"])
         _end(left)
         right.addWidget(label("SCOPES", "h3"))
-        self.scopes = Table(["Scope", "Batch"])
-        right.addWidget(self.scopes)
+        self.scopes = self._words(right, ["Scope", "Batch"])
         right.addWidget(label("VARIANT PARAMETERS", "h3"))
-        self.params = Table(["Parameter"])
-        right.addWidget(self.params)
+        self.params = self._words(right, ["Parameter"])
         _end(right)
         self.box.addWidget(label("NAMED SLICES", "h3"))
-        self.slices = Table(["Slice", "Reached when"])
-        self.box.addWidget(self.slices)
+        self.slices = self._words(self.box, ["Slice", "Reached when"])
         self.box.addStretch(1)
 
-    def show_project(self, p: Project | None) -> None:
-        """Fill the page; ``None`` empties it."""
+    def _words(self, col: QVBoxLayout, headers: list[str]) -> WordTable:
+        t = WordTable(headers)
+        t.edited.connect(self.word_edited)
+        t.removed.connect(self.word_removed)
+        col.addWidget(t)
+        line = label("", "err")
+        places = label("")
+        places.setWordWrap(True)
+        for w in (line, places):
+            w.hide()
+            col.addWidget(w)
+        self._refusals[t] = (line, places)
+        return t
+
+    def tables(self) -> list[WordTable]:
+        """The tables of words, top to bottom."""
+        return [self.entities, self.kinds, self.executors, self.instruments, self.scopes, self.params,
+                self.slices]
+
+    def table_of(self, what: str) -> WordTable:
+        """The table that holds a sort of word (one of ``edit.WORDS``)."""
+        return {"entity": self.entities, "axis": self.entities, "value": self.entities,
+                "kind": self.kinds, "executor": self.executors, "instrument": self.instruments,
+                "scope": self.scopes, "variant_param": self.params,
+                "named_slice": self.slices}[what]
+
+    def word_item(self, what: str, old: object):
+        """The name cell of a word; ``None`` when there is no such word."""
+        return self.table_of(what).word_item(what, old)
+
+    def remove_button(self, what: str, old: object) -> QPushButton | None:
+        """The ``✕`` of a word; ``None`` when there is no such word."""
+        return self.table_of(what).remove_button(what, old)
+
+    # --- refusal
+
+    def show_refusal(self, what: str, line: str, places: list[str] = ()) -> None:
+        """Show why an edit of a word was refused, under its table: a red line, then the places
+        (the first ten and ``and N more``). Other refusals go."""
+        self.clear_refusal()
+        t = self.table_of(what)
+        red, rest = self._refusals[t]
+        red.setText(line)
+        red.show()
+        if places:
+            shown = list(places[:PLACES_SHOWN])
+            if len(places) > PLACES_SHOWN:
+                shown.append(f"and {len(places) - PLACES_SHOWN} more")
+            rest.setText("\n".join(shown))
+            rest.show()
+        self._shown = t
+
+    def clear_refusal(self) -> None:
+        """Hide the refusal."""
+        for red, rest in self._refusals.values():
+            for w in (red, rest):
+                w.hide()
+                w.setText("")
+        self._shown = None
+
+    def refusal_line(self) -> str:
+        """The red line of the shown refusal; empty when none."""
+        return self._refusals[self._shown][0].text() if self._shown else ""
+
+    def refusal_places(self) -> list[str]:
+        """The listed places of the shown refusal, ``and N more`` included."""
+        text = self._refusals[self._shown][1].text() if self._shown else ""
+        return text.split("\n") if text else []
+
+    def refusal_text(self) -> str:
+        """The red line and the places in one text; empty when none."""
+        return "\n".join([self.refusal_line()] + self.refusal_places()) if self._shown else ""
+
+    # --- filling
+
+    def show_project(self, p: Project | None, keep: bool = False) -> None:
+        """Fill the page; ``None`` empties it.
+
+        :param keep: after an edit of the same project: keep the scroll place.
+        """
+        scroll = self.verticalScrollBar().value()
+        self.clear_refusal()
         if p is None:
             self.info.setText("")
-            for t in (self.entities, self.kinds, self.executors, self.instruments, self.scopes,
-                      self.params, self.slices):
-                t.set_rows([])
+            for t in self.tables():
+                t.set_words([])
             return
         m = p.model
         self.info.setText(f"Existence axis: {m.existence_axis} (absent: {m.absent_value}). "
                           f"Batch scope: {m.batch_scope}.")
         rows = []
         for e in m.entities:
-            for i, a in enumerate(e.axes):
-                rows.append([e.name if i == 0 else "", a.name, ", ".join(a.values),
-                             ", ".join(f"{se}/{sa}" for se, sa in a.inherit)])
-        self.entities.set_rows(rows)
-        self.kinds.set_rows([
-            [k.name, k.entity, f"{k.axis}: {k.source} {ARROW} {k.target}",
-             "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),
-             CHECK if k.check else "",
-             (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""]
+            rows.append(("entity", e.name, 0, [e.name, "", "", ""]))
+            for a in e.axes:
+                rows.append(("axis", (e.name, a.name), 1,
+                             ["", a.name, "", ", ".join(f"{se}/{sa}" for se, sa in a.inherit)]))
+                rows += [("value", (e.name, a.name, v), 2, ["", "", v, ""]) for v in a.values]
+        self.entities.set_words(rows)
+        self.kinds.set_words([("kind", k.name, 0, [
+            k.name, k.entity, f"{k.axis}: {k.source} {ARROW} {k.target}",
+            "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),
+            CHECK if k.check else "",
+            (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""])
             for k in m.kinds])
-        self.executors.set_rows([[x.name] for x in m.executors])
-        self.instruments.set_rows([[x] for x in m.instruments])
-        self.scopes.set_rows([[s, CHECK if s == m.batch_scope else ""] for s in m.scopes])
-        self.params.set_rows([[x] for x in m.variant_params] or [[DASH]])
-        self.slices.set_rows([[ns.name, " or ".join(
+        self.executors.set_words([("executor", x.name, 0, [x.name]) for x in m.executors])
+        self.instruments.set_words([("instrument", x, 0, [x]) for x in m.instruments])
+        self.scopes.set_words([("scope", s, 0, [s, CHECK if s == m.batch_scope else ""]) for s in m.scopes])
+        self.params.set_words([("variant_param", x, 0, [x]) for x in m.variant_params]
+                              or [(None, None, 0, [DASH])])
+        self.slices.set_words([("named_slice", ns.name, 0, [ns.name, " or ".join(
             " and ".join([f"{e}/{a} = {v}" for e, a, v in g.states] + [f"{q} = {x}" for q, x in g.params])
-            for g in ns.groups)] for ns in m.named_slices] or [[DASH, ""]])
+            for g in ns.groups)]) for ns in m.named_slices] or [(None, None, 0, [DASH, ""])])
+        if keep:
+            self.verticalScrollBar().setValue(scroll)
 
 
 class NumberDelegate(QStyledItemDelegate):
