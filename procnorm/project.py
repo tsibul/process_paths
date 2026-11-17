@@ -35,7 +35,7 @@ AXIS_FIELDS = {"name", "values", "inherit"}
 KIND_FIELDS = {"name", "entity", "axis", "from", "to", "requires", "check", "zero_weight",
                "zero_weight_note"}
 VARIANT_FIELDS = {"code", "title", "side", "calls", "params", "entities", "initial",
-                  "out_of_comparison"}
+                  "out_of_comparison", "task"}
 NORM_FIELDS = {"batch_size", "kind_costs", "executor_coefficients", "scope_coefficients",
                "axis_skip_prices", "uncounted_errors"}
 
@@ -85,6 +85,7 @@ class Project:
     :ivar sides: ``{variant code: "own" | "other"}``.
     :ivar norm: normalization.
     :ivar data: the parsed file, kept to store and export it unchanged.
+    :ivar tasks: ``{variant code: task text as entered, or None}``.
     """
 
     name: str
@@ -93,6 +94,7 @@ class Project:
     sides: dict[str, str]
     norm: Normalization
     data: dict
+    tasks: dict[str, str | None] = field(default_factory=dict)
 
 
 class _Remarks:
@@ -280,6 +282,8 @@ def _check_structure(data: object, r: _Remarks) -> None:
                     isinstance(a, dict) and all(isinstance(x, str) for x in a.values())
                     for a in v["initial"].values())):
                 r.add(f"{w}, initial", "object {entity: {axis: value}} expected")
+            if "task" in v and not _is_text(v["task"]):
+                r.add(w, "task must be a text")
             if "out_of_comparison" in v and not _is_text(v["out_of_comparison"]):
                 r.add(w, "out_of_comparison must be a reason text")
     elif "variants" in data:
@@ -535,7 +539,8 @@ def read_project(data: object) -> tuple[Project | None, list[Remark]]:
     if r:
         return None, r.items
     sides = {v["code"]: v.get("side", "own") for v in data["variants"]}
-    return Project(data["name"], data.get("description", ""), model, sides, norm, data), []
+    tasks = {v["code"]: v.get("task") for v in data["variants"]}
+    return Project(data["name"], data.get("description", ""), model, sides, norm, data, tasks), []
 
 
 def parse_text(text: str) -> tuple[Project | None, list[Remark]]:

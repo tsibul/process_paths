@@ -399,3 +399,27 @@ def test_zero_weight_cost_one_is_remark():
     d = base()
     d["normalization"]["kind_costs"]["Дождаться высыхания"] = 1
     assert has(remarks_of(d), "zero_weight")
+
+
+# ---------- task ----------
+
+def test_laundry_has_no_tasks():
+    project, remarks = load_file(LAUNDRY)
+    assert remarks == []
+    assert project.tasks == {"А": None, "Б": None, "В": None}
+
+
+def test_task_reaches_project():
+    d = base()
+    variant(d, "А")["task"] = "Постирать бельё"
+    variant(d, "Б")["task"] = " Постирать бельё "
+    project, remarks = read_project(d)
+    assert remarks == []
+    assert project.tasks == {"А": "Постирать бельё", "Б": " Постирать бельё ", "В": None}
+
+
+@pytest.mark.parametrize("value", ["", "   ", "\t\n", 5, True, None, ["x"], {"a": "b"}])
+def test_task_must_be_a_text(value):
+    d = base()
+    variant(d, "Б")["task"] = value
+    assert has(remarks_of(d), "task must be a text", "variant Б")
