@@ -9,6 +9,10 @@ so that one mistake does not produce a cascade of false remarks:
 1. structure: fields, types, JSON numbers;
 2. dictionary, variant names and normalization;
 3. variant runs (step by step) and the split check.
+
+The lenient read (``strict=False``) is for a project from the database and after an edit: a missing
+normalization number is no remark, and a variant that fails its run stays, with the error kept in
+``Project.errors``. Every other remark refuses the project in both modes.
 """
 
 from __future__ import annotations
@@ -89,6 +93,8 @@ class Project:
     :ivar tasks: ``{variant code: task text as entered, or None}``.
     :ivar steps: ``{variant code: [(step text as entered, calls count)], or None}``; ``None`` when
         the variant has no ``steps``.
+    :ivar errors: ``{variant code: (1-based number of the failed call, reason)}``; only a lenient
+        read fills it.
     """
 
     name: str
@@ -99,6 +105,7 @@ class Project:
     data: dict
     tasks: dict[str, str | None] = field(default_factory=dict)
     steps: dict[str, list[tuple[str, int]] | None] = field(default_factory=dict)
+    errors: dict[str, tuple[int, str]] = field(default_factory=dict)
 
 
 class _Remarks:
@@ -490,8 +497,8 @@ def _check_variant_names(model: Model, r: _Remarks) -> set[str]:
     return bad
 
 
-def _check_norm(model: Model, n: dict, r: _Remarks) -> Normalization:
-    """Stage 2c: normalization against the dictionary; version 1 needs every number."""
+def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Normalization:
+    """Stage 2c: normalization against the dictionary; a strict read needs every number."""
     w = "normalization"
     costs = {k: Decimal(x) for k, x in n["kind_costs"].items()}
     ex = {k: Decimal(x) for k, x in n["executor_coefficients"].items()}
@@ -502,7 +509,7 @@ def _check_norm(model: Model, n: dict, r: _Remarks) -> Normalization:
         if k.zero_weight:
             if k.name in costs and costs[k.name] != 0:
                 r.add(f"{w}, kind_costs", f"kind {k.name} has zero_weight, its cost must be 0 or absent")
-        elif k.name not in costs:
+        elif strict and k.name not in costs:
             r.add(f"{w}, kind_costs", f"kind without cost: {k.name}")
     for name, x in costs.items():
         if name not in kinds:
@@ -513,7 +520,7 @@ def _check_norm(model: Model, n: dict, r: _Remarks) -> Normalization:
                               ("scope", sc, model.scopes)):
         f = f"{w}, {what}_coefficients"
         for name in names:
-            if name not in have:
+            if strict and name not in have:
                 r.add(f, f"{what} without coefficient: {name}")
         for name, x in have.items():
             if name not in names:
@@ -522,7 +529,7 @@ def _check_norm(model: Model, n: dict, r: _Remarks) -> Normalization:
                 r.add(f, f"{what} {name}: coefficient below zero")
     axes = check_axes(model)
     for e, a in axes:
-        if (e, a) not in prices:
+        if strict and (e, a) not in prices:
             r.add(f"{w}, axis_skip_prices", f"check axis without skip price: {e}/{a}")
     for (e, a), x in prices.items():
         if (e, a) not in axes:
@@ -536,25 +543,35 @@ def _check_norm(model: Model, n: dict, r: _Remarks) -> Normalization:
                          Decimal(batch) if batch is not None else None)
 
 
-def _check_runs(model: Model, skip: set[str], r: _Remarks) -> None:
-    """Stage 3: run every variant step by step; the split check."""
+def _check_runs(model: Model, skip: set[str], r: _Remarks,
+                errors: dict[str, tuple[int, str]] | None = None) -> None:
+    """Stage 3: run every variant step by step; the split check.
+
+    :param errors: when given, a run error goes here as ``{code: (call number, reason)}`` instead
+        of a remark.
+    """
     for v in model.variants:
         if v.code in skip:
             continue
         try:
             run_variant(model, v)
         except TransitionError as exc:
-            r.add("", str(exc))
+            if errors is None:
+                r.add("", str(exc))
+            else:
+                errors[v.code] = (exc.number, exc.reason)
     for a, b in duplicate_kinds(model):
         r.add("kinds", f"same change of state: {a} = {b}")
     for k, chain in decomposable_kinds(model):
         r.add("kinds", f"kind {k} repeats the chain {' + '.join(chain)}")
 
 
-def read_project(data: object) -> tuple[Project | None, list[Remark]]:
+def read_project(data: object, strict: bool = True) -> tuple[Project | None, list[Remark]]:
     """Check a parsed project file and build the project.
 
     :param data: parsed JSON, numbers as ``int`` or ``Decimal``.
+    :param strict: ``False`` for the lenient read: a missing normalization number is no remark,
+        a run error goes to ``Project.errors``.
     :return: ``(project, [])`` or ``(None, remarks)``.
     :rtype: tuple[Project | None, list[Remark]]
     """
@@ -566,9 +583,10 @@ def read_project(data: object) -> tuple[Project | None, list[Remark]]:
     _check_dictionary(model, r)
     dict_ok = not r
     bad = _check_variant_names(model, r)
-    norm = _check_norm(model, data["normalization"], r) if dict_ok else None
+    norm = _check_norm(model, data["normalization"], r, strict) if dict_ok else None
+    errors: dict[str, tuple[int, str]] = {}
     if dict_ok:
-        _check_runs(model, bad, r)
+        _check_runs(model, bad, r, None if strict else errors)
     if r:
         return None, r.items
     sides = {v["code"]: v.get("side", "own") for v in data["variants"]}
@@ -576,7 +594,7 @@ def read_project(data: object) -> tuple[Project | None, list[Remark]]:
     steps = {v["code"]: [(s["text"], s["calls"]) for s in v["steps"]] if "steps" in v else None
              for v in data["variants"]}
     return Project(data["name"], data.get("description", ""), model, sides, norm, data, tasks,
-                   steps), []
+                   steps, errors), []
 
 
 def parse_text(text: str) -> tuple[Project | None, list[Remark]]:

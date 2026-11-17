@@ -12,7 +12,16 @@ Slice = dict[tuple[str, str], str | None]
 
 
 class TransitionError(ModelError):
-    """Raised when a transition cannot be applied to the current slice."""
+    """Raised when a transition cannot be applied to the current slice.
+
+    :ivar number: 1-based number of the call that failed, or ``None``.
+    :ivar reason: what is wrong, without the place.
+    """
+
+    def __init__(self, text: str, number: int | None = None, reason: str | None = None) -> None:
+        super().__init__(text)
+        self.number = number
+        self.reason = text if reason is None else reason
 
 
 def variant_entities(model: Model, variant: Variant) -> list[str]:
@@ -95,19 +104,21 @@ def apply(model: Model, s: Slice, variant: Variant, number: int) -> Slice:
     """
     call = variant.calls[number - 1]
     where = f"variant {variant.code}, call {number} ({call.kind})"
+
+    def fail(reason: str) -> TransitionError:
+        return TransitionError(f"{where}: {reason}", number, reason)
+
     kind = model.kind(call.kind)
     if kind is None:
-        raise TransitionError(f"{where}: unknown kind")
+        raise fail("unknown kind")
     key = (kind.entity, kind.axis)
     if key not in s:
-        raise TransitionError(f"{where}: entity {kind.entity} is not in the variant")
+        raise fail(f"entity {kind.entity} is not in the variant")
     if s[key] != kind.source:
-        raise TransitionError(f"{where}: {kind.entity}/{kind.axis} is {s[key]!r}, "
-                              f"expected {kind.source!r}")
+        raise fail(f"{kind.entity}/{kind.axis} is {s[key]!r}, expected {kind.source!r}")
     for re_, ra, rv in kind.requires:
         if s.get((re_, ra)) != rv:
-            raise TransitionError(f"{where}: condition not met: {re_}/{ra} is "
-                                  f"{s.get((re_, ra))!r}, required {rv!r}")
+            raise fail(f"condition not met: {re_}/{ra} is {s.get((re_, ra))!r}, required {rv!r}")
     nxt = dict(s)
     nxt[key] = kind.target
     if kind.axis == model.existence_axis:
