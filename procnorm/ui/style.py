@@ -262,6 +262,22 @@ QWidget#chainFields QRadioButton::indicator:checked {{
     border-color: {ACCENT};
 }}
 
+QFrame#fold {{
+    background: {BG};
+    border: 1px solid {BORDER};
+    border-radius: {RADIUS};
+}}
+
+QPushButton#foldButton {{
+    font-size: 13px;
+    font-weight: 600;
+    color: {TEXT};
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    text-align: left;
+}}
+
 QLabel#amber {{
     font-size: 13px;
     color: {AMBER_TEXT};

@@ -4,7 +4,8 @@
 """Step chains tab: the paths by group on the left, the human steps of one path with their transitions.
 
 The header holds the editable code and title and the buttons ``Copy`` and ``Delete``; under them
-the side, the task, the reason to keep the path out of comparison and the variant parameters.
+the side, the task, the reason to keep the path out of comparison and the variant parameters;
+under them the folded block ``Entities and initial state``.
 ``New`` above the path list adds a variant.
 Each transition has the buttons ``↑ ↓ ✕ +`` right of ``Scope``; ``+`` opens an input row under it. The
 tab only asks for an edit (``edit_requested``); the window applies it and refills the tab."""
@@ -16,9 +17,9 @@ from html import escape
 
 from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
-from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QHBoxLayout, QHeaderView,
-                               QLabel, QLineEdit, QPushButton, QRadioButton, QStyle, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
+                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton,
+                               QRadioButton, QStyle, QVBoxLayout, QWidget)
 
 from procnorm.calc import Link, Row, chain, compare, empty_steps, groups
 from procnorm.project import Project
@@ -43,6 +44,11 @@ TIPS = {UP: "Move up", DOWN: "Move down", REMOVE: "Remove", ADD: "Add transition
 FIELDS = ("kind", "executor", "instrument", "scope")
 TASK_HINT = "variants with the same task are compared"
 SIDES = ("own", "other")
+FOLD_TITLE = "Entities and initial state"
+FOLD_NOTE = "no box ticked = entities of the transitions"
+FOLD_OPEN = "▾"
+FOLD_SHUT = "▸"
+AS_DICTIONARY = "as in dictionary: {}"
 
 
 def _count(n: int, one: str) -> str:
@@ -55,6 +61,28 @@ def _slice_text(name: str) -> str:
 
 def _title_html(code: str, title: str) -> str:
     return f"<b>{escape(code)}</b> {escape(title)}"
+
+
+def _shown_entities(p: Project, v: dict) -> list[str]:
+    """Entities of a stored variant in dictionary order: the ticked ones, else those of its
+    transitions."""
+    m = p.model
+    names = set(v.get("entities") or [])
+    if not names:
+        for c in v.get("calls", []):
+            k = m.kind(c[0])
+            if k is not None:
+                names.add(k.entity)
+    return [e.name for e in m.entities if e.name in names]
+
+
+def _clear(layout) -> None:
+    """Remove and drop every widget of a layout."""
+    while layout.count():
+        w = layout.takeAt(0).widget()
+        if w is not None:
+            w.hide()
+            w.deleteLater()
 
 
 class PathItem(QFrame):
@@ -504,7 +532,8 @@ class ChainsPage(Page):
     its code: ``("move", (code, number, ±1))``, ``("remove", (code, number))``,
     ``("add", (code, after, call, step))``, ``("copy", (code,))``, ``("delete", (code,))``,
     ``("rename", (code, new code, title))``, ``("header", (code, field, value))`` with a field of
-    :func:`procnorm.edit.set_variant` (``side``, ``task``, ``out_of_comparison``, ``params``).
+    :func:`procnorm.edit.set_variant` (``side``, ``task``, ``out_of_comparison``, ``params``,
+    ``entities``, ``initial``).
     ``("new", ())`` asks for a new variant.
     """
 
@@ -629,10 +658,62 @@ class ChainsPage(Page):
         second.addLayout(self.params_line)
         second.addStretch(1)
         rows.addLayout(second)
+        rows.addWidget(self._entities_block())
 
         self.param_boxes: dict[str, QComboBox] = {}
         self.fields.hide()
         return self.fields
+
+    def _entities_block(self) -> QFrame:
+        """The folded block: a tick per entity and a list per axis of the initial state."""
+        self.fold = QFrame()
+        self.fold.setObjectName("fold")
+        box = QVBoxLayout(self.fold)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(0)
+
+        head = QHBoxLayout()
+        head.setContentsMargins(8, 4, 10, 4)
+        head.setSpacing(10)
+        self.fold_button = QPushButton()
+        self.fold_button.setObjectName("foldButton")
+        self.fold_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.fold_button.clicked.connect(self._fold_clicked)
+        head.addWidget(self.fold_button)
+        self.fold_note = QLabel(FOLD_NOTE)
+        self.fold_note.setObjectName("note")
+        head.addWidget(self.fold_note)
+        head.addStretch(1)
+        box.addLayout(head)
+
+        self.entities_body = QWidget()
+        body = QVBoxLayout(self.entities_body)
+        body.setContentsMargins(12, 2, 12, 10)
+        body.setSpacing(8)
+        self.ticks_line = QHBoxLayout()
+        self.ticks_line.setSpacing(16)
+        body.addLayout(self.ticks_line)
+        self.axes_grid = QGridLayout()
+        self.axes_grid.setHorizontalSpacing(10)
+        self.axes_grid.setVerticalSpacing(4)
+        body.addLayout(self.axes_grid)
+        box.addWidget(self.entities_body)
+
+        self.entity_checks: dict[str, QCheckBox] = {}
+        self.initial_boxes: dict[tuple[str, str], QComboBox] = {}
+        self._fold_open = False
+        self._show_fold()
+        return self.fold
+
+    def _show_fold(self) -> None:
+        mark = FOLD_OPEN if self._fold_open else FOLD_SHUT
+        self.fold_button.setText(f"{mark} {FOLD_TITLE}")
+        self.entities_body.setVisible(self._fold_open)
+
+    def _fold_clicked(self) -> None:
+        """Open or fold the block; it stays so for other paths."""
+        self._fold_open = not self._fold_open
+        self._show_fold()
 
     @staticmethod
     def _field_label(text: str) -> QLabel:
@@ -759,6 +840,7 @@ class ChainsPage(Page):
         self.reason_edit.setText(reason)
         self.reason_edit.setEnabled(bool(reason))
         self._fill_params(v.get("params") or {})
+        self._fill_entities(v)
 
     def _fill_params(self, params: dict) -> None:
         """A label and a list of executors for every variant parameter of the project."""
@@ -782,6 +864,75 @@ class ChainsPage(Page):
             box.activated.connect(lambda _=0, n=name: self._param_chosen(n))
             self.params_line.addWidget(box)
             self.param_boxes[name] = box
+
+    def _fill_entities(self, v: dict) -> None:
+        """Ticks of the stored entities; a list per axis of the entities the path has, with the
+        stored deviation chosen or ``as in dictionary: <first value>``."""
+        _clear(self.ticks_line)
+        _clear(self.axes_grid)
+        self.entity_checks = {}
+        self.initial_boxes = {}
+        m = self._project.model
+        ticked = set(v.get("entities") or [])
+        for e in m.entities:
+            check = QCheckBox(e.name)
+            check.setChecked(e.name in ticked)
+            check.clicked.connect(self._entity_clicked)
+            self.ticks_line.addWidget(check)
+            self.entity_checks[e.name] = check
+        self.ticks_line.addStretch(1)
+        initial = v.get("initial") or {}
+        row = 0
+        for name in _shown_entities(self._project, v):
+            for ax in m.entity(name).axes:
+                lab = QLabel(f"{name} / {ax.name}")
+                lab.setObjectName("note")
+                self.axes_grid.addWidget(lab, row, 0)
+                box = QComboBox()
+                box.setObjectName("pick")
+                box.addItem(AS_DICTIONARY.format(ax.values[0]))
+                box.addItems(list(ax.values))
+                value = initial.get(name, {}).get(ax.name)
+                index = box.findText(value) if value is not None else 0
+                box.setCurrentIndex(max(index, 0))
+                box.activated.connect(
+                    lambda _=0, e=name, a=ax.name: self._initial_chosen(e, a))
+                self.axes_grid.addWidget(box, row, 1, Qt.AlignmentFlag.AlignLeft)
+                self.initial_boxes[(name, ax.name)] = box
+                row += 1
+        self.axes_grid.setColumnStretch(2, 1)
+
+    def _entity_clicked(self) -> None:
+        """The ticked entities, in dictionary order; none ticked removes ``entities``."""
+        v = self._stored(self._current)
+        if v is None:
+            return
+        names = []
+        for name, check in self.entity_checks.items():
+            if check.isChecked():
+                names.append(name)
+        if names != list(v.get("entities") or []):
+            self._header("entities", names)
+
+    def _initial_chosen(self, entity: str, axis: str) -> None:
+        """A value deviates the initial state; ``as in dictionary`` removes the deviation."""
+        v = self._stored(self._current)
+        if v is None:
+            return
+        stored = v.get("initial") or {}
+        initial = {}
+        for name, axes in stored.items():
+            initial[name] = dict(axes)
+        axes = initial.setdefault(entity, {})
+        box = self.initial_boxes[(entity, axis)]
+        if box.currentIndex() == 0:
+            axes.pop(axis, None)
+        else:
+            axes[axis] = box.currentText()
+        if not axes:
+            initial.pop(entity)
+        if initial != stored:
+            self._header("initial", initial)
 
     def _header(self, field_: str, value) -> None:
         if self._current is not None:
