@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from procnorm.calc import empty_steps, project_empty_steps
-from procnorm.edit import set_number
+from procnorm.edit import add_call, move_call, remove_call, set_number
 from procnorm.project import Project, load_file
 from procnorm.store import Store, default_path
 from procnorm.ui.chains import ChainsPage
@@ -129,6 +129,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.tabs, 1)
         self.setCentralWidget(body)
         self.norm.number_edited.connect(self.edit_number)
+        self.chains.edit_requested.connect(self.edit_chain)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -267,6 +268,33 @@ class MainWindow(QMainWindow):
             own = f"normalization, {table}"
             self.norm.show_refusal(table, "; ".join(r.text if r.where == own else str(r) for r in remarks))
             return False
+        self._save_edit(data)
+        return True
+
+    def edit_chain(self, op: str, args: tuple) -> bool:
+        """Move, remove or add a transition of a variant, from the Step chains tab.
+
+        Accepted: written at once, every tab recalculated with its view kept. Refused: nothing is
+        written, a red line under the chain says why.
+
+        :param op: ``move`` with ``(code, number, ±1)``, ``remove`` with ``(code, number)``, ``add``
+            with ``(code, after, [kind, executor, instrument, scope], step)``; numbers from 1.
+        :return: whether the edit was accepted.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        fn = {"move": move_call, "remove": remove_call, "add": add_call}[op]
+        data, remarks = fn(self.store.get(self.current_id).data, *args)
+        if data is None:
+            own = f"variant {args[0]}"
+            self.chains.show_refusal("; ".join(r.text if r.where == own else str(r) for r in remarks))
+            return False
+        self._save_edit(data)
+        return True
+
+    def _save_edit(self, data: dict) -> None:
+        """Write an accepted edit and refill every tab, keeping its view."""
         self.store.save(self.current_id, data)
         project = self.store.get(self.current_id)
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
@@ -274,7 +302,6 @@ class MainWindow(QMainWindow):
                 page.show_project(project)
             else:
                 page.show_project(project, keep=True)
-        return True
 
     # --- actions without dialogs (driven by tests)
 

@@ -71,6 +71,9 @@ QLabel#groupNote {{ font-size: 13px; color: {TEXT2}; }}
 QFrame#steps {{ background: {SUB}; border: none; border-bottom: 1px solid {BORDER}; }}
 QLabel#skipped {{ font-size: 13px; color: {TEXT}; }}
 QPushButton#small {{ font-size: 13px; padding: 3px 10px; }}
+QPushButton#icon {{ font-size: 13px; padding: 0; min-width: 26px; max-width: 26px; min-height: 22px;
+                   max-height: 22px; }}
+QComboBox#pick {{ font-size: 13px; padding: 2px 6px; min-width: 0; }}
 QFrame#viewHead {{ background: {TINT}; border: 1px solid {BORDER}; border-bottom: none;
                   border-top-left-radius: {RADIUS}; border-top-right-radius: {RADIUS}; }}
 QFrame#grid {{ background: {BG}; border: 1px solid {BORDER}; }}
