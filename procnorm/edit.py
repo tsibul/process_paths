@@ -256,6 +256,129 @@ def rename_variant(data: dict, code: str, new_code: str, title: str
     return _checked(new)
 
 
+_KEEP = object()
+_TEXT_FIELDS = ("task", "out_of_comparison")
+
+
+def _set_header(new: dict, v: dict, fields: dict) -> str | None:
+    """Write the header fields given (those that are not ``_KEEP``) into the variant ``v``.
+
+    :return: ``None``, or the reason the shape of a field is wrong.
+    """
+    side = fields["side"]
+    if side is not _KEEP:
+        if side not in ("own", "other"):
+            return 'side must be "own" or "other"'
+        v["side"] = side
+    for key in _TEXT_FIELDS:
+        text = fields[key]
+        if text is _KEEP:
+            continue
+        if text is not None and not isinstance(text, str):
+            return f"{key} must be a text"
+        text = (text or "").strip()
+        if text:
+            v[key] = text
+        else:
+            v.pop(key, None)
+    entities = fields["entities"]
+    if entities is not _KEEP:
+        entities = list(entities or [])
+        if not all(isinstance(x, str) for x in entities):
+            return "entities must be a list of texts"
+        if entities:
+            v["entities"] = entities
+        else:
+            v.pop("entities", None)
+    initial = fields["initial"]
+    if initial is not _KEEP:
+        initial = {entity: dict(axes) for entity, axes in (initial or {}).items() if axes}
+        if initial:
+            v["initial"] = initial
+        else:
+            v.pop("initial", None)
+    params = fields["params"]
+    if params is not _KEEP:
+        first = new["executors"][0] if new["executors"] else None
+        given = dict(params or {})
+        result = {name: given.pop(name, first) for name in new.get("variant_params", [])}
+        result.update(given)
+        if result:
+            v["params"] = result
+        else:
+            v.pop("params", None)
+    return None
+
+
+def add_variant(data: dict, code: str, title: str, side: str = "own", task: str | None = None,
+                params: dict[str, str] | None = None, entities: list[str] | None = None,
+                initial: dict[str, dict[str, str]] | None = None,
+                out_of_comparison: str | None = None) -> tuple[dict | None, list[Remark]]:
+    """Add a variant without transitions at the end of the variants.
+
+    :param data: the parsed project file; not changed.
+    :param code: the new code; spaces around it are dropped.
+    :param title: the title; spaces around it are dropped.
+    :param side: ``"own"`` or ``"other"``.
+    :param task: the task; empty or ``None`` writes no key.
+    :param params: ``{variant parameter: executor}``; a parameter not given gets the first
+        executor.
+    :param entities: the entities of the variant; empty or ``None`` writes no key.
+    :param initial: ``{entity: {axis: value}}``, deviations of the initial slice; empty writes no
+        key.
+    :param out_of_comparison: the reason; empty or ``None`` writes no key.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused: a taken or empty
+        code, an empty title, a wrong side, or what the lenient read refuses (unknown entity,
+        axis, value, executor or variant parameter).
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    where = "add variant"
+    new = copy.deepcopy(data)
+    if not isinstance(code, str) or not isinstance(title, str):
+        return None, [Remark(where, "code and title must be texts")]
+    code, title = code.strip(), title.strip()
+    if not code or not title:
+        return None, [Remark(where, "code and title must not be empty")]
+    if _variant(new, code) is not None:
+        return None, [Remark(where, f"variant code is taken: {code}")]
+    v = {"code": code, "title": title}
+    fields = {"side": side, "task": task, "params": params, "entities": entities,
+              "initial": initial, "out_of_comparison": out_of_comparison}
+    reason = _set_header(new, v, fields)
+    if reason:
+        return None, [Remark(where, reason)]
+    v["calls"] = []
+    new["variants"].append(v)
+    return _checked(new)
+
+
+def set_variant(data: dict, code: str, side=_KEEP, task=_KEEP, params=_KEEP, entities=_KEEP,
+                initial=_KEEP, out_of_comparison=_KEEP) -> tuple[dict | None, list[Remark]]:
+    """Change the header of a variant; the code, title, transitions and steps stay.
+
+    A field not given stays as it is. ``task`` and ``out_of_comparison`` empty (or ``None``),
+    ``entities`` empty and ``initial`` empty remove the key. ``params`` replaces all parameters;
+    a parameter left out gets the first executor.
+
+    :param data: the parsed project file; not changed.
+    :param code: the existing variant code.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when there is no such variant or the edit
+        is refused as in :func:`add_variant`.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    where = f"variant {code}"
+    new = copy.deepcopy(data)
+    v = _variant(new, code)
+    if v is None:
+        return None, [Remark(where, "no such variant")]
+    fields = {"side": side, "task": task, "params": params, "entities": entities,
+              "initial": initial, "out_of_comparison": out_of_comparison}
+    reason = _set_header(new, v, fields)
+    if reason:
+        return None, [Remark(where, reason)]
+    return _checked(new)
+
+
 # ---------- dictionary words ----------
 
 WORDS = ("entity", "axis", "value", "kind", "executor", "instrument", "scope", "variant_param",
