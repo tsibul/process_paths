@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication
 
 from procnorm.calc import compare, series, start_point
 from procnorm.project import read_project
+from procnorm.ui import style
 from procnorm.ui.line_charts import LineCharts
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
@@ -132,3 +133,30 @@ def test_draws(charts, project):
     charts.set_rows(project, rows(project))
     charts.resize(700, 600)
     assert not charts.grab().isNull()
+
+
+def colours(view):
+    return {s.name(): s.pen().color().name().upper() for s in view.chart().series()}
+
+
+def test_colour_stable_after_filter_and_same_in_both_charts(charts, project):
+    rs = rows(project)
+    charts.set_rows(project, rs)
+    before = colours(charts.labour)
+    assert len(set(before.values())) == len(rs)
+    assert before == colours(charts.checks)
+    charts.set_rows(project, rs[1:])
+    assert colours(charts.labour) == {r.code: before[r.code] for r in rs[1:]}
+    assert colours(charts.checks) == colours(charts.labour)
+
+
+def test_colour_by_index_in_project_variants(charts, project):
+    codes = [v.code for v in project.model.variants]
+    charts.set_rows(project, rows(project))
+    for code, colour in colours(charts.labour).items():
+        assert colour == style.SERIES[codes.index(code) % len(style.SERIES)].upper()
+
+
+def test_series_palette_has_no_ok_or_err_colour():
+    assert style.OK not in style.SERIES and style.ERR not in style.SERIES
+    assert len(set(style.SERIES)) == len(style.SERIES)

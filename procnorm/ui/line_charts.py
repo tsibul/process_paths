@@ -16,8 +16,6 @@ from procnorm.calc import Point, Row, series, start_point
 from procnorm.project import Project
 from procnorm.ui import style
 
-COLOURS = [style.ACCENT, style.OK, style.WARN, style.ERR, style.TEXT2, style.TEXT]
-
 
 def _view(title: str, y_title: str) -> QChartView:
     """An empty chart with integer step axis and a value axis."""
@@ -53,7 +51,7 @@ class LineCharts(QWidget):
     """``Labour by step`` above ``Checks done by step``; one line per given variant.
 
     A line goes from point 0 (the initial slice) to the last step of its path. Own variants
-    are drawn solid, other variants dashed; a line is named by the variant code.
+    are drawn solid, other variants dashed; the colour of a line is fixed by the place of its variant in the project; a line is named by the variant code.
     """
 
     def __init__(self, parent: QWidget | None = None):
@@ -65,28 +63,31 @@ class LineCharts(QWidget):
         lay.addWidget(self.labour)
         lay.addWidget(self.checks)
 
-    def set_rows(self, project: Project, rows: Sequence[Row]) -> None:
+    def set_rows(self, project: Project | None, rows: Sequence[Row]) -> None:
         """Replace the lines by those of ``rows``, in their order.
 
-        :param project: a checked project.
+        :param project: a checked project; ``None`` clears the lines.
         :param rows: variants to draw; only ``code`` and ``side`` are used.
         """
+        if project is None:
+            rows = []
+        order = [v.code for v in project.model.variants] if project else []
         pts = {r.code: [start_point(project, r.code)] + series(project, r.code) for r in rows}
-        self._fill(self.labour, rows, pts, lambda p: p.labour)
-        self._fill(self.checks, rows, pts, lambda p: p.done_total)
+        self._fill(self.labour, rows, pts, order, lambda p: p.labour)
+        self._fill(self.checks, rows, pts, order, lambda p: p.done_total)
 
     @staticmethod
     def _fill(view: QChartView, rows: Sequence[Row], pts: dict[str, list[Point]],
-              value: Callable[[Point], object]) -> None:
+              order: list[str], value: Callable[[Point], object]) -> None:
         chart = view.chart()
         chart.removeAllSeries()
         x_axis = chart.axes(Qt.Horizontal)[0]
         y_axis = chart.axes(Qt.Vertical)[0]
         x_max, y_max = 1, 0.0
-        for i, r in enumerate(rows):
+        for r in rows:
             s = QLineSeries()
             s.setName(r.code)
-            pen = QPen(QColor(COLOURS[i % len(COLOURS)]))
+            pen = QPen(QColor(style.SERIES[order.index(r.code) % len(style.SERIES)]))
             pen.setWidth(2)
             pen.setStyle(Qt.SolidLine if r.side == "own" else Qt.DashLine)
             s.setPen(pen)

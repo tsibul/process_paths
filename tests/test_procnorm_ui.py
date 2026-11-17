@@ -593,3 +593,54 @@ def test_steps_table_cuts_no_word(twelve):
                 assert fm.horizontalAdvance(word) <= room, (c, word)
             need = fm.boundingRect(QRect(0, 0, room, 10000), Qt.TextFlag.TextWordWrap, text)
             assert need.height() <= t.rowHeight(r), (c, text)
+
+
+# --- charts and labour scale on the comparison tab
+
+def _chart_codes(c):
+    return [s.name() for s in c.charts.labour.chart().series()]
+
+
+def test_charts_under_the_table_with_shown_rows_without_out(twelve):
+    c = twelve.comparison
+    assert c.box.indexOf(c.charts) > c.box.indexOf(c.tree)
+    assert not c.charts.isHidden()
+    assert _chart_codes(c) == [x for x in DEFAULT if x != "Н"]
+    assert _chart_codes(c) == [s.name() for s in c.charts.checks.chart().series()]
+
+
+def test_charts_follow_side_filter_and_sort(twelve):
+    c = twelve.comparison
+    c.set_side("other")
+    assert _chart_codes(c) == [x for x in c.codes() if x != "Н"]
+    assert "А" not in _chart_codes(c) and "Б" in _chart_codes(c)
+    c.set_side("own")
+    assert _chart_codes(c) == c.codes()
+    c.sort("Labour · total", Qt.SortOrder.DescendingOrder)
+    assert _chart_codes(c) == [x for x in c.codes() if x != "Н"]
+
+
+def test_charts_hidden_in_compare_steps_and_back(twelve):
+    c = twelve.comparison
+    c.group_headers()[1].compare.click()
+    assert c.charts.isHidden()
+    c.steps_view.back.click()
+    assert not c.charts.isHidden()
+    assert _chart_codes(c) == [x for x in DEFAULT if x != "Н"]
+
+
+def test_scale_in_compare_steps_with_view_columns(twelve):
+    c = twelve.comparison
+    c.set_side("other")
+    c.group_headers()[0].compare.click()
+    v = c.steps_view
+    assert [r.code for r in v.scale.rows()] == v.codes()
+    assert v.scale.parent() is v and not v.scale.isHidden()
+
+
+def test_charts_empty_without_project_and_old_lines_gone(twelve):
+    c = twelve.comparison
+    assert _chart_codes(c)
+    c.show_project(None)
+    assert _chart_codes(c) == []
+    assert [s.name() for s in c.charts.checks.chart().series()] == []

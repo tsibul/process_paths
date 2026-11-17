@@ -18,11 +18,13 @@ from procnorm import export
 from procnorm.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, money, series
 from procnorm.project import FINAL, Project
 from procnorm.ui import style
+from procnorm.ui.labour_scale import LabourScale
+from procnorm.ui.line_charts import LineCharts
 from procnorm.ui.pages import Page
 from procnorm.ui.tables import ARROW, CHECK, DASH, Table, label, mono
 
 SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
-SIDE_TEXT = {"own": "● Ours", "other": "○ Theirs"}
+SIDE_TEXT = style.SIDE_TEXT
 NOT_REACHED = " (not reached)"
 END = "end"
 NO_PAIR = "No comparable variant"
@@ -360,6 +362,8 @@ class StepsView(QFrame):
             grid.addWidget(n, i, 0)
         self._steps = steps
         box.addWidget(grid_frame)
+        self.scale = LabourScale(project, rows)
+        box.addWidget(self.scale)
 
     def codes(self) -> list[str]:
         """Codes of the columns, left to right."""
@@ -498,6 +502,8 @@ class ComparisonPage(Page):
         self.export_bar.setLayout(buttons)
         buttons.setContentsMargins(0, 0, 0, 0)
         self.box.addWidget(self.export_bar)
+        self.charts = LineCharts()
+        self.box.addWidget(self.charts)
         self.box.addStretch(1)
         self._set_columns()
 
@@ -563,6 +569,7 @@ class ComparisonPage(Page):
         self._items = {}
         if self._cmp is None:
             t.fit()
+            self._set_charts()
             return
         for g in self._groups:
             rows = self._shown_rows(g)
@@ -590,6 +597,12 @@ class ComparisonPage(Page):
             if code in self._items:
                 self._expand(self._items[code])
         t.fit()
+        self._set_charts()
+
+    def _set_charts(self) -> None:
+        """Draw the lines of the rows shown in the tree, without ``Out of comparison``, in tree order."""
+        rows = [r for g in self._groups if g.kind != "out" for r in self._shown_rows(g)]
+        self.charts.set_rows(self._project, rows)
 
     def _variant_item(self, parent: QTreeWidgetItem, r: Row, grey: bool, least: bool) -> QTreeWidgetItem:
         cmp = self._cmp
@@ -696,6 +709,7 @@ class ComparisonPage(Page):
         self.tree.setVisible(on)
         self.hint.setVisible(on)
         self.export_bar.setVisible(on)
+        self.charts.setVisible(on)
         for b in self.side_buttons.buttons():
             b.setEnabled(on)
 

@@ -23,6 +23,9 @@ SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF")
 SCALE_OPEN = "#F2B8B8"
 SCALE_DONE = "#BBE5C8"
 SCALE_GRID = "#F0F0F4"
+# Line colours of the variants: neutral, without the green and red that mean good and bad elsewhere.
+SERIES = ("#4F46E5", "#0284C7", "#9333EA", "#D97706", "#475569", "#0891B2", "#C026D3")
+SIDE_TEXT = {"own": "● Ours", "other": "○ Theirs"}
 
 STYLE = f"""
 QWidget {{ background: {BG}; color: {TEXT}; font-size: 15px; }}

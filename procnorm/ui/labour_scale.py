@@ -22,7 +22,6 @@ from procnorm.project import Project
 from procnorm.ui import style
 from procnorm.ui.tables import CHECK, mono
 
-SIDE_TEXT = {"own": "● Ours", "other": "○ Theirs"}
 LABEL_W = 230
 AXIS_H = 22
 ROW_H = 72
@@ -103,7 +102,7 @@ def _ticks(end: Decimal) -> list[Decimal]:
 def _row(project: Project, r: Row, colors: dict[str, tuple[str, str]]) -> ScaleRow:
     pts: list[Point] = [start_point(project, r.code)] + series(project, r.code)
     last = pts[-1]
-    out = ScaleRow(r.code, r.title, SIDE_TEXT.get(r.side, r.side), r.side == "own", last.labour,
+    out = ScaleRow(r.code, r.title, style.SIDE_TEXT.get(r.side, r.side), r.side == "own", last.labour,
                    last.skips_total, style.OK if last.skips_total == 0 else style.ERR)
     for a, b in zip(pts, pts[1:]):
         step = b.labour - a.labour
