@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from procnorm.calc import (Link, chain, compare, details, empty_steps, fmt, groups, project_empty_steps,
-                           series)
+                           series, start_point)
 from procnorm.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
@@ -262,6 +262,39 @@ def test_series_a(project):
     assert p1.done_total == D(5)
     assert p2.skips == [] and p2.skips_count == 0 and p2.skips_total == D(0) and p2.done_total == D(8)
     assert pts[-1].done_total == D(8)
+
+
+def test_start_point_a(project):
+    p0 = start_point(project, "А")
+    assert p0.number == 0 and p0.kind == "" and p0.executor == ""
+    assert p0.labour == D(0) and p0.slices == []
+    assert p0.skips == [("Бельё", "карманы"), ("Бельё", "цвета")]
+    assert p0.skips_count == 2 and p0.skips_total == D(8) and p0.done_total == D(0)
+
+
+def test_start_point_before_series(project):
+    for v in project.model.variants:
+        pts = [start_point(project, v.code)] + series(project, v.code)
+        assert [p.number for p in pts] == list(range(len(v.calls) + 1))
+        assert pts[0].skips_total >= pts[1].skips_total
+        assert pts[0].done_total <= pts[1].done_total
+        assert pts[0].skips_total + pts[0].done_total == pts[1].skips_total + pts[1].done_total
+
+
+def test_start_point_leaves_series_unchanged(project):
+    before = series(project, "А")
+    start_point(project, "А")
+    assert series(project, "А") == before and before[0].number == 1
+
+
+def test_start_point_without_checks_is_zero():
+    d = base()
+    d["normalization"]["axis_skip_prices"] = {}
+    for k in d["kinds"]:
+        k.pop("check", None)
+    p0 = start_point(project_of(d), "Б")
+    assert p0.number == 0 and p0.skips == [] and p0.skips_count == 0
+    assert p0.skips_total == D(0) and p0.done_total == D(0) and p0.labour == D(0)
 
 
 def test_series_last_point_equals_row(project):

@@ -326,6 +326,22 @@ def series(project: Project, code: str) -> list[Point]:
     return out
 
 
+def start_point(project: Project, code: str) -> Point:
+    """The point before the first step of one variant: the initial slice, no labour.
+
+    :param project: a checked project.
+    :param code: variant code.
+    :return: a point with ``number`` 0, empty ``kind`` and ``executor``, zero labour and no
+        reached slices; it goes before the points of :func:`series`.
+    :rtype: Point
+    """
+    v = next(x for x in project.model.variants if x.code == code)
+    s0 = run_variant(project.model, v)[0]
+    found = _skips(project, s0)
+    return Point(0, "", "", ZERO, [(e, a) for e, a, _ in found], len(found),
+                 sum((p for _, _, p in found), ZERO), _done_total(project, s0), [])
+
+
 def chain(project: Project, code: str) -> list[Link]:
     """Human steps of one variant with their transitions and slice markers.
 
