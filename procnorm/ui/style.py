@@ -16,6 +16,7 @@ ON_ACCENT = "#FFFFFF"
 TINT = "#EEF2FF"
 STEP_BG = "#F7F8FF"
 WARN = "#B45309"
+MISSING_BG = "#FEF3C7"  # a number cell not set
 RADIUS = "8px"
 # Labour scale: (fill, text) of a step by the executor's place in the dictionary; status strip; grid.
 SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF"), ("#C7D2FE", TEXT),

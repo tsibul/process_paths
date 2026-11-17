@@ -303,6 +303,7 @@ class StepsView(QFrame):
 
     def __init__(self, project: Project, group: Group, rows: list[Row]) -> None:
         super().__init__()
+        self.group = group
         self.setObjectName("stepsView")
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
@@ -515,8 +516,17 @@ class ComparisonPage(Page):
 
     # --- filling
 
-    def show_project(self, p: Project | None) -> None:
-        """Rebuild the tree; ``None`` empties it."""
+    def show_project(self, p: Project | None, keep: bool = False) -> None:
+        """Rebuild the tree; ``None`` empties it.
+
+        :param p: the project.
+        :param keep: after an edit of the same project: keep the sorting (by column name), the open
+            rows, the open Compare steps view and the scroll place; the side filter always stays.
+        """
+        sort = (self._keys[self._sort[0]], self._sort[1]) if keep and self._sort is not None else None
+        opened = list(self._open) if keep else []
+        task = self.steps_view.group.task if keep and self.steps_view is not None else None
+        scroll = self.verticalScrollBar().value()
         self.close_steps()
         self._project = p
         self._cmp = compare(p) if p is not None else None
@@ -524,10 +534,20 @@ class ComparisonPage(Page):
         self._sort = None
         self._open = []
         self._set_columns()
+        if sort is not None and sort[0] in self._keys:
+            self._sort = (self._keys.index(sort[0]), sort[1])
+            self.tree.header().setSortIndicator(self._sort[0], sort[1])
+        codes = {r.code for g in self._groups for r in g.rows}
+        self._open = [c for c in opened if c in codes]
         self.export_md.setEnabled(p is not None)
         self.export_csv.setEnabled(p is not None)
         self.notes.setText(self._notes_text())
         self._render()
+        g = next((g for g in self._groups if g.kind == "task" and g.task == task), None)
+        if g is not None:
+            self.open_steps(g)
+        if keep:
+            self.verticalScrollBar().setValue(scroll)
 
     def _set_columns(self) -> None:
         cmp = self._cmp

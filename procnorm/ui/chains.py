@@ -349,8 +349,14 @@ class ChainsPage(Page):
 
     # --- filling
 
-    def show_project(self, p: Project | None) -> None:
-        """Rebuild the list and show the first path; ``None`` empties the tab."""
+    def show_project(self, p: Project | None, keep: bool = False) -> None:
+        """Rebuild the list and show the first path; ``None`` empties the tab.
+
+        :param p: the project.
+        :param keep: after an edit of the same project: keep the chosen path and the scroll place.
+        """
+        chosen = self._current if keep else None
+        scroll = self.verticalScrollBar().value()
         self._project = p
         while self.list_box.count():
             w = self.list_box.takeAt(0).widget()
@@ -376,7 +382,9 @@ class ChainsPage(Page):
                     self.list_box.addWidget(it)
                 self._groups.append((title, grey, [r.code for r in g.rows]))
         codes = self.codes()
-        self.select_path(codes[0] if codes else None)
+        self.select_path(chosen if chosen in codes else codes[0] if codes else None)
+        if keep:
+            self.verticalScrollBar().setValue(scroll)
 
     def select_path(self, code: str | None) -> None:
         """Show the chain of a path and highlight it in the list; ``None`` shows nothing."""

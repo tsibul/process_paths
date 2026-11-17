@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QMessageBox, QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from procnorm.calc import empty_steps, project_empty_steps
+from procnorm.edit import set_number
 from procnorm.project import Project, load_file
 from procnorm.store import Store, default_path
 from procnorm.ui.chains import ChainsPage
@@ -127,6 +128,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(self._tab_changed)
         lay.addWidget(self.tabs, 1)
         self.setCentralWidget(body)
+        self.norm.number_edited.connect(self.edit_number)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -242,6 +244,37 @@ class MainWindow(QMainWindow):
         if self.settings is not None and pid is not None:
             self.settings.setValue(LAST, pid)
             self.settings.sync()
+
+    # --- edits
+
+    def edit_number(self, table: str, key: str | tuple[str, str], text: str) -> bool:
+        """Set, change or clear a normalization number of the selected project.
+
+        Accepted: written to the database at once, every tab recalculated with its view kept.
+        Refused: nothing is written, the cell keeps its number, a red line under its table says why.
+
+        :param table: ``kind_costs``, ``executor_coefficients``, ``scope_coefficients`` or
+            ``axis_skip_prices``.
+        :param key: the name, or ``(entity, axis)`` for a skip price.
+        :param text: the typed number, comma or point; empty clears it.
+        :return: whether the edit was accepted.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data, remarks = set_number(self.store.get(self.current_id).data, table, key, text)
+        if data is None:
+            own = f"normalization, {table}"
+            self.norm.show_refusal(table, "; ".join(r.text if r.where == own else str(r) for r in remarks))
+            return False
+        self.store.save(self.current_id, data)
+        project = self.store.get(self.current_id)
+        for page in (self.dictionary, self.norm, self.comparison, self.chains):
+            if page is self.dictionary:
+                page.show_project(project)
+            else:
+                page.show_project(project, keep=True)
+        return True
 
     # --- actions without dialogs (driven by tests)
 
