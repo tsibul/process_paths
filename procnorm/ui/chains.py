@@ -21,7 +21,7 @@ from procnorm.ui.tables import Table, item, mono
 
 LIST_WIDTH = 300  # px, as the mockup's path list
 STEP_COL = 32  # step number column, px
-RESERVED = 150  # empty room right of Scope for the editing buttons of version 2, px
+RESERVED = 150  # empty room right of Scope for the editing buttons of version 3, px
 SLICE_ROW = 26  # height of a slice marker row, px
 SLACK = 4  # rounding room so a measured text does not wrap, px
 ROW_PAD = 14  # vertical padding and border of a row, px
@@ -135,7 +135,7 @@ class ChainTable(Table):
     """Human steps across the table, each followed by its transitions; slice markers between them.
 
     Columns: step number, ``#``, ``Kind``, ``Executor``, ``Instrument``, ``Scope`` and an empty one
-    kept for the editing buttons of version 2. ``Kind`` takes the rest of the width."""
+    kept for the editing buttons of version 3. ``Kind`` takes the rest of the width."""
 
     def __init__(self) -> None:
         super().__init__(HEADERS, {1})
