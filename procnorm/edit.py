@@ -986,3 +986,126 @@ def set_existence_axis(data: dict, name: str, absent: str) -> tuple[dict | None,
     else:
         new["existence_axis"] = {"name": name, "absent": absent}
     return _checked(new)
+
+
+# ---------- transition kinds ----------
+
+_KIND_REQUIRED = ("entity", "axis", "from", "to")
+_KIND_STRUCTURE = _KIND_REQUIRED + ("requires", "check", "zero_weight", "zero_weight_note")
+
+
+def _kind_refuse(what: str, reason: str) -> tuple[None, list[Remark]]:
+    return None, [Remark(what, reason)]
+
+
+def _kind_entry(name: str, structure: object) -> tuple[dict | None, str | None]:
+    """Make the kind of the file from the structure given by the caller.
+
+    Optional parts that are empty or false are not written, as in a file made by hand.
+
+    :return: ``(kind, None)``, or ``(None, reason)`` when the structure has a wrong shape.
+    """
+    if not isinstance(structure, dict):
+        return None, "the structure must be a dictionary"
+    unknown = sorted(str(key) for key in structure if key not in _KIND_STRUCTURE)
+    if unknown:
+        return None, f"unknown fields: {', '.join(unknown)}"
+    kind = {"name": name}
+    for field in _KIND_REQUIRED:
+        value = structure.get(field)
+        if not isinstance(value, str):
+            return None, f"{field} must be a text"
+        kind[field] = value.strip()
+    requires = structure.get("requires") or []
+    if not isinstance(requires, (list, tuple)):
+        return None, "requires must be a list of triples"
+    if requires:
+        kind["requires"] = [list(triple) if isinstance(triple, (list, tuple)) else triple
+                            for triple in requires]
+    for flag in ("check", "zero_weight"):
+        value = structure.get(flag, False)
+        if not isinstance(value, bool):
+            return None, f"{flag} must be true or false"
+        if value:
+            kind[flag] = True
+    note = structure.get("zero_weight_note")
+    if note is not None and not isinstance(note, str):
+        return None, "zero_weight_note must be a text"
+    if note and note.strip():
+        kind["zero_weight_note"] = note.strip()
+    return kind, None
+
+
+def _check_axes_of(new: dict) -> set[tuple[str, str]]:
+    return {(k["entity"], k["axis"]) for k in new["kinds"] if k.get("check") is True}
+
+
+def _drop_numbers(new: dict, kind: dict, check_axes_before: set[tuple[str, str]]) -> None:
+    """Remove the numbers that the edited kind has made unneeded."""
+    norm = new["normalization"]
+    if kind.get("zero_weight") is True:
+        norm.get("kind_costs", {}).pop(kind["name"], None)
+    prices = norm.get("axis_skip_prices", {})
+    for entity, axis in check_axes_before - _check_axes_of(new):
+        axes = prices.get(entity, {})
+        axes.pop(axis, None)
+        if entity in prices and not axes:
+            del prices[entity]
+
+
+def _put_kind(data: dict, what: str, name: object, structure: object, adding: bool
+              ) -> tuple[dict | None, list[Remark]]:
+    if not isinstance(name, str) or not name.strip():
+        return _kind_refuse(what, "kind name must be a text, not empty")
+    name = name.strip()
+    kind, reason = _kind_entry(name, structure)
+    if reason:
+        return _kind_refuse(what, reason)
+    new = copy.deepcopy(data)
+    index = next((i for i, k in enumerate(new["kinds"]) if k["name"] == name), None)
+    if adding and index is not None:
+        return _kind_refuse(what, f"kind name is taken: {name}")
+    if not adding and index is None:
+        return _kind_refuse(what, f"no such kind: {name}")
+    before = _check_axes_of(new)
+    if adding:
+        new["kinds"].append(kind)
+    else:
+        new["kinds"][index] = kind
+    _drop_numbers(new, kind, before)
+    return _checked(new)
+
+
+def add_kind(data: dict, name: str, structure: dict) -> tuple[dict | None, list[Remark]]:
+    """Add a transition kind at the end of the kinds.
+
+    :param data: the parsed project file; not changed.
+    :param name: the new name of the kind; spaces around it are dropped.
+    :param structure: everything but the name: ``entity``, ``axis``, ``from``, ``to``
+        (required), ``requires`` (list of ``[entity, axis, value]``), ``check``, ``zero_weight``,
+        ``zero_weight_note``. A missing or empty optional part is not written.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused: a taken or
+        empty name, a wrong shape, or what the lenient read refuses (unknown names, "from" equal
+        to "to", a condition on the own axis, the same entity, axis, "from" and "to" as another
+        kind, a kind repeating a chain of other kinds).
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    return _put_kind(data, "add kind", name, structure, True)
+
+
+def set_kind(data: dict, name: str, structure: dict) -> tuple[dict | None, list[Remark]]:
+    """Change the whole structure of a kind in one edit; the name and the place stay.
+
+    The structure is the same as in :func:`add_kind`. A number that is no longer needed goes:
+    the cost of a kind that became zero-weight, the skip price of an axis that is no longer
+    a check axis. A variant that no longer runs is not refused: the lenient read puts it to
+    ``Project.errors``.
+
+    :param data: the parsed project file; not changed.
+    :param name: the existing kind.
+    :param structure: see :func:`add_kind`.
+    :return: ``(new data, [])``, or ``(None, remarks)`` when there is no such kind or the edit
+        is refused as in :func:`add_kind`.
+    :rtype: tuple[dict | None, list[Remark]]
+    """
+    return _put_kind(data, "set kind", name, structure, False)
