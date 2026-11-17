@@ -48,6 +48,16 @@ QHeaderView {{ background: {SUB}; border: none; border-top-left-radius: {RADIUS}
               border-top-right-radius: {RADIUS}; }}
 QHeaderView::section {{ background: {SUB}; color: {TEXT2}; font-size: 13px; font-weight: 600;
                        padding: 6px 8px; border: none; border-bottom: 1px solid {BORDER}; }}
+QTreeWidget {{ background: {BG}; border: 1px solid {BORDER}; border-radius: {RADIUS}; outline: 0; }}
+QTreeWidget::item {{ padding: 8px 8px; border-bottom: 1px solid {BORDER}; }}
+QTreeWidget::item:hover {{ background: {SUB}; }}
+QFrame#group {{ background: {TINT}; border: none; border-bottom: 1px solid {BORDER}; }}
+QFrame#group[grey="true"] {{ background: {SUB}; }}
+QLabel#groupTitle {{ font-size: 14px; font-weight: 700; }}
+QFrame#group[grey="true"] QLabel#groupTitle {{ color: {TEXT2}; }}
+QLabel#groupNote {{ font-size: 13px; color: {TEXT2}; }}
+QFrame#steps {{ background: {SUB}; border: none; border-bottom: 1px solid {BORDER}; }}
+QLabel#skipped {{ font-size: 13px; color: {TEXT}; }}
 QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RADIUS}; }}
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}
