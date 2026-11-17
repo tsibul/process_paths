@@ -5,11 +5,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import ROUND_HALF_UP, Decimal
 
 from process_paths.engine import Slice, TransitionError, apply, initial_slice, run_variant, variant_entities
-from process_paths.model import Variant
+from process_paths.model import Call, Variant
 from process_paths.norm import find_slice
 
 from procnorm.project import FINAL, Project, check_axes
@@ -380,6 +380,61 @@ def _run_until_error(project: Project, v: Variant) -> list[Slice]:
     except TransitionError:
         pass
     return slices
+
+
+def _variant(project: Project, code: str) -> Variant:
+    for v in project.model.variants:
+        if v.code == code:
+            return v
+    raise KeyError(code)
+
+
+def slice_at(project: Project, code: str, after: int) -> Slice | None:
+    """The slice of a variant after transition ``after`` (0 is the initial slice).
+
+    :param project: the project.
+    :param code: the variant code.
+    :param after: number of transitions done, ``0`` to ``len(calls)``.
+    :return: the slice; ``None`` when the run fails at or before transition ``after``.
+    :raises KeyError: no such variant.
+    :raises IndexError: ``after`` is outside the variant.
+    """
+    v = _variant(project, code)
+    if not 0 <= after <= len(v.calls):
+        raise IndexError(after)
+    slices = _run_until_error(project, v)
+    if after < len(slices):
+        return slices[after]
+    return None
+
+
+def allowed_kinds(project: Project, code: str, after: int) -> dict[str, str | None]:
+    """Which kinds may be added to a variant after transition ``after``.
+
+    :param project: the project.
+    :param code: the variant code.
+    :param after: number of the transition the new one goes under; ``0`` puts it first.
+    :return: ``{kind name: None when allowed, else the reason of the run}`` in dictionary order;
+        every kind is allowed, with no reason, when the run fails at or before transition
+        ``after`` (there is no slice to check against).
+    :raises KeyError: no such variant.
+    :raises IndexError: ``after`` is outside the variant.
+    """
+    v = _variant(project, code)
+    here = slice_at(project, code, after)
+    kinds = project.model.kinds
+    if here is None:
+        return {k.name: None for k in kinds}
+    template = v.calls[0] if v.calls else Call("", "", "", "")
+    result: dict[str, str | None] = {}
+    for k in kinds:
+        probe = replace(v, calls=v.calls[:after] + (replace(template, kind=k.name),))
+        try:
+            apply(project.model, here, probe, after + 1)
+            result[k.name] = None
+        except TransitionError as exc:
+            result[k.name] = exc.reason
+    return result
 
 
 def _done_total(project: Project, s: Slice) -> Decimal | None:
