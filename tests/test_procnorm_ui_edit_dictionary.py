@@ -18,8 +18,6 @@ from procnorm.ui.app import MainWindow
 from procnorm.ui.pages import WORD
 from tests.test_procnorm_edit_delete import with_spares
 
-NOTE = "To add words, load a new file."
-
 # Every sort of word, by a name the made-up project has (see tests.test_procnorm_edit_rename).
 WORDS = [
     ("entity", "Box"),
@@ -121,12 +119,6 @@ def no_confirm(win, monkeypatch):
 
 
 # ---------- the tab ----------
-
-def test_grey_line_about_adding_words(win):
-    note = win.dictionary.add_note
-    assert note.text() == NOTE and not note.isHidden()
-    assert note.objectName() == "note"
-
 
 @pytest.mark.parametrize("what, old", WORDS)
 def test_every_word_has_editable_cell_and_remove_button(win, what, old):
@@ -276,7 +268,7 @@ def _entity_rows(w, name):
 def test_grey_hint_about_renaming_above_tables(win):
     page = win.dictionary
     assert page.hint.text() == HINT and not page.hint.isHidden()
-    assert page.hint.objectName() == "note" == page.add_note.objectName()
+    assert page.hint.objectName() == "note"
     assert page.hint.geometry().bottom() < page.entities.geometry().top()
 
 

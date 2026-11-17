@@ -17,6 +17,7 @@ TINT = "#EEF2FF"
 STEP_BG = "#F7F8FF"
 WARN = "#B45309"
 MISSING_BG = "#FEF3C7"  # a number cell not set
+OFF = "#D4D4D8"  # an arrow that cannot move its word
 RADIUS = "8px"
 # Labour scale: (fill, text) of a step by the executor's place in the dictionary; status strip; grid.
 SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF"), ("#C7D2FE", TEXT),
@@ -105,4 +106,40 @@ QFrame#remarks {{ background: {BG}; border: 1px solid {ERR}; border-radius: {RAD
 QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px; background: {SUB}; }}
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}
 QScrollBar {{ background: {SUB}; }}
+
+QPushButton#icon:disabled {{
+    color: {OFF};
+    background: transparent;
+    border-color: transparent;
+}}
+
+QFrame#special {{
+    background: {SUB};
+    border: 1px solid {BORDER};
+    border-radius: {RADIUS};
+}}
+
+QLabel#specialLabel {{
+    font-size: 13px;
+    font-weight: 700;
+}}
+
+QLineEdit#specialField,
+QLineEdit#addField {{
+    font-size: 13px;
+    background: {BG};
+    border: 1px solid {BORDER};
+    border-radius: 4px;
+    padding: 3px 8px;
+}}
+
+QLineEdit#specialField:focus,
+QLineEdit#addField:focus {{
+    border-color: {ACCENT};
+}}
+
+QLabel#tag {{
+    font-size: 12px;
+    color: {TEXT2};
+}}
 """

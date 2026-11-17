@@ -1,17 +1,19 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Tabs Dictionary (words renamed and deleted in place), and Normalization with variants (numbers
-edited in place)."""
+"""Tabs Dictionary (words added, renamed, reordered and deleted in place), and Normalization with
+variants (numbers edited in place)."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from decimal import Decimal
 
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-                               QScrollArea, QStyledItemDelegate, QVBoxLayout, QWidget)
+from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFrame, QHBoxLayout, QLabel,
+                               QLineEdit, QPushButton, QScrollArea, QStyledItemDelegate,
+                               QVBoxLayout, QWidget)
 
 from procnorm.calc import fmt
 from procnorm.project import Project, check_axes
@@ -61,12 +63,151 @@ def _end(col: QVBoxLayout) -> None:
 
 
 REMOVE = "✕"
-ADD_NOTE = "To add words, load a new file."
+UP, DOWN = "↑", "↓"
+BATCH_TAG = "batch scope"
 PLACES_SHOWN = 10  # places of a refused deletion listed; the rest are counted
 WORD = Qt.ItemDataRole.UserRole + 2  # (what, old) of a dictionary word's cell
 HINT = "Double-click a name to rename it."
 OPEN, SHUT = "▾", "▸"  # an expanded and a collapsed entity
 ARROW_WIDTH = 28  # px of an entity cell that count as the arrow
+ADD = Qt.ItemDataRole.UserRole + 3  # (what, owner) of an add row's cell
+ADD_TEXTS = {
+    "entity": "+ Add entity",
+    "axis": "+ Add axis",
+    "value": "+ Add value",
+    "executor": "+ Add executor",
+    "instrument": "+ Add instrument",
+    "scope": "+ Add scope",
+    "variant_param": "+ Add parameter",
+}
+NAME_HINTS = {
+    "entity": "entity name",
+    "axis": "axis name",
+    "value": "value",
+    "executor": "executor name",
+    "instrument": "instrument name",
+    "scope": "scope name",
+    "variant_param": "parameter name",
+}
+SPECIAL = "special"  # refusal key of the row with the existence axis and the batch scope
+
+
+@dataclass
+class WordRow:
+    """A row of a dictionary table that holds a word, or a dash when ``what`` is ``None``.
+
+    :param what: one of ``edit.WORDS``; ``None`` for a dash row.
+    :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+    :param col: the column of the name.
+    :param cells: the texts of the row.
+    :param up: whether the word can move up in its list.
+    :param down: whether the word can move down in its list.
+    :param removable: whether the row has ``✕``.
+    :param tag: a grey tag in place of ``✕``.
+    """
+
+    what: str | None
+    old: object
+    col: int
+    cells: list[str]
+    up: bool = False
+    down: bool = False
+    removable: bool = True
+    tag: str = ""
+
+
+@dataclass
+class AddRow:
+    """The last row of a list: a click on it opens the input of a new word.
+
+    :param what: one of ``edit.ADDED_WORDS``.
+    :param owner: ``(entity,)`` for an axis, ``(entity, axis)`` for a value, else ``()``.
+    :param col: the column of the ``+ Add …`` text.
+    :param executors: for a variant parameter of a project with variants: the executors to
+        choose from; else ``None``.
+    """
+
+    what: str
+    owner: tuple[str, ...]
+    col: int
+    executors: list[str] | None = None
+
+
+def _edges(index: int, count: int) -> dict[str, bool]:
+    """Whether a word at ``index`` of a list of ``count`` words can move up and down."""
+    return {"up": index > 0, "down": index < count - 1}
+
+
+def _icon(text: str, tip: str) -> QPushButton:
+    """A small square button of a word row."""
+    b = QPushButton(text)
+    b.setObjectName("icon")
+    b.setToolTip(tip)
+    b.setCursor(Qt.CursorShape.PointingHandCursor)
+    return b
+
+
+class AddEditor(QWidget):
+    """The input of a new word: its name (and the first value of an axis, or the executor of a
+    parameter), ``Add`` and ``Esc``. Enter submits, Esc cancels."""
+
+    submitted = Signal()
+    cancelled = Signal()
+
+    def __init__(self, what: str, executors: list[str] | None = None) -> None:
+        super().__init__()
+        self.setObjectName("addEditor")
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(6, 2, 6, 2)
+        lay.setSpacing(8)
+        self.name = QLineEdit()
+        self.name.setObjectName("addField")
+        self.name.setPlaceholderText(NAME_HINTS[what])
+        self.name.returnPressed.connect(self.submitted)
+        lay.addWidget(self.name)
+        self.first: QLineEdit | None = None
+        if what == "axis":
+            self.first = QLineEdit()
+            self.first.setObjectName("addField")
+            self.first.setPlaceholderText("first value")
+            self.first.returnPressed.connect(self.submitted)
+            lay.addWidget(self.first)
+        self.executor: QComboBox | None = None
+        if executors is not None:
+            self.executor = QComboBox()
+            self.executor.setObjectName("pick")
+            self.executor.setToolTip("Every variant takes this executor for the parameter")
+            self.executor.addItems(executors)
+            lay.addWidget(self.executor)
+        self.add_button = QPushButton("Add")
+        self.add_button.setObjectName("small")
+        self.add_button.setProperty("primary", True)
+        self.add_button.clicked.connect(self.submitted)
+        lay.addWidget(self.add_button)
+        self.esc_button = QPushButton("Esc")
+        self.esc_button.setObjectName("small")
+        self.esc_button.setToolTip("Cancel")
+        self.esc_button.clicked.connect(self.cancelled)
+        lay.addWidget(self.esc_button)
+        lay.addStretch(1)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        if event.key() == Qt.Key.Key_Escape:
+            self.cancelled.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def values(self) -> tuple[str, str | None, str | None]:
+        """The typed name, the first value (``None`` when not an axis) and the chosen executor
+        (``None`` when not asked)."""
+        first = None
+        if self.first is not None:
+            first = self.first.text()
+        executor = None
+        if self.executor is not None:
+            executor = self.executor.currentText()
+        return self.name.text(), first, executor
 
 
 class WordDelegate(QStyledItemDelegate):
@@ -92,10 +233,15 @@ class WordDelegate(QStyledItemDelegate):
 
 class WordTable(Table):
     """A dictionary table whose word cells are renamed by a double click; each word row ends with
-    ``✕``, which deletes the word."""
+    ``↑ ↓``, which move the word in its list, and ``✕``, which deletes the word. A click on an add
+    row opens the input of a new word in that row."""
 
     edited = Signal(str, object, str)
     removed = Signal(str, object)
+    moved = Signal(str, object, int)
+    added = Signal(str, object, str, object, object)  # what, owner, name, first value, executor
+    add_opened = Signal()
+    add_closed = Signal()
 
     def __init__(self, headers: list[str]) -> None:
         super().__init__(headers + [""])
@@ -106,37 +252,81 @@ class WordTable(Table):
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._buttons: dict[tuple[str, object], QPushButton] = {}
+        self._arrows: dict[tuple[str, object, int], QPushButton] = {}
+        self._tags: dict[tuple[str, object], QLabel] = {}
+        self._adds: dict[tuple[str, tuple[str, ...]], tuple[int, AddRow]] = {}
+        self._editor: AddEditor | None = None
+        self._editor_row = -1
+        self.cellClicked.connect(self._clicked)
 
-    def set_words(self, rows: list[tuple[str | None, object, int, list[str]]]) -> None:
-        """Fill the table.
+    def _cells(self, row: WordRow | AddRow) -> list[str]:
+        if isinstance(row, WordRow):
+            return row.cells + [""]
+        cells = [""] * self.columnCount()
+        cells[row.col] = ADD_TEXTS[row.what]
+        return cells
 
-        :param rows: ``(what, old, column of the name, cells)``; ``what`` is ``None`` for a row
-            without a word (a dash).
+    def set_words(self, rows: list[WordRow | AddRow]) -> None:
+        """Fill the table; an open input of a new word goes.
+
+        :param rows: the word rows, dash rows and add rows, top to bottom.
         """
-        self.set_rows([cells + [""] for _, _, _, cells in rows])
+        self._editor = None
+        self._editor_row = -1
+        self.set_rows([self._cells(row) for row in rows])
         self.clearSelection()
         self._buttons = {}
-        last = self.columnCount() - 1
-        for r, (what, old, col, _) in enumerate(rows):
-            if what is None:
-                continue
-            it = self.item(r, col)
-            it.setData(WORD, (what, old))
-            it.setFlags(it.flags() | Qt.ItemFlag.ItemIsEditable)
-            it.setToolTip("Double-click to rename")
-            box = QWidget()
-            lay = QHBoxLayout(box)
-            lay.setContentsMargins(6, 0, 6, 0)
-            b = QPushButton(REMOVE)
-            b.setObjectName("icon")
-            b.setToolTip("Delete")
-            b.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._arrows = {}
+        self._tags = {}
+        self._adds = {}
+        for r, row in enumerate(rows):
+            if isinstance(row, AddRow):
+                self._set_add_row(r, row)
+            elif row.what is not None:
+                self._set_word_row(r, row)
+        self.fit()
+
+    def _set_add_row(self, r: int, row: AddRow) -> None:
+        it = self.item(r, row.col)
+        it.setData(ADD, (row.what, row.owner))
+        it.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        it.setForeground(QBrush(QColor(style.ACCENT)))
+        font = QFont(self.font())
+        font.setPixelSize(13)
+        it.setFont(font)
+        self._adds[(row.what, row.owner)] = (r, row)
+
+    def _set_word_row(self, r: int, row: WordRow) -> None:
+        what = row.what
+        old = row.old
+        it = self.item(r, row.col)
+        it.setData(WORD, (what, old))
+        it.setFlags(it.flags() | Qt.ItemFlag.ItemIsEditable)
+        it.setToolTip("Double-click to rename")
+        box = QWidget()
+        lay = QHBoxLayout(box)
+        lay.setContentsMargins(6, 0, 6, 0)
+        lay.setSpacing(2)
+        for delta, text, tip, on in ((-1, UP, "Move up", row.up), (1, DOWN, "Move down", row.down)):
+            arrow = _icon(text, tip)
+            arrow.setEnabled(on)
+            arrow.clicked.connect(
+                lambda _=False, w=what, o=old, d=delta: self.moved.emit(w, o, d)
+            )
+            lay.addWidget(arrow)
+            self._arrows[(what, old, delta)] = arrow
+        if row.removable:
+            b = _icon(REMOVE, "Delete")
             b.clicked.connect(lambda _=False, w=what, o=old: self.removed.emit(w, o))
             lay.addWidget(b)
-            lay.addStretch(1)
-            self.setCellWidget(r, last, box)
             self._buttons[(what, old)] = b
-        self.fit()
+        if row.tag:
+            tag = QLabel(row.tag)
+            tag.setObjectName("tag")
+            lay.addWidget(tag)
+            self._tags[(what, old)] = tag
+        lay.addStretch(1)
+        self.setCellWidget(r, self.columnCount() - 1, box)
 
     def word_item(self, what: str, old: object):
         """The name cell of a word; ``None`` when absent."""
@@ -150,6 +340,73 @@ class WordTable(Table):
     def remove_button(self, what: str, old: object) -> QPushButton | None:
         """The ``✕`` of a word; ``None`` when absent."""
         return self._buttons.get((what, old))
+
+    def move_button(self, what: str, old: object, delta: int) -> QPushButton | None:
+        """The ``↑`` (``delta`` -1) or ``↓`` (+1) of a word; ``None`` when absent."""
+        return self._arrows.get((what, old, delta))
+
+    def tag(self, what: str, old: object) -> str:
+        """The grey tag of a word's row; empty when none."""
+        label_ = self._tags.get((what, old))
+        if label_ is None:
+            return ""
+        return label_.text()
+
+    # --- adding
+
+    def add_item(self, what: str, owner: tuple[str, ...] = ()):
+        """The ``+ Add …`` cell of a list; ``None`` when absent."""
+        found = self._adds.get((what, tuple(owner)))
+        if found is None:
+            return None
+        r, row = found
+        return self.item(r, row.col)
+
+    def open_editor(self) -> AddEditor | None:
+        """The open input of a new word; ``None`` when closed."""
+        return self._editor
+
+    def _clicked(self, r: int, c: int) -> None:
+        it = self.item(r, c)
+        if it is None:
+            return
+        data = it.data(ADD)
+        if data is not None:
+            self.open_add(*data)
+
+    def open_add(self, what: str, owner: tuple[str, ...] = ()) -> None:
+        """Open the input of a new word in its add row, the last cell of the row."""
+        self.close_add()
+        r, row = self._adds[(what, tuple(owner))]
+        editor = AddEditor(what, row.executors)
+        editor.submitted.connect(lambda: self._submit(what, row.owner))
+        editor.cancelled.connect(self.cancel_add)
+        self.setCellWidget(r, self.columnCount() - 1, editor)
+        self._editor = editor
+        self._editor_row = r
+        self.fit()
+        self.add_opened.emit()
+        editor.name.setFocus()
+
+    def _submit(self, what: str, owner: tuple[str, ...]) -> None:
+        name, first, executor = self._editor.values()
+        self.added.emit(what, owner, name, first, executor)
+
+    def cancel_add(self) -> None:
+        """Close the input of a new word without adding it."""
+        if self._editor is None:
+            return
+        self.close_add()
+        self.add_closed.emit()
+
+    def close_add(self) -> None:
+        """Close the input of a new word, if open."""
+        if self._editor is None:
+            return
+        self.removeCellWidget(self._editor_row, self.columnCount() - 1)
+        self._editor = None
+        self._editor_row = -1
+        self.fit()
 
 
 class EntityTable(WordTable):
@@ -177,21 +434,27 @@ class DictionaryPage(Page):
 
     A word is renamed by a double click in its cell and deleted by ``✕`` of its row:
     ``word_edited(what, old, name)`` and ``word_removed(what, old)`` are emitted, the window applies
-    the edit and refills the page. Words are added only by loading a new file.
+    the edit and refills the page. A word is added in the last row of its list
+    (``word_added(what, name, first value, executor)``) and moved by ``↑ ↓`` of its row
+    (``word_moved(what, old, delta)``). The row above the tables sets the existence axis
+    (``existence_set(name, absent)``) and the batch scope (``batch_set(scope)``).
     """
 
     word_edited = Signal(str, object, str)
     word_removed = Signal(str, object)
+    word_added = Signal(str, object, object, object)
+    word_moved = Signal(str, object, int)
+    existence_set = Signal(str, str)
+    batch_set = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
-        self._refusals: dict[WordTable, tuple[QLabel, QLabel]] = {}
-        self._shown: WordTable | None = None
+        self._refusals: dict[object, tuple[QLabel, QLabel]] = {}
+        self._shown: object | None = None
+        self._special_now: tuple[str, str] | None = None
+        self._batch_now: str | None = None
         self.box.addWidget(label("Dictionary", "h2"))
-        self.info = label("", "note")
-        self.box.addWidget(self.info)
-        self.add_note = label(ADD_NOTE, "note")
-        self.box.addWidget(self.add_note)
+        self._special_row()
         self.hint = label(HINT, "note")
         self.box.addWidget(self.hint)
         self._collapsed: set[str] = set()  # entities folded in this session
@@ -208,7 +471,7 @@ class DictionaryPage(Page):
         self.instruments = self._words(left, ["Instrument"])
         _end(left)
         right.addWidget(label("SCOPES", "h3"))
-        self.scopes = self._words(right, ["Scope", "Batch"])
+        self.scopes = self._words(right, ["Scope"])
         right.addWidget(label("VARIANT PARAMETERS", "h3"))
         self.params = self._words(right, ["Parameter"])
         _end(right)
@@ -216,10 +479,70 @@ class DictionaryPage(Page):
         self.slices = self._words(self.box, ["Slice", "Reached when"])
         self.box.addStretch(1)
 
+    def _special_row(self) -> None:
+        """The row with the existence axis, its absent value and the batch scope, and its red
+        line."""
+        self.special = QFrame()
+        self.special.setObjectName("special")
+        lay = QHBoxLayout(self.special)
+        lay.setContentsMargins(10, 6, 10, 6)
+        lay.setSpacing(8)
+        lay.addWidget(self._bold("Existence axis:"))
+        self.existence_name = QLineEdit()
+        self.existence_name.setObjectName("specialField")
+        self.existence_name.setMinimumWidth(150)
+        self.existence_name.editingFinished.connect(self._existence_entered)
+        lay.addWidget(self.existence_name)
+        lay.addWidget(self._bold("absent value:"))
+        self.absent_value = QLineEdit()
+        self.absent_value.setObjectName("specialField")
+        self.absent_value.setMinimumWidth(80)
+        self.absent_value.editingFinished.connect(self._existence_entered)
+        lay.addWidget(self.absent_value)
+        lay.addSpacing(24)
+        lay.addWidget(self._bold("Batch scope:"))
+        self.batch_box = QComboBox()
+        self.batch_box.setObjectName("pick")
+        self.batch_box.setMinimumWidth(100)
+        self.batch_box.activated.connect(self._batch_chosen)
+        lay.addWidget(self.batch_box)
+        lay.addStretch(1)
+        self.box.addWidget(self.special)
+        line = label("", "err")
+        places = label("")
+        for w in (line, places):
+            w.hide()
+            self.box.addWidget(w)
+        self._refusals[SPECIAL] = (line, places)
+
+    @staticmethod
+    def _bold(text: str) -> QLabel:
+        w = QLabel(text)
+        w.setObjectName("specialLabel")
+        return w
+
+    def _existence_entered(self) -> None:
+        if self._special_now is None:
+            return
+        typed = (self.existence_name.text(), self.absent_value.text())
+        if typed == self._special_now:
+            return
+        self.existence_set.emit(*typed)
+
+    def _batch_chosen(self, index: int) -> None:
+        scope = self.batch_box.itemText(index)
+        if self._special_now is None or scope == self._batch_now:
+            return
+        self.batch_set.emit(scope)
+
     def _words(self, col: QVBoxLayout, headers: list[str], cls: type[WordTable] = WordTable) -> WordTable:
         t = cls(headers)
         t.edited.connect(self.word_edited)
         t.removed.connect(self.word_removed)
+        t.moved.connect(self.word_moved)
+        t.added.connect(self._added)
+        t.add_opened.connect(lambda table=t: self._close_other_adds(table))
+        t.add_closed.connect(self.clear_refusal)
         col.addWidget(t)
         line = label("", "err")
         places = label("")
@@ -250,6 +573,45 @@ class DictionaryPage(Page):
         """The ``✕`` of a word; ``None`` when there is no such word."""
         return self.table_of(what).remove_button(what, old)
 
+    def move_button(self, what: str, old: object, delta: int) -> QPushButton | None:
+        """The ``↑`` (``delta`` -1) or ``↓`` (+1) of a word; ``None`` when there is no such word."""
+        return self.table_of(what).move_button(what, old, delta)
+
+    def scope_tag(self, scope: str) -> str:
+        """The grey tag of a scope's row: ``batch scope`` or empty."""
+        return self.scopes.tag("scope", scope)
+
+    # --- adding
+
+    def add_item(self, what: str, owner: tuple[str, ...] = ()):
+        """The ``+ Add …`` cell of a list; ``None`` when absent.
+
+        :param owner: ``(entity,)`` for an axis, ``(entity, axis)`` for a value.
+        """
+        return self.table_of(what).add_item(what, owner)
+
+    def open_editor(self) -> AddEditor | None:
+        """The open input of a new word; ``None`` when none is open."""
+        for t in self.tables():
+            editor = t.open_editor()
+            if editor is not None:
+                return editor
+        return None
+
+    def _close_other_adds(self, table: WordTable) -> None:
+        self.clear_refusal()
+        for t in self.tables():
+            if t is not table:
+                t.close_add()
+
+    def _added(self, what: str, owner: tuple, name: str, first: object, executor: object) -> None:
+        """Hand a typed word to the window, its name in the shape ``edit.add_word`` takes."""
+        if what in ("axis", "value"):
+            full = tuple(owner) + (name,)
+        else:
+            full = name
+        self.word_added.emit(what, full, first, executor)
+
     # --- collapsing
 
     def toggle_entity(self, name: str) -> None:
@@ -264,6 +626,8 @@ class DictionaryPage(Page):
         for r in range(t.rowCount()):
             it = t.item(r, 0)
             data = it.data(WORD)
+            if it.data(ADD) is not None:
+                owner = None
             if data is not None and data[0] == "entity":
                 owner = data[1]
                 it.setText(f"{SHUT if owner in self._collapsed else OPEN} {owner}")
@@ -277,7 +641,10 @@ class DictionaryPage(Page):
         """Show why an edit of a word was refused, under its table: a red line, then the places
         (the first ten and ``and N more``). Other refusals go."""
         self.clear_refusal()
-        t = self.table_of(what)
+        if what in ("existence_axis", "batch_scope"):
+            t = SPECIAL
+        else:
+            t = self.table_of(what)
         red, rest = self._refusals[t]
         red.setText(line)
         red.show()
@@ -323,42 +690,103 @@ class DictionaryPage(Page):
         scroll = self.verticalScrollBar().value()
         self.clear_refusal()
         if p is None:
-            self.info.setText("")
+            self._show_special(None)
             for t in self.tables():
                 t.set_words([])
             return
         m = p.model
-        self.info.setText(f"Existence axis: {m.existence_axis} (absent: {m.absent_value}). "
-                          f"Batch scope: {m.batch_scope}.")
-        rows = []
-        for e in m.entities:
-            rows.append(("entity", e.name, 0, [e.name, "", "", ""]))
-            for a in e.axes:
-                rows.append(("axis", (e.name, a.name), 1,
-                             ["", a.name, "", ", ".join(f"{se}/{sa}" for se, sa in a.inherit)]))
-                rows += [("value", (e.name, a.name, v), 2, ["", "", v, ""]) for v in a.values]
-        self.entities.set_words(rows or [(None, None, 0, [DASH, "", "", ""])])
+        self._show_special(m)
+        self.entities.set_words(self._entity_rows(m))
         self._collapsed &= {e.name for e in m.entities}
         self._fold()
         self.entities.setColumnHidden(3, not any(a.inherit for e in m.entities for a in e.axes))
-        self.kinds.set_words([("kind", k.name, 0, [
+        kinds = [WordRow("kind", k.name, 0, [
             k.name, k.entity, f"{k.axis}: {k.source} {ARROW} {k.target}",
             "; ".join(f"{e}/{a} = {v}" for e, a, v in k.requires),
             CHECK if k.check else "",
-            (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""])
-            for k in m.kinds] or [(None, None, 0, [DASH, "", "", "", "", ""])])
-        self.executors.set_words([("executor", x.name, 0, [x.name]) for x in m.executors]
-                                 or [(None, None, 0, [DASH])])
-        self.instruments.set_words([("instrument", x, 0, [x]) for x in m.instruments]
-                                   or [(None, None, 0, [DASH])])
-        self.scopes.set_words([("scope", s, 0, [s, CHECK if s == m.batch_scope else ""]) for s in m.scopes])
-        self.params.set_words([("variant_param", x, 0, [x]) for x in m.variant_params]
-                              or [(None, None, 0, [DASH])])
-        self.slices.set_words([("named_slice", ns.name, 0, [ns.name, " or ".join(
+            (CHECK + (f" {k.zero_weight_note}" if k.zero_weight_note else "")) if k.zero_weight else ""],
+            **_edges(i, len(m.kinds)))
+            for i, k in enumerate(m.kinds)]
+        self.kinds.set_words(kinds or [WordRow(None, None, 0, [DASH, "", "", "", "", ""])])
+        executors = [x.name for x in m.executors]
+        self.executors.set_words(self._list_rows("executor", executors))
+        self.instruments.set_words(self._list_rows("instrument", list(m.instruments)))
+        self.scopes.set_words(self._scope_rows(m))
+        choices = None
+        if m.variants:
+            choices = executors
+        self.params.set_words(self._list_rows("variant_param", list(m.variant_params), choices))
+        slices = [WordRow("named_slice", ns.name, 0, [ns.name, " or ".join(
             " and ".join([f"{e}/{a} = {v}" for e, a, v in g.states] + [f"{q} = {x}" for q, x in g.params])
-            for g in ns.groups)]) for ns in m.named_slices] or [(None, None, 0, [DASH, ""])])
+            for g in ns.groups)], **_edges(i, len(m.named_slices)))
+            for i, ns in enumerate(m.named_slices)]
+        self.slices.set_words(slices or [WordRow(None, None, 0, [DASH, ""])])
         if keep:
             self.verticalScrollBar().setValue(scroll)
+
+
+    def _show_special(self, m) -> None:
+        """Fill the row of the existence axis and the batch scope; ``None`` empties it."""
+        self.batch_box.blockSignals(True)
+        self.batch_box.clear()
+        if m is None:
+            self._special_now = None
+            self._batch_now = None
+            self.existence_name.setText("")
+            self.absent_value.setText("")
+        else:
+            self._special_now = (m.existence_axis, m.absent_value)
+            self._batch_now = m.batch_scope
+            self.existence_name.setText(m.existence_axis)
+            self.absent_value.setText(m.absent_value)
+            self.batch_box.addItems(list(m.scopes))
+            self.batch_box.setCurrentText(m.batch_scope)
+        self.batch_box.blockSignals(False)
+        self.special.setEnabled(m is not None)
+
+    @staticmethod
+    def _entity_rows(m) -> list[WordRow | AddRow]:
+        """Entities, each with its axes and their values, an add row closing every level."""
+        rows: list[WordRow | AddRow] = []
+        for i, e in enumerate(m.entities):
+            rows.append(WordRow("entity", e.name, 0, [e.name, "", "", ""],
+                                **_edges(i, len(m.entities))))
+            for j, a in enumerate(e.axes):
+                inherits = ", ".join(f"{se}/{sa}" for se, sa in a.inherit)
+                rows.append(WordRow("axis", (e.name, a.name), 1, ["", a.name, "", inherits],
+                                    **_edges(j, len(e.axes))))
+                for k, v in enumerate(a.values):
+                    rows.append(WordRow("value", (e.name, a.name, v), 2, ["", "", v, ""],
+                                        **_edges(k, len(a.values))))
+                rows.append(AddRow("value", (e.name, a.name), 2))
+            rows.append(AddRow("axis", (e.name,), 1))
+        rows.append(AddRow("entity", (), 0))
+        return rows
+
+    @staticmethod
+    def _list_rows(what: str, names: list[str], executors: list[str] | None = None
+                   ) -> list[WordRow | AddRow]:
+        """A flat list of words and its add row."""
+        rows: list[WordRow | AddRow] = []
+        for i, name in enumerate(names):
+            rows.append(WordRow(what, name, 0, [name], **_edges(i, len(names))))
+        rows.append(AddRow(what, (), 0, executors))
+        return rows
+
+    @staticmethod
+    def _scope_rows(m) -> list[WordRow | AddRow]:
+        """The scopes: the batch scope is tagged and has no ``✕``."""
+        rows: list[WordRow | AddRow] = []
+        scopes = list(m.scopes)
+        for i, s in enumerate(scopes):
+            batch = s == m.batch_scope
+            tag = ""
+            if batch:
+                tag = BATCH_TAG
+            rows.append(WordRow("scope", s, 0, [s], removable=not batch, tag=tag,
+                                **_edges(i, len(scopes))))
+        rows.append(AddRow("scope", (), 0))
+        return rows
 
 
 class NumberDelegate(QStyledItemDelegate):

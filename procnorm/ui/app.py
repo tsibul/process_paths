@@ -137,6 +137,10 @@ class MainWindow(QMainWindow):
         self.chains.edit_requested.connect(self.edit_chain)
         self.dictionary.word_edited.connect(lambda what, old, name: self.edit_word("rename", what, old, name))
         self.dictionary.word_removed.connect(lambda what, old: self.edit_word("delete", what, old))
+        self.dictionary.word_added.connect(self.add_word)
+        self.dictionary.word_moved.connect(self.move_word)
+        self.dictionary.existence_set.connect(self.set_existence)
+        self.dictionary.batch_set.connect(self.set_batch_scope)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
 
@@ -346,6 +350,101 @@ class MainWindow(QMainWindow):
             return False
         self._save_edit(new)
         return True
+
+    def add_word(self, what: str, name: str | tuple[str, ...], first_value: str | None = None,
+                 executor: str | None = None) -> bool:
+        """Add a dictionary word to the selected project, from an add row of the Dictionary tab.
+
+        Accepted: written at once, every tab recalculated with its view kept; the input closes.
+        Refused: nothing is written, a red line under the word's table says why and the input
+        stays open with the typed text.
+
+        :param what: one of ``edit.ADDED_WORDS``.
+        :param name: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a
+            value.
+        :param first_value: the first value of a new axis.
+        :param executor: the executor every variant takes for a new variant parameter.
+        :return: whether the word was added.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = edit.add_word(data, what, name, first_value=first_value, executor=executor)
+        if new is None:
+            self._refuse_word(what, remarks, f"add {what.replace('_', ' ')}")
+            return False
+        self._save_edit(new)
+        return True
+
+    def move_word(self, what: str, old: str | tuple[str, ...], delta: int) -> bool:
+        """Move a dictionary word one place up (-1) or down (+1) in its own list.
+
+        :param what: one of ``edit.WORDS``.
+        :param old: the name; ``(entity, axis)`` for an axis, ``(entity, axis, value)`` for a value.
+        :param delta: -1 or +1.
+        :return: whether the word was moved.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = edit.move_word(data, what, old, delta)
+        if new is None:
+            shown = old
+            if isinstance(old, tuple):
+                shown = "/".join(old)
+            self._refuse_word(what, remarks, f"{what.replace('_', ' ')} {shown}")
+            return False
+        self._save_edit(new)
+        return True
+
+    def set_existence(self, name: str, absent: str) -> bool:
+        """Set the existence axis and its absent value, from the row above the Dictionary tables.
+
+        :return: whether the change was accepted.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = edit.set_existence_axis(data, name, absent)
+        if new is None:
+            self._refuse_word("existence_axis", remarks, "existence axis")
+            return False
+        self._save_edit(new)
+        return True
+
+    def set_batch_scope(self, scope: str) -> bool:
+        """Choose the batch scope, from the row above the Dictionary tables.
+
+        :return: whether the change was accepted.
+        :rtype: bool
+        """
+        if self.current_id is None:
+            return False
+        data = self.store.get(self.current_id).data
+        new, remarks = edit.set_batch_scope(data, scope)
+        if new is None:
+            self._refuse_word("batch_scope", remarks, "batch scope")
+            return False
+        self._save_edit(new)
+        return True
+
+    def _refuse_word(self, what: str, remarks: list, own: str) -> None:
+        """Show a refused dictionary edit under its table: remarks of the edited word itself
+        without their place, the others with it."""
+        texts = []
+        for r in remarks:
+            if r.where == own:
+                texts.append(r.text)
+            else:
+                texts.append(str(r))
+        line, _, places = "; ".join(texts).partition("\n")
+        rest = []
+        if places:
+            rest = places.split("\n")
+        self.dictionary.show_refusal(what, line, rest)
 
     def _save_edit(self, data: dict) -> None:
         """Write an accepted edit and refill every tab, keeping its view."""

@@ -139,12 +139,14 @@ def test_remark_goes_after_good_name(win, monkeypatch):
     assert win.project_names() == ["Garden shed"]
 
 
-def test_empty_dictionary_tables_show_dash(win, monkeypatch):
+def test_empty_dictionary_tables_show_dash_or_add_row(win, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
     win.new_button.click()
     page = win.dictionary
-    for table in (page.entities, page.kinds, page.executors, page.instruments,
-                  page.params, page.slices):
+    for table in (page.kinds, page.slices):
         assert table.rowCount() == 1
         assert table.item(0, 0).text() == "—"
+    for table in (page.entities, page.executors, page.instruments, page.params):
+        assert table.rowCount() == 1
+        assert table.item(0, 0).text().startswith("+ Add ")
     assert page.scopes.item(0, 0).text() == "batch"
