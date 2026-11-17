@@ -151,6 +151,23 @@ class Store:
         if cur.rowcount == 0:
             raise KeyError(id)
 
+    def save(self, id: int, data: dict) -> None:
+        """Write edited project data over a stored project, one UPDATE.
+
+        The list columns ``name`` and ``description`` follow the data; the id and the
+        creation time stay.
+
+        :param id: project id.
+        :param data: the whole project file as parsed JSON.
+        :raises KeyError: no such id.
+        """
+        with self._db:
+            cur = self._db.execute(
+                "UPDATE project SET name = ?, description = ?, updated = ?, data = ? WHERE id = ?",
+                (data["name"], data.get("description", ""), _now(), dumps(data), id))
+        if cur.rowcount == 0:
+            raise KeyError(id)
+
     def list(self) -> list[ProjectInfo]:
         """List the projects.
 
@@ -171,11 +188,13 @@ class Store:
         """Read a project.
 
         :param id: project id.
-        :return: the project, checked again.
+        :return: the project, checked again leniently: a missing number or a broken variant
+            does not refuse the project.
         :rtype: Project
         :raises KeyError: no such id.
         """
-        project, remarks = read_project(json.loads(self._data_text(id), parse_float=Decimal))
+        project, remarks = read_project(json.loads(self._data_text(id), parse_float=Decimal),
+                                        strict=False)
         if project is None:
             raise ValueError("stored project is not valid: " + "; ".join(str(r) for r in remarks))
         return project
