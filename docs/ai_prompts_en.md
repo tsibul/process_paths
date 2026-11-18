@@ -24,8 +24,9 @@ My task: {task}
 
 Give the task one short name; all ways share it. List the ways to do it that you understood
 from my words: a short title, one line on what is done, and "own" (mine) or "other"
-(someone else's). Then add the usual ways I did not mention, marked "added".
-In "Points to check" ask which ways are missing or extra.
+(someone else's). Then add the usual ways I did not mention, marked "added": only ways that
+really solve the task, always "other". In "Points to check" name each added way and ask which
+ways are missing or extra.
 ```
 
 ## Prompt 2. Steps
@@ -36,12 +37,13 @@ Use it when the list of ways is agreed.
 Step 2. Steps.
 Write every agreed way out step by step. I give you no steps: write them yourself, as the work
 is really done.
-- Include the routine steps: prepare (get tools, shut off the water or power), check the
-  result, clean up, put things back.
+- Include the routine steps: prepare (shut off the water or power), check the result,
+  clean up.
 - One step is one action, in plain words. Say who does it.
 - A way that hands the work to someone (a hired worker, a service) lists that worker's steps.
 - If two ways reach the same result differently, say which part each step works on
   (replace the washer, tighten the nut, tape the thread), not just "fix it".
+- A way without a check gets no step for it, not even "no check is made".
 Show a numbered list per way. No file format yet.
 End with "Points to check": the 2-4 steps you are least sure of.
 ```
@@ -60,8 +62,10 @@ Go over the steps of all ways together.
    parts: Washer, worn -> new; Nut, loose -> tight.
 4. An action with no change of its own gets a new attribute (Floor: wet -> dry). Never hang it
    on another thing's change. Only waiting or work without labour is "no labour".
-5. Mark the checks: they verify a state, and skipping one has a price. A check changes the
-   thing it checks: "Test for leaks: Tap, leak not tested -> tested".
+5. Mark the checks: a check confirms the result after an action, and skipping it has a price.
+   Diagnosis and finding the cause are ordinary actions. A check changes the thing it checks:
+   "Test for leaks: Tap, leak not tested -> tested". A way without a check gets no step for
+   it; the thing still has the check attribute, so the skip shows.
 6. Say what appears or disappears along the way (a bucket put under, a visit booked).
 Then run each way: every action starts from the state the previous one left. Fix any that
 does not.
@@ -78,13 +82,13 @@ Step 4. Who and how much.
 1. List the executors: who or what does the actions.
 2. Give each a coefficient: how much of their labour counts, 1 for the main person.
    Coefficient 0 only for a machine or program that works by itself. Never 0 for a person,
-   a hired one included. Fee paid for a service is not labour. Put every coefficient 0 into
-   "Points to check".
+   a hired one included. Put every coefficient 0 into "Points to check".
 3. Give each action a labour cost in one unit for the whole project (minutes or points).
-   Only waiting or work without labour gets 0.
+   Paying and waiting for someone are not labour: no action for them. Waiting that is a real
+   step of the path (water draining) costs 0.
 4. Say whether each action is done once for the whole job or for each unit; if per unit, how
    many units a batch has.
-5. For each check give the price of skipping it, more than 0.
+5. For each check give the price of skipping it, more than 0. Never add it to labour.
 6. Show the total of each way: sum of cost x executor coefficient x scope coefficient.
 Mark doubtful numbers with "?".
 End with "Points to check".
@@ -96,100 +100,89 @@ Use it when the executors and numbers are agreed.
 
 ```text
 Step 5. File.
-Write everything we agreed as one procnorm project file: JSON, UTF-8, whole, in one code
-block. Keep my language in all names and texts. Before writing, run each variant through the
-axes yourself. After the block, "Points to check": choices you made while writing.
+Write what we agreed as one procnorm file: JSON, whole, in one code block, in my language.
+Use only the actions agreed at steps 2-4; add no preparation (get or put away tools) I did not
+name. First run each variant through the axes yourself. Then "Points to check":
+choices you made.
 
 FORMAT
-A reference is the name letter for letter as declared. Numbers are JSON numbers, not strings.
-Order matters. Names do not repeat in a list (entities, axes of an entity, values of an axis,
-kinds, executors, instruments, scopes, variant codes). Leave out unneeded optional fields.
+A reference is the declared name letter for letter. Numbers are JSON numbers. Order matters.
+No name repeats in one list. Leave out unneeded optional fields.
 
-Top level (* required): format* = 1; name*; description; existence_axis* {"name","absent"},
-always written; entities*; kinds*; executors*, instruments*, scopes* - lists of names;
-batch_scope* - the scope meaning "once for the whole batch"; named_slices; variants*;
-normalization*.
+Top level (* required): format* = 1; name*; existence_axis* {"name","absent"};
+entities*; kinds*; executors*, instruments*, scopes* - lists of names; batch_scope* - the
+scope "once per batch"; named_slices; variants*; normalization*.
 
 entities: {"name", "axes": [{"name", "values": [...]}]}. The FIRST value is the initial one.
-An axis is one independent attribute.
-Existence axis: a thing that appears or disappears gets an axis named existence_axis.name with
-the value existence_axis.absent among its values (first = absent at the start). While absent,
-its other axes have no value. Never give an ordinary axis this name.
+An axis is one independent attribute. A thing that appears or disappears gets an axis named
+existence_axis.name, first value existence_axis.absent; while absent, its other axes have no
+value. No ordinary axis has this name.
 
 kinds: {"name", "entity", "axis", "from", "to"} plus optional:
-requires [[entity, axis, value], ...] - must hold before, never on the kind's own axis;
-check: true - a check, its axis is a check axis; it is an axis of the thing checked;
-zero_weight: true with zero_weight_note (text) - only waiting or work without labour.
-Rules: from != to. No two kinds with the same entity, axis, from and to: different ways to one
-result change different parts. No kind duplicating a chain (a->b, b->c, so no a->c). An action
-with no axis of its own gets a new axis, never another entity's axis.
+requires [[entity, axis, value], ...] - must hold before; never the kind's own entity and
+axis: "from" already says it;
+check: true - confirms the result of an action; on an axis of the thing checked;
+zero_weight: true with zero_weight_note - a step with no labour (water draining).
+Paying and waiting for someone are not labour: no kind for them.
+from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
+(a->b, b->c, so no a->c). An action with no axis of its own gets a new axis.
 
-named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} - the
-first moment one group holds; skips are counted there. "final" is taken.
+named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
+skips are counted when one group first holds. "final" is taken.
 
-variants: {"code", "title", "side": "own"|"other", "task", "calls", "steps"}.
-task* - text; ways with the same task are compared. calls* - [kind, executor, instrument,
-scope]. Each call starts from the value the previous one left; all requires hold.
-steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0;
-the sum equals the number of calls.
+variants: {"code", "title", "side": "own"|"other", "task", "calls", "steps"}. Ways with the
+same task text are compared. calls - [kind, executor, instrument, scope]; each starts from the
+value the previous one left; all requires hold. A way without a check has no call for it.
+steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the
+sum equals the number of calls.
 
-normalization: kind_costs {kind: cost} for every kind (zero_weight: 0 or omitted);
-executor_coefficients {executor: k} for every executor - 0 only for a machine or program,
-never a person, a hired one included; scope_coefficients {scope: k} for every scope (per unit
-1, per batch 1/batch size); axis_skip_prices {entity: {check axis: price > 0}} for every check
-axis and only those; batch_size optional. No negative numbers. No extra names.
+normalization: kind_costs {kind: cost} for every kind (zero_weight: 0);
+executor_coefficients {executor: k} for every executor, 0 only for a machine or program;
+scope_coefficients {scope: k} for every scope (per unit 1, per batch 1/batch size);
+axis_skip_prices {entity: {check axis: price > 0}} for every check axis and only those, never
+added to labour; batch_size optional. No negative numbers. No extra names.
 
 EXAMPLE
 {"format": 1, "name": "Unblock a sink",
  "existence_axis": {"name": "exists", "absent": "no"},
  "entities": [
-  {"name": "Pipe", "axes": [{"name": "clog", "values": ["blocked", "pushed through"]}]},
-  {"name": "Trap", "axes": [{"name": "mount", "values": ["fitted", "removed", "refitted"]},
-   {"name": "inside", "values": ["dirty", "clean"]}]},
+  {"name": "Pipe", "axes": [{"name": "clog", "values": ["blocked", "cleared"]}]},
+  {"name": "Trap", "axes": [{"name": "inside", "values": ["dirty", "clean"]}]},
   {"name": "Bucket", "axes": [{"name": "exists", "values": ["no", "yes"]}]},
   {"name": "Sink", "axes": [{"name": "water", "values": ["standing", "gone"]},
    {"name": "drain test", "values": ["not tested", "tested"]}]}],
  "kinds": [
-  {"name": "Plunge", "entity": "Pipe", "axis": "clog", "from": "blocked",
-   "to": "pushed through"},
-  {"name": "Wait for the water to go", "entity": "Sink", "axis": "water", "from": "standing",
-   "to": "gone", "requires": [["Pipe", "clog", "pushed through"]],
-   "zero_weight": true, "zero_weight_note": "waiting, no labour"},
-  {"name": "Put a bucket under", "entity": "Bucket", "axis": "exists", "from": "no",
-   "to": "yes"},
-  {"name": "Remove the trap", "entity": "Trap", "axis": "mount", "from": "fitted",
-   "to": "removed", "requires": [["Bucket", "exists", "yes"]]},
+  {"name": "Plunge", "entity": "Pipe", "axis": "clog", "from": "blocked", "to": "cleared"},
+  {"name": "Wait for the water", "entity": "Sink", "axis": "water", "from": "standing",
+   "to": "gone", "requires": [["Pipe", "clog", "cleared"]],
+   "zero_weight": true, "zero_weight_note": "no labour"},
+  {"name": "Put a bucket under", "entity": "Bucket", "axis": "exists", "from": "no", "to": "yes"},
   {"name": "Clean the trap", "entity": "Trap", "axis": "inside", "from": "dirty",
-   "to": "clean", "requires": [["Trap", "mount", "removed"]]},
-  {"name": "Refit the trap", "entity": "Trap", "axis": "mount", "from": "removed",
-   "to": "refitted"},
+   "to": "clean", "requires": [["Bucket", "exists", "yes"]]},
   {"name": "Test the drain", "entity": "Sink", "axis": "drain test", "from": "not tested",
    "to": "tested", "check": true}],
  "executors": ["Owner", "Plumber"],
  "instruments": ["hands", "plunger", "bucket", "wrench"],
- "scopes": ["whole job"], "batch_scope": "whole job",
+ "scopes": ["job"], "batch_scope": "job",
  "variants": [
   {"code": "A", "title": "Plunger", "side": "own", "task": "Unblock the sink", "calls": [
-    ["Plunge", "Owner", "plunger", "whole job"],
-    ["Wait for the water to go", "Owner", "hands", "whole job"],
-    ["Test the drain", "Owner", "hands", "whole job"]],
+    ["Plunge", "Owner", "plunger", "job"],
+    ["Wait for the water", "Owner", "hands", "job"],
+    ["Test the drain", "Owner", "hands", "job"]],
    "steps": [{"text": "Find the plunger", "calls": 0},
     {"text": "Plunge and wait until the water goes", "calls": 2},
     {"text": "Run the tap and watch the drain", "calls": 1}]},
   {"code": "B", "title": "Plumber cleans the trap", "side": "other",
    "task": "Unblock the sink", "calls": [
-    ["Put a bucket under", "Owner", "bucket", "whole job"],
-    ["Remove the trap", "Plumber", "wrench", "whole job"],
-    ["Clean the trap", "Plumber", "hands", "whole job"],
-    ["Refit the trap", "Plumber", "wrench", "whole job"]],
+    ["Put a bucket under", "Owner", "bucket", "job"],
+    ["Clean the trap", "Plumber", "wrench", "job"]],
    "steps": [{"text": "Put a bucket under the sink", "calls": 1},
-    {"text": "The plumber takes the trap off and cleans it", "calls": 2},
-    {"text": "The plumber puts the trap back", "calls": 1}]}],
+    {"text": "The plumber takes off, cleans and refits the trap", "calls": 1}]}],
  "normalization": {
-  "kind_costs": {"Plunge": 3, "Wait for the water to go": 0, "Put a bucket under": 1,
-   "Remove the trap": 3, "Clean the trap": 2, "Refit the trap": 3, "Test the drain": 1},
+  "kind_costs": {"Plunge": 3, "Wait for the water": 0, "Put a bucket under": 1,
+   "Clean the trap": 8, "Test the drain": 1},
   "executor_coefficients": {"Owner": 1, "Plumber": 0.8},
-  "scope_coefficients": {"whole job": 1},
+  "scope_coefficients": {"job": 1},
   "axis_skip_prices": {"Sink": {"drain test": 5}}}}
 ```
 
