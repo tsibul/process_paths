@@ -124,9 +124,10 @@ def test_plus_opens_input_row_with_defaults_of_row_above(win, store):
     assert t.kinds[r + 1] == "input"
     inp = t.input
     above = _calls(page)[2][2:]
-    assert inp.values() == list(above)
+    assert inp.values()[1:] == list(above)[1:]
+    assert inp.values()[0] == inp.allowed()[0]  # the kind above is not allowed again
     kinds = [k["name"] for k in store.get(win.current_id).data["kinds"]]
-    assert inp.choices("kind") == kinds  # every kind of the dictionary
+    assert sorted(inp.choices("kind")) == sorted(kinds)  # every kind of the dictionary
     assert inp.add_button.text() == "Add" and inp.cancel_button.text() == "Cancel"
 
 
@@ -154,15 +155,15 @@ def test_add_changes_database_and_chain(win, store):
     page = _page(win, V)
     t = page.table
     _click(t.buttons_at(t.call_row(6)).add)
-    t.input.set_value("kind", "Проверить карманы")
+    t.input.set_value("kind", "Разобрать по цветам")
     _click(t.input.add_button)
-    call = ["Проверить карманы", "Человек", "руки", "каждая вещь"]
+    call = ["Разобрать по цветам", "Человек", "руки", "каждая вещь"]
     expected, _ = edit.add_call(old, V, 6, call)
     assert store.get(pid).data == expected
     calls = _calls(page)
     assert len(calls) == 7 and list(calls[6][1:]) == ["7"] + call
     assert page.current_code() == V
-    assert "input" not in page.table.kinds
+    assert page.table.kinds.count("input") == 1  # now under the new transition
 
 
 def test_add_into_empty_step(win, store):

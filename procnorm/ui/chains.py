@@ -7,8 +7,10 @@ The header holds the editable code and title and the buttons ``Copy`` and ``Dele
 the side, the task, the reason to keep the path out of comparison and the variant parameters;
 under them the folded block ``Entities and initial state``.
 ``New`` above the path list adds a variant.
-Each transition has the buttons ``↑ ↓ ✕ +`` right of ``Scope``; ``+`` opens an input row under it. The
-tab only asks for an edit (``edit_requested``); the window applies it and refills the tab."""
+Each transition has the buttons ``↑ ↓ ✕ +`` right of ``Scope``; ``+`` opens an input row under it.
+Its list ``Kind`` offers the kinds allowed at that place, the others grey with their reason; under
+it ``State here`` shows the slice at that place. The tab only asks for an edit
+(``edit_requested``); the window applies it and refills the tab."""
 
 from __future__ import annotations
 
@@ -16,12 +18,13 @@ from collections.abc import Callable
 from html import escape
 
 from PySide6.QtCore import QRect, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
+from PySide6.QtGui import (QColor, QFont, QFontMetrics, QPainter, QPen, QStandardItem,
+                           QStandardItemModel)
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton,
-                               QRadioButton, QStyle, QVBoxLayout, QWidget)
+                               QRadioButton, QStyle, QStyledItemDelegate, QVBoxLayout, QWidget)
 
-from procnorm.calc import Link, Row, chain, compare, empty_steps, groups
+from procnorm.calc import Link, Row, allowed_kinds, chain, compare, empty_steps, groups, slice_at
 from procnorm.project import Project
 from procnorm.ui import style
 from procnorm.ui.comparison import NO_PAIR, OUT, PAD_X, SIDE_TEXT, GroupHeader
@@ -49,6 +52,13 @@ FOLD_NOTE = "no box ticked = entities of the transitions"
 FOLD_OPEN = "▾"
 FOLD_SHUT = "▸"
 AS_DICTIONARY = "as in dictionary: {}"
+NOT_ALLOWED = "Not allowed here"
+STATE_HERE = "State here:"
+NO_VALUE = "—"  # an axis of an entity that does not exist, or an empty slice
+STATE_GAP = "   "  # between the axes of State here; it wraps only there
+KIND_POPUP = 440  # least width of the open list Kind, px, as the mockup
+REASON_ROLE = Qt.ItemDataRole.UserRole + 1  # the reason of a kind not allowed here
+SEPARATOR_ROLE = Qt.ItemDataRole.UserRole + 2  # the line Not allowed here
 
 
 def _count(n: int, one: str) -> str:
@@ -74,6 +84,20 @@ def _shown_entities(p: Project, v: dict) -> list[str]:
             if k is not None:
                 names.add(k.entity)
     return [e.name for e in m.entities if e.name in names]
+
+
+def _place(p: Project, code: str, after: int) -> tuple[dict[str, str | None], list[str] | None]:
+    """The kinds allowed under transition ``after`` of a variant, and ``State here`` there:
+    ``entity / axis = value`` in the order of the slice; ``None`` when the run failed before."""
+    allowed = allowed_kinds(p, code, after)
+    here = slice_at(p, code, after)
+    if here is None:
+        return allowed, None
+    lines = []
+    for (entity, axis), value in here.items():
+        shown = NO_VALUE if value is None else value
+        lines.append(f"{entity} / {axis} = {shown}")
+    return allowed, lines
 
 
 def _clear(layout) -> None:
@@ -221,26 +245,99 @@ class CallButtons(QWidget):
         return [b.toolTip() for b in self._all]
 
 
+class KindDelegate(QStyledItemDelegate):
+    """Draws the open list ``Kind``: the line ``Not allowed here`` on a panel, and a kind not
+    allowed in grey with its reason grey at the right, cut with ``…`` when long."""
+
+    def paint(self, painter, option, index) -> None:
+        separator = index.data(SEPARATOR_ROLE)
+        reason = index.data(REASON_ROLE)
+        if not separator and reason is None:
+            super().paint(painter, option, index)
+            return
+        painter.save()
+        box = option.rect.adjusted(10, 0, -10, 0)
+        if separator:
+            painter.fillRect(option.rect, QColor(style.PANEL))
+            f = QFont(option.font)
+            f.setPixelSize(12)
+            f.setBold(True)
+            painter.setFont(f)
+            painter.setPen(QColor(style.TEXT2))
+            painter.drawText(box, Qt.AlignmentFlag.AlignVCenter, index.data())
+            painter.restore()
+            return
+        grey = QColor(style.NOT_ALLOWED)
+        painter.setPen(grey)
+        painter.setFont(option.font)
+        name = index.data()
+        painter.drawText(box, Qt.AlignmentFlag.AlignVCenter, name)
+        name_width = QFontMetrics(option.font).horizontalAdvance(name)
+        small = QFont(option.font)
+        small.setPixelSize(12)
+        painter.setFont(small)
+        room = box.width() - name_width - 12
+        text = QFontMetrics(small).elidedText(reason, Qt.TextElideMode.ElideRight, max(room, 0))
+        right = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight
+        painter.drawText(box, right, text)
+        painter.restore()
+
+
+class StateHere(QWidget):
+    """``State here:`` and the slice at a place, ``entity / axis = value``, in one monospace line
+    that wraps between the axes."""
+
+    def __init__(self, lines: list[str]) -> None:
+        super().__init__()
+        self.lines = list(lines)
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(6, 3, 6, 3)
+        frame = QFrame()
+        frame.setObjectName("stateHere")
+        outer.addWidget(frame)
+        row = QHBoxLayout(frame)
+        row.setContentsMargins(12, 6, 12, 6)
+        row.setSpacing(10)
+        head = QLabel(STATE_HERE)
+        head.setObjectName("stateHead")
+        row.addWidget(head, 0, Qt.AlignmentFlag.AlignTop)
+        parts = []
+        for line in self.lines:
+            parts.append(line.replace(" ", "\u00a0"))  # no break inside one axis
+        self.label = QLabel(STATE_GAP.join(parts) or NO_VALUE)
+        self.label.setObjectName("stateLines")
+        self.label.setFont(mono())
+        self.label.setWordWrap(True)
+        row.addWidget(self.label, 1)
+
+
 class InputRow(QWidget):
     """Four lists of a new transition: ``Kind``, ``Executor``, ``Instrument``, ``Scope``.
 
     ``actions`` holds ``Add`` and ``Cancel``; the table puts it in the buttons column.
+    With ``allowed`` the list ``Kind`` has the allowed kinds first, then ``Not allowed here`` and
+    the others in grey with their reason; those cannot be chosen.
     """
 
-    def __init__(self, choices: dict[str, list[str]], values: list[str]) -> None:
+    def __init__(self, choices: dict[str, list[str]], values: list[str],
+                 allowed: dict[str, str | None] | None = None) -> None:
         super().__init__()
         row = QHBoxLayout(self)
         row.setContentsMargins(6, 4, 6, 4)
         row.setSpacing(6)
         self.lists: dict[str, QComboBox] = {}
+        self._reasons: dict[str, str] = {}
         for field_, value in zip(FIELDS, values):
             box = QComboBox()
             box.setObjectName("pick")
-            names = list(choices.get(field_, []))
-            if value not in names:
-                names.append(value)
-            box.addItems(names)
-            box.setCurrentText(value)
+            if field_ == "kind" and allowed is not None:
+                self._fill_kinds(box, allowed, value)
+            else:
+                names = list(choices.get(field_, []))
+                if value not in names:
+                    names.append(value)
+                box.addItems(names)
+                box.setCurrentText(value)
             box.setToolTip(field_.capitalize())
             row.addWidget(box, 2 if field_ == "kind" else 1)
             self.lists[field_] = box
@@ -256,19 +353,74 @@ class InputRow(QWidget):
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.cancel_button)
         buttons.addStretch(1)
+        self.add_button.setEnabled(bool(self.values()[0]))
+
+    def _fill_kinds(self, box: QComboBox, allowed: dict[str, str | None], value: str) -> None:
+        """The allowed kinds, then ``Not allowed here`` and the others greyed with their reason.
+        The kind given stays chosen when allowed, else the first allowed one; none when no kind
+        is allowed."""
+        model = QStandardItemModel(box)
+        free = []
+        for name, reason in allowed.items():
+            if reason is None:
+                free.append(name)
+                model.appendRow(QStandardItem(name))
+            else:
+                self._reasons[name] = reason
+        if self._reasons:
+            line = QStandardItem(NOT_ALLOWED)
+            line.setFlags(Qt.ItemFlag.NoItemFlags)
+            line.setData(True, SEPARATOR_ROLE)
+            model.appendRow(line)
+        for name, reason in self._reasons.items():
+            it = QStandardItem(name)
+            it.setFlags(Qt.ItemFlag.NoItemFlags)
+            it.setToolTip(reason)
+            it.setData(reason, REASON_ROLE)
+            model.appendRow(it)
+        box.setModel(model)
+        box.setItemDelegate(KindDelegate(box))
+        box.view().setMinimumWidth(KIND_POPUP)
+        self._free = free
+        if value in free:
+            box.setCurrentIndex(free.index(value))
+        elif free:
+            box.setCurrentIndex(0)
+        else:
+            box.setCurrentIndex(-1)
 
     def values(self) -> list[str]:
         """``[kind, executor, instrument, scope]`` as chosen."""
         return [self.lists[f].currentText() for f in FIELDS]
 
     def choices(self, field_: str) -> list[str]:
-        """The names a list offers."""
+        """The names a list offers, ``Not allowed here`` left out."""
         box = self.lists[field_]
-        return [box.itemText(i) for i in range(box.count())]
+        names = []
+        for i in range(box.count()):
+            if not box.itemData(i, SEPARATOR_ROLE):
+                names.append(box.itemText(i))
+        return names
+
+    def allowed(self) -> list[str]:
+        """The kinds that can be chosen."""
+        return [k for k in self.choices("kind") if k not in self._reasons]
+
+    def reasons(self) -> dict[str, str]:
+        """``{kind: reason}`` of the kinds not allowed here."""
+        return dict(self._reasons)
 
     def set_value(self, field_: str, name: str) -> None:
-        """Choose a name in a list."""
-        self.lists[field_].setCurrentText(name)
+        """Choose a name in a list, as the user does: a grey kind cannot be chosen."""
+        box = self.lists[field_]
+        index = box.findText(name)
+        if index < 0:
+            return
+        if not box.model().flags(box.model().index(index, 0)) & Qt.ItemFlag.ItemIsEnabled:
+            return
+        box.setCurrentIndex(index)
+        if field_ == "kind":
+            self.add_button.setEnabled(True)
 
 
 class ChainTable(Table):
@@ -279,6 +431,9 @@ class ChainTable(Table):
 
     ``edit(op, args)`` asks for an edit of the shown path: ``("move", (number, ±1))``,
     ``("remove", (number,))``, ``("add", (after, [kind, executor, instrument, scope], step))``.
+
+    ``place(after)`` gives, for the place under transition ``after``, ``{kind: reason or None}``
+    and the lines of ``State here`` (``None`` for no slice there); unset, every kind is offered.
     """
 
     edit = Signal(str, tuple)
@@ -288,7 +443,9 @@ class ChainTable(Table):
         self.kinds: list[str] = []
         self.failed: list[int] = []
         self.input: InputRow | None = None
+        self.state_label: QLabel | None = None
         self.choices: dict[str, list[str]] = {}
+        self.place: Callable[[int], tuple[dict[str, str | None], list[str] | None]] | None = None
         self._links: list[Link] = []
         self._error: tuple[int, str] | None = None
         self.setWordWrap(True)
@@ -309,6 +466,7 @@ class ChainTable(Table):
         self.kinds = []
         self.failed = []
         self.input = None
+        self.state_label = None
         self._links, self._error = links, error
         total = sum(len(link.calls) for link in links)
         rows: list[tuple[str, object]] = []
@@ -321,14 +479,15 @@ class ChainTable(Table):
             if link.empty or (link.text is None and not link.calls):
                 rows.append(("none", (k, before, step)))
                 if adding == ("none", k):
-                    rows.append(("input", (self._defaults(before), before, step)))
+                    rows += self._input_rows(self._defaults(before), before, step)
             marks = dict()
             for number, name in link.slices:
                 marks.setdefault(number, []).append(name)
             for c in link.calls:
                 rows.append(("call", c))
                 if adding == ("call", c.number):
-                    rows.append(("input", ([c.kind, c.executor, c.instrument, c.scope], c.number, None)))
+                    values = [c.kind, c.executor, c.instrument, c.scope]
+                    rows += self._input_rows(values, c.number, None)
                 if error is not None and c.number == error[0]:
                     rows.append(("error", error[1]))
                 rows += [("slice", name) for name in marks.get(c.number, [])]
@@ -368,8 +527,8 @@ class ChainTable(Table):
                 b.add.clicked.connect(lambda _=False, k=k: self.open_input(("none", k)))
                 self.setCellWidget(r, 6, b)
             elif kind == "input":
-                values, after, step = data
-                self.input = InputRow(self.choices, values)
+                values, after, step, allowed = data
+                self.input = InputRow(self.choices, values, allowed)
                 self.input.add_button.clicked.connect(
                     lambda _=False, a=after, s=step: self.edit.emit("add", (a, self.input.values(), s)))
                 self.input.cancel_button.clicked.connect(lambda: self.open_input(None))
@@ -398,6 +557,11 @@ class ChainTable(Table):
                 b.remove.clicked.connect(lambda _=False, x=number: self.edit.emit("remove", (x,)))
                 b.add.clicked.connect(lambda _=False, x=number: self.open_input(("call", x)))
                 self.setCellWidget(r, 6, b)
+            elif kind == "state":
+                state = StateHere(data)
+                self.state_label = state.label
+                self.setSpan(r, 1, 1, 6)
+                self.setCellWidget(r, 1, state)
             elif kind == "error":
                 it = item(data)
                 it.setForeground(QColor(style.ERR))
@@ -407,6 +571,14 @@ class ChainTable(Table):
                 self.setSpan(r, 0, 1, self.columnCount())
                 self.setCellWidget(r, 0, SliceMark(_slice_text(data), self._kind_left))
         self.fit()
+
+    def _input_rows(self, values: list[str], after: int, step: int | None) -> list[tuple]:
+        """The input row under transition ``after`` and, when there is a slice, ``State here``."""
+        allowed, lines = self.place(after) if self.place is not None else (None, None)
+        rows: list[tuple] = [("input", (values, after, step, allowed))]
+        if lines is not None:
+            rows.append(("state", lines))
+        return rows
 
     def _defaults(self, before: int) -> list[str]:
         """Values of a new transition in an empty step: the transition above it, else the one below,
@@ -483,6 +655,14 @@ class ChainTable(Table):
             if kind == "input":
                 self.setRowHeight(r, INPUT_ROW)
                 continue
+            if kind == "state":
+                span = sum(self.columnWidth(c) for c in range(1, self.columnCount()))
+                w = self.cellWidget(r, 1)
+                need = w.heightForWidth(span)
+                if need <= 0:
+                    need = w.sizeHint().height()
+                self.setRowHeight(r, need)
+                continue
             need = fm.height()
             for c in range(self.columnCount()):
                 it = self.item(r, c)
@@ -503,7 +683,8 @@ class ChainTable(Table):
         """Rows as texts: ``("step", n, text)``, ``("call", #, kind, executor, instrument, scope)``,
         ``("none", "No transitions")``, ``("slice", "slice “<name>” reached")``,
         ``("error", "Error at transition N: …")`` under the failed call, ``("input", kind, executor,
-        instrument, scope)`` for the open input row."""
+        instrument, scope)`` for the open input row, ``("state", "State here:", line, …)`` under
+        it."""
         out: list[tuple[str, ...]] = []
         for r, kind in enumerate(self.kinds):
             if kind == "step":
@@ -516,6 +697,8 @@ class ChainTable(Table):
                 out.append(("error", self.item(r, 1).text()))
             elif kind == "input":
                 out.append(("input",) + tuple(self.input.values()))
+            elif kind == "state":
+                out.append(("state", STATE_HERE) + tuple(self.cellWidget(r, 1).lines))
             else:
                 out.append(("slice", self.cellWidget(r, 0).text))
         return out
@@ -523,6 +706,13 @@ class ChainTable(Table):
     def failed_rows(self) -> list[int]:
         """Rows of the failed call: one for a path with a run error, none otherwise."""
         return list(self.failed)
+
+    def state_lines(self) -> list[str]:
+        """``entity / axis = value`` of ``State here``; empty when it is not shown."""
+        for r, kind in enumerate(self.kinds):
+            if kind == "state":
+                return list(self.cellWidget(r, 1).lines)
+        return []
 
 
 class ChainsPage(Page):
@@ -546,6 +736,7 @@ class ChainsPage(Page):
         self._items: dict[str, PathItem] = {}
         self._groups: list[tuple[str, bool, list[str]]] = []
         self._current: str | None = None
+        self._next_input: tuple[str, tuple[str, int]] | None = None  # (code, place) after Add
         split = QHBoxLayout()
         split.setSpacing(16)
         self.list = QFrame()
@@ -776,6 +967,7 @@ class ChainsPage(Page):
         if code is None:
             self._set_head("", "")
             self.meta.setText("")
+            self.table.place = None
             self.table.set_chain([])
             return
         r = self._rows[code]
@@ -787,13 +979,27 @@ class ChainsPage(Page):
         parts.append(_count(r.steps, "transition"))
         self._set_head(r.code, r.title)
         self.meta.setText(SEP.join(parts))
-        self.table.set_chain(chain(self._project, code), (r.error[0], r.reason) if r.error else None)
+        project = self._project
+        self.table.place = lambda after: _place(project, code, after)
+        adding = None
+        if self._next_input is not None and self._next_input[0] == code:
+            adding = self._next_input[1]
+        error = (r.error[0], r.reason) if r.error else None
+        self.table.set_chain(chain(self._project, code), error, adding)
 
     # --- editing
 
     def _edit(self, op: str, args: tuple) -> None:
-        if self._current is not None:
+        """Ask for an edit of the chosen path; after an accepted ``add`` the input row opens under
+        the new transition."""
+        if self._current is None:
+            return
+        if op == "add":
+            self._next_input = (self._current, ("call", args[0] + 1))
+        try:
             self.edit_requested.emit(op, (self._current,) + tuple(args))
+        finally:
+            self._next_input = None
 
     def _set_head(self, code: str, title: str) -> None:
         for e, text in ((self.code_edit, code), (self.title_edit, title)):

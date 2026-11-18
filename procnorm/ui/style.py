@@ -18,6 +18,7 @@ STEP_BG = "#F7F8FF"
 WARN = "#B45309"
 MISSING_BG = "#FEF3C7"  # a number cell not set
 OFF = "#D4D4D8"  # an arrow that cannot move its word
+NOT_ALLOWED = "#9CA3AF"  # a kind not allowed at a place and its reason, in the list Kind
 # The amber line about variants that got errors after a dictionary edit: text, fill, left edge.
 AMBER_TEXT = "#92400E"
 AMBER_BG = "#FFFBEB"
@@ -276,6 +277,21 @@ QPushButton#foldButton {{
     border: none;
     padding: 2px 0;
     text-align: left;
+}}
+
+QFrame#stateHere {{
+    background: {PANEL};
+    border-radius: 6px;
+}}
+
+QLabel#stateHead {{
+    font-size: 13px;
+    font-weight: 700;
+    color: {TEXT2};
+}}
+
+QLabel#stateLines {{
+    font-size: 13px;
 }}
 
 QLabel#amber {{
