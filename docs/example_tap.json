@@ -1,0 +1,566 @@
+{
+  "format": 1,
+  "name": "Fix a leaking tap",
+  "description": "Four ways to stop a dripping kitchen tap: replace the washer, replace the whole tap, tighten the nut and wrap tape, or call a plumber.",
+  "existence_axis": {
+    "name": "exists",
+    "absent": "no"
+  },
+  "entities": [
+    {
+      "name": "Tap",
+      "axes": [
+        {
+          "name": "water",
+          "values": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "mount",
+          "values": [
+            "old",
+            "removed",
+            "new"
+          ]
+        },
+        {
+          "name": "nut",
+          "values": [
+            "loose",
+            "tight"
+          ]
+        },
+        {
+          "name": "thread",
+          "values": [
+            "bare",
+            "taped"
+          ]
+        },
+        {
+          "name": "leak test",
+          "values": [
+            "not tested",
+            "tested"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Washer",
+      "axes": [
+        {
+          "name": "state",
+          "values": [
+            "worn",
+            "new"
+          ]
+        },
+        {
+          "name": "inspection",
+          "values": [
+            "not inspected",
+            "inspected"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Floor",
+      "axes": [
+        {
+          "name": "state",
+          "values": [
+            "wet",
+            "dry"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Plumber visit",
+      "axes": [
+        {
+          "name": "booking",
+          "values": [
+            "none",
+            "booked"
+          ]
+        }
+      ]
+    }
+  ],
+  "kinds": [
+    {
+      "name": "Shut off water",
+      "entity": "Tap",
+      "axis": "water",
+      "from": "on",
+      "to": "off"
+    },
+    {
+      "name": "Inspect the seal",
+      "entity": "Washer",
+      "axis": "inspection",
+      "from": "not inspected",
+      "to": "inspected",
+      "check": true,
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Replace the washer",
+      "entity": "Washer",
+      "axis": "state",
+      "from": "worn",
+      "to": "new",
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Remove the old tap",
+      "entity": "Tap",
+      "axis": "mount",
+      "from": "old",
+      "to": "removed",
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Fit the new tap",
+      "entity": "Tap",
+      "axis": "mount",
+      "from": "removed",
+      "to": "new",
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Tighten the nut",
+      "entity": "Tap",
+      "axis": "nut",
+      "from": "loose",
+      "to": "tight",
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Wrap thread tape",
+      "entity": "Tap",
+      "axis": "thread",
+      "from": "bare",
+      "to": "taped",
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "off"
+        ]
+      ]
+    },
+    {
+      "name": "Turn water on",
+      "entity": "Tap",
+      "axis": "water",
+      "from": "off",
+      "to": "on"
+    },
+    {
+      "name": "Test for leaks",
+      "entity": "Tap",
+      "axis": "leak test",
+      "from": "not tested",
+      "to": "tested",
+      "check": true,
+      "requires": [
+        [
+          "Tap",
+          "water",
+          "on"
+        ]
+      ]
+    },
+    {
+      "name": "Call the plumber",
+      "entity": "Plumber visit",
+      "axis": "booking",
+      "from": "none",
+      "to": "booked"
+    },
+    {
+      "name": "Dry the floor",
+      "entity": "Floor",
+      "axis": "state",
+      "from": "wet",
+      "to": "dry"
+    }
+  ],
+  "executors": [
+    "Owner",
+    "Plumber"
+  ],
+  "instruments": [
+    "hands",
+    "wrench",
+    "tape",
+    "tool kit",
+    "phone"
+  ],
+  "scopes": [
+    "whole job"
+  ],
+  "batch_scope": "whole job",
+  "named_slices": {
+    "fixed": {
+      "any": [
+        {
+          "states": [
+            [
+              "Washer",
+              "state",
+              "new"
+            ]
+          ]
+        },
+        {
+          "states": [
+            [
+              "Tap",
+              "mount",
+              "new"
+            ]
+          ]
+        },
+        {
+          "states": [
+            [
+              "Tap",
+              "thread",
+              "taped"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "code": "T1",
+      "title": "Replace the washer",
+      "side": "own",
+      "task": "Fix a leaking tap",
+      "calls": [
+        [
+          "Shut off water",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Inspect the seal",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Replace the washer",
+          "Owner",
+          "wrench",
+          "whole job"
+        ],
+        [
+          "Turn water on",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Test for leaks",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Dry the floor",
+          "Owner",
+          "hands",
+          "whole job"
+        ]
+      ],
+      "steps": [
+        {
+          "text": "Turn off the water",
+          "calls": 1
+        },
+        {
+          "text": "Look at the seal",
+          "calls": 1
+        },
+        {
+          "text": "Put in a new washer",
+          "calls": 1
+        },
+        {
+          "text": "Turn the water on and test",
+          "calls": 2
+        },
+        {
+          "text": "Dry the floor",
+          "calls": 1
+        }
+      ]
+    },
+    {
+      "code": "T2",
+      "title": "Replace the whole tap",
+      "side": "own",
+      "task": "Fix a leaking tap",
+      "calls": [
+        [
+          "Shut off water",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Remove the old tap",
+          "Owner",
+          "wrench",
+          "whole job"
+        ],
+        [
+          "Fit the new tap",
+          "Owner",
+          "tool kit",
+          "whole job"
+        ],
+        [
+          "Turn water on",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Test for leaks",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Dry the floor",
+          "Owner",
+          "hands",
+          "whole job"
+        ]
+      ],
+      "steps": [
+        {
+          "text": "Turn off the water",
+          "calls": 1
+        },
+        {
+          "text": "Take the old tap off",
+          "calls": 1
+        },
+        {
+          "text": "Fit the new tap",
+          "calls": 1
+        },
+        {
+          "text": "Turn the water on and test",
+          "calls": 2
+        },
+        {
+          "text": "Dry the floor",
+          "calls": 1
+        }
+      ]
+    },
+    {
+      "code": "T3",
+      "title": "Tighten the nut and wrap tape",
+      "side": "other",
+      "task": "Fix a leaking tap",
+      "calls": [
+        [
+          "Shut off water",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Tighten the nut",
+          "Owner",
+          "wrench",
+          "whole job"
+        ],
+        [
+          "Wrap thread tape",
+          "Owner",
+          "tape",
+          "whole job"
+        ],
+        [
+          "Turn water on",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Dry the floor",
+          "Owner",
+          "hands",
+          "whole job"
+        ]
+      ],
+      "steps": [
+        {
+          "text": "Close the valve",
+          "calls": 1
+        },
+        {
+          "text": "Tighten the nut and wrap the thread with tape",
+          "calls": 2
+        },
+        {
+          "text": "Open the valve",
+          "calls": 1
+        },
+        {
+          "text": "Dry the floor",
+          "calls": 1
+        }
+      ]
+    },
+    {
+      "code": "T4",
+      "title": "Call a plumber",
+      "side": "other",
+      "task": "Fix a leaking tap",
+      "calls": [
+        [
+          "Call the plumber",
+          "Owner",
+          "phone",
+          "whole job"
+        ],
+        [
+          "Shut off water",
+          "Plumber",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Inspect the seal",
+          "Plumber",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Replace the washer",
+          "Plumber",
+          "tool kit",
+          "whole job"
+        ],
+        [
+          "Turn water on",
+          "Plumber",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Test for leaks",
+          "Plumber",
+          "hands",
+          "whole job"
+        ],
+        [
+          "Dry the floor",
+          "Owner",
+          "hands",
+          "whole job"
+        ]
+      ],
+      "steps": [
+        {
+          "text": "Call a plumber",
+          "calls": 1
+        },
+        {
+          "text": "The plumber closes the valve and checks the seal",
+          "calls": 2
+        },
+        {
+          "text": "The plumber replaces the washer",
+          "calls": 1
+        },
+        {
+          "text": "The plumber turns the water on and tests",
+          "calls": 2
+        },
+        {
+          "text": "Dry the floor",
+          "calls": 1
+        }
+      ]
+    }
+  ],
+  "normalization": {
+    "batch_size": 1,
+    "kind_costs": {
+      "Shut off water": 1,
+      "Inspect the seal": 2,
+      "Replace the washer": 3,
+      "Remove the old tap": 4,
+      "Fit the new tap": 8,
+      "Tighten the nut": 1,
+      "Wrap thread tape": 2,
+      "Turn water on": 1,
+      "Test for leaks": 2,
+      "Call the plumber": 2,
+      "Dry the floor": 2
+    },
+    "executor_coefficients": {
+      "Owner": 1,
+      "Plumber": 0.5
+    },
+    "scope_coefficients": {
+      "whole job": 1
+    },
+    "axis_skip_prices": {
+      "Tap": {
+        "leak test": 8
+      },
+      "Washer": {
+        "inspection": 3
+      }
+    }
+  }
+}

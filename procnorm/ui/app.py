@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
 
 from procnorm.calc import empty_steps, project_empty_steps
 from procnorm import edit
+from procnorm.example import first_run
 from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
                            rename_variant, set_number)
 from procnorm.project import Project, load_file, read_project
@@ -720,11 +721,26 @@ class MainWindow(QMainWindow):
             self.warn(f"Cannot write the file: {exc}")
 
 
+def build_window(store: Store, settings: QSettings, select: int | None = None) -> MainWindow:
+    """Build the window, opening a given project on the Comparison tab.
+
+    :param store: the project store.
+    :param settings: application settings.
+    :param select: id of the project to open, or ``None`` for the last used one.
+    :return: the window.
+    :rtype: MainWindow
+    """
+    if select is not None:
+        settings.setValue(LAST, select)
+    return MainWindow(store, settings)
+
+
 def main() -> int:
     """Run the window over the default store."""
     app = QApplication.instance() or QApplication(sys.argv)
     store = Store(default_path())
-    window = MainWindow(store, QSettings("procnorm", "procnorm"))
+    settings = QSettings("procnorm", "procnorm")
+    window = build_window(store, settings, first_run(store, settings))
     window.show()
     try:
         return app.exec()

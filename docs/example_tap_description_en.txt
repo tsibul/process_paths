@@ -1,0 +1,11 @@
+I want to compare four ways to fix a leaking kitchen tap. All four are variants of the same task, "Fix a leaking tap". The first two are our own ways of doing it, the other two are what other people do (theirs).
+
+Our variant 1, "Replace the washer" (T1). I do everything myself. First I turn off the water at the valve. Then I look at the seal to see whether the washer is worn. Then I put in a new washer with a wrench. Then I turn the water back on and test the tap for leaks. Finally I dry the floor.
+
+Our variant 2, "Replace the whole tap" (T2). I do everything myself. I turn off the water, take the old tap off with a wrench, and fit the new tap with a tool kit. Then I turn the water back on and test for leaks, and finally dry the floor. I do not look at the old washer, because the whole tap is replaced.
+
+Their variant 1, "Tighten the nut and wrap tape" (T3). Done by the owner alone. Close the valve, tighten the nut with a wrench, and wrap the thread with tape. Then open the valve and dry the floor. This way never tests for leaks after the repair.
+
+Their variant 2, "Call a plumber" (T4). The owner calls a plumber by phone. The plumber closes the valve, looks at the seal and replaces the washer with a tool kit, then turns the water on and tests the tap for leaks. The owner only dries the floor afterwards.
+
+Looking at the seal and testing for leaks are checks: they do not change the tap, they only confirm that the work is right. The repair is done when the new washer is in, the new tap is fitted, or the thread is wrapped with tape. The plumber's work takes about half the effort of the same work done by the owner.
