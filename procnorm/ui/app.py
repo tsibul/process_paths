@@ -21,7 +21,7 @@ from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, mo
                            rename_variant, set_number)
 from procnorm.project import Project, load_file, read_project
 from procnorm.store import Store, default_path
-from procnorm.ui.chains import ChainsPage
+from procnorm.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
 from procnorm.ui.comparison import ComparisonPage
 from procnorm.ui.pages import DictionaryPage, NormPage
 from procnorm.ui.remarks import RemarksPanel
@@ -339,6 +339,9 @@ class MainWindow(QMainWindow):
 
     def _new_variant(self) -> bool:
         """Add the variant ``New N`` with the first free ``N`` and choose it."""
+        if new_is_off(self.store.get(self.current_id)):
+            self.chains.show_refusal(NO_EXECUTOR_HINT)
+            return False
         data = self.store.get(self.current_id).data
         taken = set()
         for v in data.get("variants", []):

@@ -61,6 +61,20 @@ REASON_ROLE = Qt.ItemDataRole.UserRole + 1  # the reason of a kind not allowed h
 SEPARATOR_ROLE = Qt.ItemDataRole.UserRole + 2  # the line Not allowed here
 
 
+NO_EXECUTOR_HINT = (
+    "Add an executor on the Dictionary tab first: "
+    "every new path needs one for each variant parameter."
+)
+
+
+def new_is_off(p: Project | None) -> bool:
+    """Whether a new path cannot be made: variant parameters exist and no executor does."""
+    m = p.model if p is not None else None
+    if m is None:
+        return False
+    return bool(m.variant_params) and not m.executors
+
+
 def _count(n: int, one: str) -> str:
     return f"{n} {one if n == 1 else one + 's'}"
 
@@ -791,8 +805,10 @@ class ChainsPage(Page):
         """The row of ``New`` at the top of the path list."""
         row = QWidget()
         row.setObjectName("newRow")
-        line = QHBoxLayout(row)
-        line.setContentsMargins(10, 8, 10, 8)
+        column = QVBoxLayout(row)
+        column.setContentsMargins(10, 8, 10, 8)
+        column.setSpacing(6)
+        line = QHBoxLayout()
         self.new_button = QPushButton("New")
         self.new_button.setObjectName("small")
         self.new_button.setProperty("primary", True)
@@ -800,7 +816,17 @@ class ChainsPage(Page):
         self.new_button.clicked.connect(lambda: self.edit_requested.emit("new", ()))
         line.addWidget(self.new_button)
         line.addStretch(1)
+        column.addLayout(line)
+        self.new_hint = label(NO_EXECUTOR_HINT, "note")
+        self.new_hint.hide()
+        column.addWidget(self.new_hint)
         return row
+
+    def _show_new_state(self) -> None:
+        """``New`` is off, with a hint, while variant parameters have no executor to take."""
+        off = new_is_off(self._project)
+        self.new_button.setEnabled(not off)
+        self.new_hint.setVisible(off)
 
     def _header_fields(self) -> QWidget:
         """Side, task, out of comparison with its reason, and a list of executors per parameter."""
@@ -935,6 +961,7 @@ class ChainsPage(Page):
             "kind": [k.name for k in m.kinds], "executor": [x.name for x in m.executors],
             "instrument": list(m.instruments), "scope": list(m.scopes)}
         self.list.setVisible(p is not None)
+        self._show_new_state()
         if p is not None:
             head = QLabel("Paths")
             head.setObjectName("listHead")

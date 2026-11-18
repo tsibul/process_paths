@@ -242,7 +242,44 @@ def test_refused_rename_of_new_variant(win, store):
     assert page.code_edit.text() == "New 2"
 
 
-def test_new_refused_without_executors(app, store):
+NO_EXECUTOR_HINT = (
+    "Add an executor on the Dictionary tab first: "
+    "every new path needs one for each variant parameter."
+)
+
+
+def test_new_off_with_hint_until_an_executor_exists(app, store):
+    w = MainWindow(store)
+    try:
+        assert w.new_project("Empty")
+        assert w.add_word("variant_param", "helper")
+        w.tabs.setCurrentWidget(w.chains)
+        QApplication.processEvents()
+        page = w.chains
+        assert not page.new_button.isEnabled()
+        assert not page.new_hint.isHidden()
+        assert page.new_hint.text() == NO_EXECUTOR_HINT
+        assert w.add_word("executor", "Cook")
+        QApplication.processEvents()
+        assert page.new_button.isEnabled()
+        assert page.new_hint.isHidden()
+    finally:
+        w.close()
+
+
+def test_new_enabled_without_variant_parameters_or_executors(app, store):
+    w = MainWindow(store)
+    try:
+        assert w.new_project("Empty")
+        w.tabs.setCurrentWidget(w.chains)
+        QApplication.processEvents()
+        assert w.chains.new_button.isEnabled()
+        assert w.chains.new_hint.isHidden()
+    finally:
+        w.close()
+
+
+def test_new_called_while_off_shows_the_hint_as_refusal(app, store):
     w = MainWindow(store)
     try:
         assert w.new_project("Empty")
@@ -251,11 +288,11 @@ def test_new_refused_without_executors(app, store):
         QApplication.processEvents()
         pid = w.current_id
         before = store.text(pid)
-        _click(w.chains.new_button)
+        assert not w.edit_chain("new", ())
         assert store.text(pid) == before
         assert not w.chains.refusal.isHidden()
-        assert w.chains.refusal.text()
-        assert w.chains.codes() == []
+        assert w.chains.refusal.text() == NO_EXECUTOR_HINT
+        assert "expected" not in w.chains.refusal.text()
     finally:
         w.close()
 

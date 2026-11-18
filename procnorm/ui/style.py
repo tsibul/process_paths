@@ -49,6 +49,13 @@ QPushButton {{ background: {BG}; color: {TEXT}; border: 1px solid {BORDER}; bord
 QPushButton:hover {{ border-color: {ACCENT}; }}
 QPushButton:disabled {{ color: {TEXT2}; background: {SUB}; }}
 QPushButton[primary="true"] {{ background: {ACCENT}; color: {ON_ACCENT}; border-color: {ACCENT}; }}
+
+QPushButton[primary="true"]:disabled {{
+  background: {SUB};
+  color: {TEXT2};
+  border-color: {BORDER};
+}}
+
 QPushButton:checked {{ border-color: {ACCENT}; color: {ACCENT}; font-weight: 600; }}
 QComboBox {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 6px; padding: 5px 12px;
             min-width: 240px; }}
