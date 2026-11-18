@@ -3,12 +3,18 @@
 
 """Project file: reading and checking with the full list of remarks.
 
-The check runs in stages; a stage runs only when the stages before it gave no remark,
-so that one mistake does not produce a cascade of false remarks:
+The check runs in stages, and the remarks of all stages are given at once:
 
 1. structure: fields, types, JSON numbers;
 2. dictionary, variant names and normalization;
 3. variant runs (step by step) and the split check.
+
+A structure remark on a field the model is built from stops the later stages: without it the
+model cannot be built. A structure remark on a field nothing later reads (name, description,
+format, title, task, steps, side, out_of_comparison, zero_weight_note) does not stop them.
+After the dictionary check a later check is skipped only for the items that depend on a broken
+one (an entity, axis or kind with a remark), so that one mistake does not produce a cascade of
+false remarks.
 
 The lenient read (``strict=False``) is for a project from the database and after an edit: a missing
 normalization number is no remark, and a variant that fails its run stays, with the error kept in
@@ -18,12 +24,12 @@ normalization number is no remark, and a variant that fails its run stays, with 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from pathlib import Path
 
 from process_paths.analysis import decomposable_kinds, duplicate_kinds
-from process_paths.engine import TransitionError, run_variant
+from process_paths.engine import TransitionError, run_variant, variant_entities
 from process_paths.model import (Axis, Call, Entity, Executor, Kind, Model, NamedSlice, SliceGroup,
                                  Variant)
 
@@ -109,16 +115,56 @@ class Project:
 
 
 class _Remarks:
-    """Collects remarks."""
+    """Collects remarks.
+
+    :ivar blocking: number of structure remarks that stop the later stages.
+    """
 
     def __init__(self) -> None:
         self.items: list[Remark] = []
+        self.blocking = 0
 
-    def add(self, where: str, text: str) -> None:
+    def add(self, where: str, text: str, soft: bool = False) -> None:
+        """Add a remark; a soft one does not stop the later stages."""
         self.items.append(Remark(where, text))
+        if not soft:
+            self.blocking += 1
 
     def __len__(self) -> int:
         return len(self.items)
+
+
+def _softly(r: _Remarks, check, *args) -> None:
+    """Run a structure check whose remarks do not stop the later stages."""
+    blocking = r.blocking
+    check(r, *args)
+    r.blocking = blocking
+
+
+@dataclass
+class _Broken:
+    """Dictionary items with a remark, and the items that depend on them.
+
+    :ivar entities: entities whose name repeats: no reference to them is sure.
+    :ivar axes: ``(entity, axis)`` with a remark.
+    :ivar kinds: kinds with a remark, or on a broken entity or axis.
+    """
+
+    entities: set[str] = field(default_factory=set)
+    axes: set[tuple[str, str]] = field(default_factory=set)
+    kinds: set[str] = field(default_factory=set)
+
+    def axis(self, entity: str, axis: str) -> bool:
+        """:return: whether the axis is broken or its entity is not sure.
+        :rtype: bool
+        """
+        return entity in self.entities or (entity, axis) in self.axes
+
+    def entity(self, entity: str) -> bool:
+        """:return: whether the entity cannot take part in a run.
+        :rtype: bool
+        """
+        return entity in self.entities or any(e == entity for e, _ in self.axes)
 
 
 def _is_number(v: object) -> bool:
@@ -207,11 +253,11 @@ def _check_structure(data: object, r: _Remarks) -> None:
     _required(r, "file", data, ("format", "name", "existence_axis", "entities", "kinds", "executors",
                                 "instruments", "scopes", "batch_scope", "variants", "normalization"))
     if "format" in data and data["format"] != FORMAT:
-        r.add("format", f"must be {FORMAT}")
+        r.add("format", f"must be {FORMAT}", soft=True)
     if "name" in data and not _is_text(data["name"]):
-        r.add("name", "text expected")
+        r.add("name", "text expected", soft=True)
     if "description" in data and not isinstance(data["description"], str):
-        r.add("description", "text expected")
+        r.add("description", "text expected", soft=True)
     ex = data.get("existence_axis")
     if ex is not None and _obj(r, "existence_axis", ex):
         _unknown_fields(r, "existence_axis", ex, {"name", "absent"})
@@ -267,7 +313,7 @@ def _check_structure(data: object, r: _Remarks) -> None:
                     r.add(w, f"{f} must be true or false")
             if "zero_weight_note" in k and (not _is_text(k["zero_weight_note"])
                                             or k.get("zero_weight") is not True):
-                r.add(w, "zero_weight_note needs zero_weight true and a text")
+                r.add(w, "zero_weight_note needs zero_weight true and a text", soft=True)
     elif "kinds" in data:
         r.add("kinds", "list expected")
     for f in ("executors", "instruments", "scopes"):
@@ -307,10 +353,10 @@ def _check_structure(data: object, r: _Remarks) -> None:
             if _required(r, w, v, ("code", "title", "calls")):
                 for f in ("code", "title"):
                     if not _is_text(v[f]):
-                        r.add(w, f"{f} must be a text")
+                        r.add(w, f"{f} must be a text", soft=(f == "title"))
                 _triples(r, f"{w}, calls", v["calls"], 4)
             if "side" in v and v["side"] not in SIDES:
-                r.add(w, "side must be \"own\" or \"other\"")
+                r.add(w, "side must be \"own\" or \"other\"", soft=True)
             if "params" in v and (not isinstance(v["params"], dict)
                                   or not all(isinstance(x, str) for x in v["params"].values())):
                 r.add(f"{w}, params", "object {parameter: executor} expected")
@@ -321,11 +367,11 @@ def _check_structure(data: object, r: _Remarks) -> None:
                     for a in v["initial"].values())):
                 r.add(f"{w}, initial", "object {entity: {axis: value}} expected")
             if "task" in v and not _is_text(v["task"]):
-                r.add(w, "task must be a text")
+                r.add(w, "task must be a text", soft=True)
             if "steps" in v:
-                _check_steps(r, w, v)
+                _softly(r, _check_steps, w, v)
             if "out_of_comparison" in v and not _is_text(v["out_of_comparison"]):
-                r.add(w, "out_of_comparison must be a reason text")
+                r.add(w, "out_of_comparison must be a reason text", soft=True)
     elif "variants" in data:
         r.add("variants", "list expected")
     n = data.get("normalization")
@@ -381,6 +427,13 @@ def _repeats(r: _Remarks, where: str, names: list[str], what: str) -> None:
         seen.add(n)
 
 
+def _repeated(names: list[str]) -> set[str]:
+    """:return: the names met more than once.
+    :rtype: set[str]
+    """
+    return {n for n in names if names.count(n) > 1}
+
+
 def _value_ok(model: Model, e: str, a: str, v: str | None = None) -> bool:
     ent = model.entity(e)
     ax = ent.axis(a) if ent else None
@@ -398,23 +451,41 @@ def check_axes(model: Model) -> list[tuple[str, str]]:
     return [(e.name, a.name) for e in model.entities for a in e.axes if (e.name, a.name) in marked]
 
 
-def _check_dictionary(model: Model, r: _Remarks) -> None:
-    """Stage 2a: dictionary names and references."""
-    _repeats(r, "entities", [e.name for e in model.entities], "entity")
+def _check_dictionary(model: Model, r: _Remarks) -> _Broken:
+    """Stage 2a: dictionary names and references.
+
+    A reference to a broken entity or axis is not checked: the item that makes it is broken too.
+
+    :return: the broken items.
+    """
+    broken = _Broken()
+    names = [e.name for e in model.entities]
+    _repeats(r, "entities", names, "entity")
+    broken.entities = _repeated(names)
     for e in model.entities:
         w = f"entity {e.name}"
-        _repeats(r, w, [a.name for a in e.axes], "axis")
+        axis_names = [a.name for a in e.axes]
+        _repeats(r, w, axis_names, "axis")
+        broken.axes |= {(e.name, a) for a in _repeated(axis_names)}
         for a in e.axes:
+            before = len(r)
             if not a.values:
                 r.add(f"{w}, axis {a.name}", "no values")
             _repeats(r, f"{w}, axis {a.name}", list(a.values), "value")
             for se, sa in a.inherit:
-                if not _value_ok(model, se, sa):
+                if se in broken.entities:
+                    broken.axes.add((e.name, a.name))
+                elif not _value_ok(model, se, sa):
                     r.add(f"{w}, axis {a.name}", f"unknown inherit source {se}/{sa}")
+            if len(r) > before:
+                broken.axes.add((e.name, a.name))
         ex = e.axis(model.existence_axis)
         if ex is not None and model.absent_value not in ex.values:
             r.add(w, f"existence axis lacks the value {model.absent_value!r}")
-    _repeats(r, "kinds", [k.name for k in model.kinds], "kind")
+            broken.axes.add((e.name, ex.name))
+    kind_names = [k.name for k in model.kinds]
+    _repeats(r, "kinds", kind_names, "kind")
+    broken.kinds = _repeated(kind_names)
     _repeats(r, "executors", [x.name for x in model.executors], "executor")
     _repeats(r, "instruments", model.instruments, "instrument")
     _repeats(r, "scopes", model.scopes, "scope")
@@ -422,9 +493,12 @@ def _check_dictionary(model: Model, r: _Remarks) -> None:
         r.add("batch_scope", f"{model.batch_scope!r} is not among the scopes")
     for k in model.kinds:
         w = f"kind {k.name}"
+        before = len(r)
         ent = model.entity(k.entity)
         ax = ent.axis(k.axis) if ent else None
-        if ent is None:
+        if broken.axis(k.entity, k.axis):
+            broken.kinds.add(k.name)
+        elif ent is None:
             r.add(w, f"unknown entity {k.entity}")
         elif ax is None:
             r.add(w, f"unknown axis {k.entity}/{k.axis}")
@@ -435,10 +509,14 @@ def _check_dictionary(model: Model, r: _Remarks) -> None:
         if k.source == k.target:
             r.add(w, "from equals to")
         for re_, ra, rv in k.requires:
-            if not _value_ok(model, re_, ra, rv):
+            if broken.axis(re_, ra):
+                broken.kinds.add(k.name)
+            elif not _value_ok(model, re_, ra, rv):
                 r.add(w, f"condition: unknown {re_}/{ra}={rv}")
             if (re_, ra) == (k.entity, k.axis):
                 r.add(w, "condition on its own axis")
+        if len(r) > before:
+            broken.kinds.add(k.name)
     _repeats(r, "variant_params", model.variant_params, "variant parameter")
     execs = {x.name for x in model.executors}
     for ns in model.named_slices:
@@ -447,17 +525,25 @@ def _check_dictionary(model: Model, r: _Remarks) -> None:
             r.add(w, f"the name {FINAL!r} is reserved for the final slice")
         for g in ns.groups:
             for e, a, v in g.states:
-                if not _value_ok(model, e, a, v):
+                if not broken.axis(e, a) and not _value_ok(model, e, a, v):
                     r.add(w, f"unknown {e}/{a}={v}")
             for p, x in g.params:
                 if p not in model.variant_params:
                     r.add(w, f"unknown variant parameter {p}")
                 if x not in execs:
                     r.add(w, f"unknown executor {x}")
+    return broken
 
 
-def _check_variant_names(model: Model, r: _Remarks) -> set[str]:
-    """Stage 2b: names used by the variants.
+def _sound(model: Model, broken: _Broken) -> Model:
+    """:return: the model without the broken kinds.
+    :rtype: Model
+    """
+    return replace(model, kinds=[k for k in model.kinds if k.name not in broken.kinds])
+
+
+def _check_variant_names(model: Model, broken: _Broken, r: _Remarks) -> set[str]:
+    """Stage 2b: names used by the variants; an initial value on a broken axis is not checked.
 
     :return: codes of variants with a remark.
     """
@@ -480,7 +566,7 @@ def _check_variant_names(model: Model, r: _Remarks) -> set[str]:
                 r.add(w, f"unknown entity {n}")
         for en, axes in v.initial.items():
             for an, val in axes.items():
-                if not _value_ok(model, en, an, val):
+                if not broken.axis(en, an) and not _value_ok(model, en, an, val):
                     r.add(f"{w}, initial", f"unknown {en}/{an}={val}")
         for i, c in enumerate(v.calls, 1):
             wc = f"{w}, call {i}"
@@ -497,8 +583,13 @@ def _check_variant_names(model: Model, r: _Remarks) -> set[str]:
     return bad
 
 
-def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Normalization:
-    """Stage 2c: normalization against the dictionary; a strict read needs every number."""
+def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
+                strict: bool = True) -> Normalization:
+    """Stage 2c: normalization against the dictionary; a strict read needs every number.
+
+    The cost of a broken kind is not checked; a skip price is not called a price of a non-check
+    axis when a broken check kind may have meant that axis.
+    """
     w = "normalization"
     costs = {k: Decimal(x) for k, x in n["kind_costs"].items()}
     ex = {k: Decimal(x) for k, x in n["executor_coefficients"].items()}
@@ -506,6 +597,8 @@ def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Norm
     prices = {(e, a): Decimal(x) for e, axes in n["axis_skip_prices"].items() for a, x in axes.items()}
     kinds = {k.name: k for k in model.kinds}
     for k in model.kinds:
+        if k.name in broken.kinds:
+            continue
         if k.zero_weight:
             if k.name in costs and costs[k.name] != 0:
                 r.add(f"{w}, kind_costs", f"kind {k.name} has zero_weight, its cost must be 0 or absent")
@@ -514,8 +607,12 @@ def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Norm
     for name, x in costs.items():
         if name not in kinds:
             r.add(f"{w}, kind_costs", f"cost of unknown kind: {name}")
+        elif name in broken.kinds:
+            continue
         elif x < 0:
             r.add(f"{w}, kind_costs", f"kind {name}: cost below zero")
+        elif x == 0 and not kinds[name].zero_weight:
+            r.add(f"{w}, kind_costs", f"{name} costs 0; a kind without labour needs zero_weight")
     for what, have, names in (("executor", ex, [x.name for x in model.executors]),
                               ("scope", sc, model.scopes)):
         f = f"{w}, {what}_coefficients"
@@ -527,12 +624,17 @@ def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Norm
                 r.add(f, f"coefficient of unknown {what}: {name}")
             elif x < 0:
                 r.add(f, f"{what} {name}: coefficient below zero")
-    axes = check_axes(model)
+    axes = check_axes(_sound(model, broken))
     for e, a in axes:
         if strict and (e, a) not in prices:
             r.add(f"{w}, axis_skip_prices", f"check axis without skip price: {e}/{a}")
+    broken_checks = [k for k in model.kinds if k.check and k.name in broken.kinds]
+    unsure = {k.entity for k in broken_checks}
+    unsure_everywhere = any(model.entity(k.entity) is None for k in broken_checks)
     for (e, a), x in prices.items():
         if (e, a) not in axes:
+            if unsure_everywhere or e in unsure or broken.axis(e, a):
+                continue
             r.add(f"{w}, axis_skip_prices", f"{e}/{a} is not a check axis")
         elif x <= 0:
             r.add(f"{w}, axis_skip_prices", f"{e}/{a}: price must be above zero")
@@ -543,15 +645,28 @@ def _check_norm(model: Model, n: dict, r: _Remarks, strict: bool = True) -> Norm
                          Decimal(batch) if batch is not None else None)
 
 
-def _check_runs(model: Model, skip: set[str], r: _Remarks,
+def _on_broken(model: Model, v: Variant, broken: _Broken) -> bool:
+    """:return: whether a variant with names all known calls a broken kind or has a broken
+        entity.
+    :rtype: bool
+    """
+    if any(c.kind in broken.kinds for c in v.calls):
+        return True
+    return any(broken.entity(e) for e in variant_entities(model, v))
+
+
+def _check_runs(model: Model, skip: set[str], broken: _Broken, r: _Remarks,
                 errors: dict[str, tuple[int, str]] | None = None) -> None:
     """Stage 3: run every variant step by step; the split check.
+
+    A variant with a name remark or on a broken item is not run; the split check leaves the
+    broken kinds out.
 
     :param errors: when given, a run error goes here as ``{code: (call number, reason)}`` instead
         of a remark.
     """
     for v in model.variants:
-        if v.code in skip:
+        if v.code in skip or _on_broken(model, v, broken):
             continue
         try:
             run_variant(model, v)
@@ -560,9 +675,10 @@ def _check_runs(model: Model, skip: set[str], r: _Remarks,
                 r.add("", str(exc))
             else:
                 errors[v.code] = (exc.number, exc.reason)
-    for a, b in duplicate_kinds(model):
+    sound = _sound(model, broken)
+    for a, b in duplicate_kinds(sound):
         r.add("kinds", f"same change of state: {a} = {b}")
-    for k, chain in decomposable_kinds(model):
+    for k, chain in decomposable_kinds(sound):
         r.add("kinds", f"kind {k} repeats the chain {' + '.join(chain)}")
 
 
@@ -582,7 +698,7 @@ def _require_tasks(data: object, r: _Remarks) -> None:
             where = f"variant {code}"
         else:
             where = f"variant {data['variants'].index(v) + 1}"
-        r.add(where, "task is required")
+        r.add(where, "task is required", soft=True)
 
 
 def read_project(data: object, strict: bool = True) -> tuple[Project | None, list[Remark]]:
@@ -598,16 +714,14 @@ def read_project(data: object, strict: bool = True) -> tuple[Project | None, lis
     _check_structure(data, r)
     if strict:
         _require_tasks(data, r)
-    if r:
+    if r.blocking:
         return None, r.items
     model = _build_model(data)
-    _check_dictionary(model, r)
-    dict_ok = not r
-    bad = _check_variant_names(model, r)
-    norm = _check_norm(model, data["normalization"], r, strict) if dict_ok else None
+    broken = _check_dictionary(model, r)
+    bad = _check_variant_names(model, broken, r)
+    norm = _check_norm(model, data["normalization"], broken, r, strict)
     errors: dict[str, tuple[int, str]] = {}
-    if dict_ok:
-        _check_runs(model, bad, r, None if strict else errors)
+    _check_runs(model, bad, broken, r, None if strict else errors)
     if r:
         return None, r.items
     sides = {v["code"]: v.get("side", "own") for v in data["variants"]}

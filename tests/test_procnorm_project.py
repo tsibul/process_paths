@@ -353,20 +353,122 @@ def test_several_remarks_in_one_stage():
 
 def test_structure_mistake_stops_before_stage2():
     d = base()
-    d["name"] = 5
+    del kind(d, "Постирать")["to"]  # the model cannot be built
     kind(d, "Развесить")["entity"] = "Нет"  # stage 2 mistake
     r = remarks_of(d)
-    assert len(r) == 1 and r[0].where == "name"
+    assert len(r) == 1 and r[0].where == "kind Постирать"
     assert not has(r, "unknown entity")
 
 
-def test_dictionary_mistake_stops_norm_and_runs():
+def test_mistake_nothing_depends_on_does_not_stop():
+    d = base()
+    d["name"] = 5
+    del variant(d, "А")["task"]
+    kind(d, "Развесить")["entity"] = "Нет"
+    r = remarks_of(d)
+    assert [x.where for x in r] == ["name", "variant А", "kind Развесить"]
+
+
+def test_dictionary_mistake_keeps_norm_of_other_kinds():
     d = base()
     kind(d, "Развесить")["entity"] = "Нет"
     del d["normalization"]["kind_costs"]["Убрать в шкаф"]
     r = remarks_of(d)
     assert has(r, "unknown entity")
-    assert not has(r, "kind without cost")
+    assert has(r, "kind without cost: Убрать в шкаф")
+
+
+def _broken_entity(d):
+    """Add an entity no variant touches, its existence axis without the absent value."""
+    d["entities"].append({"name": "Таз", "axes": [{"name": "наличие", "values": ["есть"]}]})
+
+
+def test_dictionary_mistake_and_duplicate_kind_elsewhere():
+    d = base()
+    _no_absent(d)
+    _add_kind(d, "Повесить", "постирано", "развешано")
+    r = remarks_of(d)
+    assert has(r, "existence axis lacks the value", "entity Цикл стирки")
+    assert has(r, "same change of state: Развесить = Повесить", "kinds")
+
+
+def test_dictionary_mistake_and_run_of_untouched_variant():
+    d = base()
+    _broken_entity(d)
+    del variant(d, "Б")["calls"][0]
+    r = remarks_of(d)
+    assert [x.where for x in r] == ["entity Таз", ""]
+    assert r[1].text.startswith("variant Б, call 1")
+
+
+def test_variant_on_broken_entity_is_not_run():
+    d = base()
+    _broken_entity(d)
+    variant(d, "Б")["entities"] = ["Бельё", "Цикл стирки", "Таз"]
+    del variant(d, "Б")["calls"][0]
+    del variant(d, "В")["calls"][1]
+    r = remarks_of(d)
+    assert has(r, "existence axis lacks the value", "entity Таз")
+    assert not has(r, "variant Б")
+    assert has(r, "variant В, call 2")
+
+
+def test_dictionary_mistake_and_unknown_cost_name():
+    d = base()
+    _no_absent(d)
+    d["normalization"]["kind_costs"]["Лишний"] = 1
+    r = remarks_of(d)
+    assert has(r, "existence axis lacks the value", "entity Цикл стирки")
+    assert has(r, "cost of unknown kind: Лишний", "kind_costs")
+
+
+def test_broken_kind_gives_no_consequences():
+    d = base()
+    kind(d, "Развесить")["entity"] = "Нет"
+    _add_kind(d, "Повесить", "постирано", "развешано")
+    kind(d, "Повесить")["entity"] = "Нет"
+    r = remarks_of(d)
+    assert [(x.where, x.text) for x in r] == [("kind Развесить", "unknown entity Нет"),
+                                             ("kind Повесить", "unknown entity Нет")]
+
+
+def test_repeated_kind_gives_no_consequences():
+    d = base()
+    _dup(["kinds"], 0)(d)
+    r = remarks_of(d)
+    assert [(x.where, x.text) for x in r] == [("kinds", "kind repeats: Проверить карманы")]
+
+
+def test_broken_check_kind_gives_no_skip_price_remark():
+    d = base()
+    kind(d, "Проверить карманы")["axis"] = "нет"
+    r = remarks_of(d)
+    assert [(x.where, x.text) for x in r] == [("kind Проверить карманы", "unknown axis Бельё/нет")]
+
+
+def test_axis_without_values_gives_no_consequences():
+    d = base()
+    d["entities"][0]["axes"][1]["values"] = []
+    r = remarks_of(d)
+    assert [(x.where, x.text) for x in r] == [("entity Бельё, axis карманы", "no values")]
+
+
+# ---------- kind cost 0 ----------
+
+def test_cost_zero_without_zero_weight_is_remark():
+    d = base()
+    d["normalization"]["kind_costs"]["Развесить"] = 0
+    r = remarks_of(d)
+    text = "normalization, kind_costs: Развесить costs 0; a kind without labour needs zero_weight"
+    assert [str(x) for x in r] == [text]
+
+
+def test_cost_zero_without_zero_weight_lenient_read():
+    d = base()
+    d["normalization"]["kind_costs"]["Развесить"] = 0
+    project, remarks = read_project(d, strict=False)
+    assert project is None
+    assert has(remarks, "Развесить costs 0", "kind_costs")
 
 
 # ---------- text and file ----------

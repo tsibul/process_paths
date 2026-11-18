@@ -34,7 +34,7 @@ def from_file(table: str, key, number: str) -> dict:
 @pytest.mark.parametrize("table,key,text,number", [
     ("kind_costs", "Постирать", "5", "5"),
     ("kind_costs", "Постирать", "2.5", "2.5"),
-    ("kind_costs", "Постирать", "0", "0"),
+    ("executor_coefficients", "Человек", "0", "0"),
     ("executor_coefficients", "Машина", "0.25", "0.25"),
     ("scope_coefficients", "вся загрузка", "3", "3"),
     ("axis_skip_prices", ("Бельё", "цвета"), "7.5", "7.5"),
