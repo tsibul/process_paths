@@ -150,7 +150,7 @@ Before writing a variant, walk through it step by step yourself, keeping the sli
 
 | Field | Required | Rule |
 |---|---|---|
-| `kind_costs` | yes | `{kind: cost}` — for each kind without `zero_weight`. For a kind with `zero_weight` the cost may be omitted; if written, only `0`. The cost is not less than zero |
+| `kind_costs` | yes | `{kind: cost}` — for each kind without `zero_weight`. For a kind with `zero_weight` the cost may be omitted; if written, only `0`. The cost of a kind without `zero_weight` is greater than zero |
 | `executor_coefficients` | yes | `{executor: coefficient}` — for each executor. One whose labour is not counted (a program, a device) gets `0`. The coefficient is not less than zero |
 | `scope_coefficients` | yes | `{scope: coefficient}` — for each scope. The coefficient is not less than zero |
 | `axis_skip_prices` | yes | `{entity: {check axis: price}}` — for each check axis and only for them. The price is greater than zero |
@@ -194,6 +194,7 @@ The check gives its remarks in English; the names in them are as written in the 
 | A number is missing in normalization | kind without a cost; executor or scope without a coefficient; check axis without a price | Add the number |
 | An extra name in normalization | cost of an unknown kind; price of an axis that is not a check axis | Remove |
 | A kind has `zero_weight`, but the cost is not 0 | weight is 0 but a cost is given | Set `0` |
+| A kind without `zero_weight` costs 0 | a kind with labour costs 0 | Give the labour, or mark the kind `zero_weight` if it is waiting or work without labour |
 | A number written as a string | a number was expected | Remove the quotes |
 | A negative number; skip price 0 | number out of the allowed range | Costs and coefficients are not less than zero, the skip price is greater than zero |
 | No `task` | `variant X: task is required` | Write the variant's task |
