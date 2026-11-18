@@ -257,3 +257,71 @@ def test_refusal_gives_stored_ticks_back(win):
     assert _ticked(page) == ["Bed", "Can", "Shed"]
     assert page.initial_boxes[("Shed", "door")].currentText() == "open"
     assert not page.refusal.isHidden()
+
+
+def _cleared(page):
+    return page.cleared_note.text() if not page.cleared_note.isHidden() else None
+
+
+def test_untick_clears_its_deviations_and_says_so(win, store):
+    pid = win.current_id
+    page = win.chains
+    page.select_path("G2")
+    _open(page)
+    old = _data(store, pid)
+    assert _cleared(page) is None
+    _click(page.entity_checks["Shed"])
+    expected, _ = edit.set_variant(old, "G2", entities=["Bed", "Can"], initial={})
+    assert store.get(pid).data == expected
+    assert "initial" not in _variant(store, pid, "G2")
+    assert _cleared(page) == "Initial-state changes of Shed were cleared."
+
+
+def test_retick_starts_from_dictionary(win, store):
+    pid = win.current_id
+    page = win.chains
+    page.select_path("G2")
+    _open(page)
+    _click(page.entity_checks["Shed"])
+    _click(page.entity_checks["Shed"])
+    assert _variant(store, pid, "G2")["entities"] == ["Bed", "Can", "Shed"]
+    assert "initial" not in _variant(store, pid, "G2")
+    assert page.initial_boxes[("Shed", "door")].currentText() == "as in dictionary: shut"
+
+
+def test_untick_without_deviations_shows_no_line(win, store):
+    page = win.chains
+    page.select_path("G2")
+    _open(page)
+    _click(page.entity_checks["Bed"])
+    assert _cleared(page) is None
+    assert _variant(store, win.current_id, "G2")["initial"] == {"Shed": {"door": "open"}}
+
+
+def test_untick_keeps_deviations_of_other_entities(win, store):
+    pid = win.current_id
+    page = win.chains
+    page.select_path("G2")
+    _open(page)
+    _choose(page.initial_boxes[("Bed", "soil")], "wet")
+    _click(page.entity_checks["Bed"])
+    assert _variant(store, pid, "G2")["initial"] == {"Shed": {"door": "open"}}
+    assert _cleared(page) == "Initial-state changes of Bed were cleared."
+
+
+def test_cleared_line_goes_with_next_edit_or_other_path(win, store):
+    page = win.chains
+    page.select_path("G2")
+    _open(page)
+    _click(page.entity_checks["Shed"])
+    assert _cleared(page) is not None
+    _choose(page.initial_boxes[("Bed", "soil")], "wet")
+    assert _cleared(page) is None
+    _click(page.entity_checks["Bed"])
+    _click(page.entity_checks["Bed"])
+    _click(page.entity_checks["Can"])
+    page.select_path("G2")
+    page.select_path("G1")
+    assert _cleared(page) is None
+    page.select_path("G2")
+    assert _cleared(page) is None

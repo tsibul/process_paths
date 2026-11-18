@@ -300,6 +300,7 @@ class MainWindow(QMainWindow):
             with ``(code, after, [kind, executor, instrument, scope], step)``; numbers from 1. Also
             ``copy`` and ``delete`` with ``(code,)`` and ``rename`` with ``(code, new code, title)``.
             Delete asks ``confirm`` first; a copy is chosen, after a delete the neighbour is chosen.
+            ``variant`` with ``(code, {field: value})`` changes several fields at once.
             ``header`` with ``(code, field, value)`` changes one field of
             :func:`procnorm.edit.set_variant`; ``new`` with ``()`` adds a variant ``New N``
             and chooses it.
@@ -316,10 +317,14 @@ class MainWindow(QMainWindow):
             code, field_, value = args
             args = (code,)
             fields = {field_: value}
+        elif op == "variant":
+            code, fields = args
+            args = (code,)
         else:
             fields = {}
         fn = {"move": move_call, "remove": remove_call, "add": add_call, "copy": copy_variant,
-              "delete": delete_variant, "rename": rename_variant, "header": edit.set_variant}[op]
+              "delete": delete_variant, "rename": rename_variant, "header": edit.set_variant,
+              "variant": edit.set_variant}[op]
         data, remarks = fn(self.store.get(self.current_id).data, *args, **fields)
         if data is None:
             own = f"variant {args[0]}"

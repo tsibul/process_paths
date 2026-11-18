@@ -67,6 +67,9 @@ NO_EXECUTOR_HINT = (
 )
 
 
+CLEARED_NOTE = "Initial-state changes of {} were cleared."
+
+
 def new_is_off(p: Project | None) -> bool:
     """Whether a new path cannot be made: variant parameters exist and no executor does."""
     m = p.model if p is not None else None
@@ -751,6 +754,7 @@ class ChainsPage(Page):
         self._groups: list[tuple[str, bool, list[str]]] = []
         self._current: str | None = None
         self._next_input: tuple[str, tuple[str, int]] | None = None  # (code, place) after Add
+        self._cleared: tuple[str, str] | None = None  # (code, line) after an untick cleared changes
         split = QHBoxLayout()
         split.setSpacing(16)
         self.list = QFrame()
@@ -910,6 +914,9 @@ class ChainsPage(Page):
         self.ticks_line = QHBoxLayout()
         self.ticks_line.setSpacing(16)
         body.addLayout(self.ticks_line)
+        self.cleared_note = label("", "note")
+        self.cleared_note.hide()
+        body.addWidget(self.cleared_note)
         self.axes_grid = QGridLayout()
         self.axes_grid.setHorizontalSpacing(10)
         self.axes_grid.setVerticalSpacing(4)
@@ -988,6 +995,8 @@ class ChainsPage(Page):
         if code is not None and code not in self._items:
             return
         self._current = code
+        if self._cleared is not None and self._cleared[0] != code:
+            self._cleared = None
         for c, it in self._items.items():
             it.set_selected(c == code)
         self._fill_fields(code)
@@ -1105,6 +1114,9 @@ class ChainsPage(Page):
         _clear(self.axes_grid)
         self.entity_checks = {}
         self.initial_boxes = {}
+        shown = self._cleared is not None and self._cleared[0] == self._current
+        self.cleared_note.setText(self._cleared[1] if shown else "")
+        self.cleared_note.setVisible(shown)
         m = self._project.model
         ticked = set(v.get("entities") or [])
         for e in m.entities:
@@ -1140,11 +1152,29 @@ class ChainsPage(Page):
         v = self._stored(self._current)
         if v is None:
             return
+        self._cleared = None
         names = []
         for name, check in self.entity_checks.items():
             if check.isChecked():
                 names.append(name)
-        if names != list(v.get("entities") or []):
+        stored_names = list(v.get("entities") or [])
+        if names == stored_names:
+            return
+        stored = v.get("initial") or {}
+        initial = {}
+        unticked = []
+        for name in stored_names:
+            if name not in names:
+                unticked.append(name)
+        for name, axes in stored.items():
+            if name not in unticked:
+                initial[name] = axes
+        cleared = [name for name in unticked if name in stored]
+        if cleared:
+            self._cleared = (self._current, CLEARED_NOTE.format(", ".join(cleared)))
+            self.edit_requested.emit(
+                "variant", (self._current, {"entities": names, "initial": initial}))
+        else:
             self._header("entities", names)
 
     def _initial_chosen(self, entity: str, axis: str) -> None:
@@ -1152,6 +1182,7 @@ class ChainsPage(Page):
         v = self._stored(self._current)
         if v is None:
             return
+        self._cleared = None
         stored = v.get("initial") or {}
         initial = {}
         for name, axes in stored.items():
@@ -1218,6 +1249,7 @@ class ChainsPage(Page):
 
     def show_refusal(self, text: str) -> None:
         """Show under the chain why an edit was refused, and give the header its stored texts back."""
+        self._cleared = None
         r = self._rows.get(self._current) if self._current else None
         if r is not None:
             self._set_head(r.code, r.title)
