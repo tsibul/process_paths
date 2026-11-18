@@ -30,7 +30,7 @@ def grouped_project():
     """Invented data: laundry copies with tasks, a lone task and an out-of-comparison variant."""
     d = json.loads(LAUNDRY.read_text(encoding="utf-8"), parse_float=Decimal)
     for v in d["variants"]:
-        v.pop("task", None)
+        v.pop("task", None)     # a project from the database may lack tasks: read leniently
 
     def clone(src, code, side, task=None, out=None):
         v = copy.deepcopy(next(x for x in d["variants"] if x["code"] == src))
@@ -49,7 +49,7 @@ def grouped_project():
     clone("В", "в3", "other", "Сушить")
     clone("Б", "б4", "own", "Одна")
     clone("А", "а4", "other", "Вне", out="не | сравнивать")
-    p, remarks = read_project(d)
+    p, remarks = read_project(d, strict=False)
     assert p is not None and remarks == []
     return p
 

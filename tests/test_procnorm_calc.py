@@ -26,8 +26,8 @@ def base() -> dict:
     return d
 
 
-def project_of(d):
-    p, remarks = read_project(d)
+def project_of(d, strict=True):
+    p, remarks = read_project(d, strict=strict)
     assert remarks == []
     return p
 
@@ -155,7 +155,7 @@ def grouped_project():
     """А 8.4 own, Б 3.4 other, В 5.4 other (all without task); more are cloned."""
     d = base()
     for v in d["variants"]:
-        v.pop("task", None)
+        v.pop("task", None)     # a project from the database may lack tasks: read leniently
     clone(d, "А", "а2", "own", "Мыть")       # 8.4
     clone(d, "Б", "б2", "other", "Мыть")     # 3.4
     clone(d, "В", "в2", "other", "Мыть")     # 5.4
@@ -166,7 +166,7 @@ def grouped_project():
     clone(d, "Б", "б4", "own", "Одна")       # alone
     clone(d, "А", "а4", "other", "Вне", out="не сравнивать")
     clone(d, "Б", "б5", "own", "Мыть", out="ещё не готов")
-    return project_of(d)
+    return project_of(d, strict=False)
 
 
 def test_row_task_and_reason(project):

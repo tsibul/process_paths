@@ -241,8 +241,7 @@ def _twelve(tmp_path: Path) -> Path:
     for code, src, side, task, out in spec:
         v = {"code": code, "title": f"Вариант {code}", "side": side,
              "calls": long_calls if src is None else calls[src]}
-        if task:
-            v["task"] = task
+        v["task"] = task or f"Задача {code}"
         if out:
             v["out_of_comparison"] = out
         variants.append(v)

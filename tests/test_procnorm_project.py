@@ -429,6 +429,30 @@ def test_task_must_be_a_text(value):
     assert has(remarks_of(d), "task must be a text", "variant Б")
 
 
+def test_task_missing_in_file_is_remark():
+    d = base()
+    del variant(d, "Б")["task"]
+    assert has(remarks_of(d), "task is required", "variant Б")
+
+
+def test_task_missing_is_one_remark_per_variant():
+    d = base()
+    del variant(d, "А")["task"]
+    del variant(d, "В")["task"]
+    project, remarks = read_project(d)
+    assert project is None
+    texts = [(r.where, r.text) for r in remarks]
+    assert texts == [("variant А", "task is required"), ("variant В", "task is required")]
+
+
+def test_task_missing_lenient_read_has_no_remark():
+    d = base()
+    del variant(d, "Б")["task"]
+    project, remarks = read_project(d, strict=False)
+    assert remarks == []
+    assert project.tasks["Б"] is None
+
+
 # ---------- steps ----------
 
 def steps_of(count_each):

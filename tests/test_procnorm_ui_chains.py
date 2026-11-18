@@ -5,6 +5,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import json
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
 from procnorm.calc import compare, groups
-from procnorm.project import load_file
+from procnorm.project import load_file, read_project
 from procnorm.store import Store
 from procnorm.ui import style
 from procnorm.ui.app import MainWindow
@@ -134,11 +135,13 @@ def test_chain_head(chains):
 
 
 def test_chain_head_without_task(win, tmp_path):
-    data = json.loads(_chains_file(tmp_path).read_text(encoding="utf-8"))
+    # a file without a task is refused now; a project from the database may still lack one
+    text = _chains_file(tmp_path).read_text(encoding="utf-8")
+    data = json.loads(text, parse_float=Decimal)
     del data["variants"][3]["task"]
-    p = tmp_path / "notask.json"
-    p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    assert win.load_path(p)
+    project, remarks = read_project(data, strict=False)
+    assert remarks == []
+    win.refresh(win.store.add(project))
     page = win.chains
     page.select_path("Г")
     assert page.head_meta() == "● Ours · 1 step · 5 transitions"

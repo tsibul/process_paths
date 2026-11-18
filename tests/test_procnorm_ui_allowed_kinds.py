@@ -56,7 +56,7 @@ KITCHEN = {
             "task": "Tea",
             "calls": [["Wash", "Cook", "Hands", "Cup"], ["Dry", "Cook", "Towel", "Cup"]],
         },
-        {"code": "K3", "title": "Nothing yet", "side": "own", "calls": []},
+        {"code": "K3", "title": "Nothing yet", "side": "own", "task": "Task K3", "calls": []},
     ],
     "normalization": {
         "kind_costs": {"Wash": 1, "Dry": 1, "Boil": 2},

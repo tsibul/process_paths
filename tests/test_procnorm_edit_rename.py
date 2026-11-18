@@ -76,7 +76,7 @@ TEXT = """
        ["Pack", "Robot", "Tape", "Each"],
        ["Send", "Clerk", "Hands", "Each"]
      ]},
-    {"code": "V3", "title": "Third", "side": "other",
+    {"code": "V3", "title": "Third", "side": "other", "task": "Receive",
      "params": {"Packer": "Clerk", "Sender": "Clerk"},
      "calls": [
        ["Make box", "Clerk", "Hands", "Batch"],

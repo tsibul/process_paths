@@ -566,6 +566,25 @@ def _check_runs(model: Model, skip: set[str], r: _Remarks,
         r.add("kinds", f"kind {k} repeats the chain {' + '.join(chain)}")
 
 
+def _require_tasks(data: object, r: _Remarks) -> None:
+    """Stage 1, strict read only: every variant of a file has a task.
+
+    A project from the database and an edit are read leniently, so a project saved before the
+    task became required still opens and its variants without a task stay without a pair.
+    """
+    if not isinstance(data, dict) or not isinstance(data.get("variants"), list):
+        return
+    for v in data["variants"]:
+        if not isinstance(v, dict) or "task" in v:
+            continue
+        code = v.get("code")
+        if _is_text(code):
+            where = f"variant {code}"
+        else:
+            where = f"variant {data['variants'].index(v) + 1}"
+        r.add(where, "task is required")
+
+
 def read_project(data: object, strict: bool = True) -> tuple[Project | None, list[Remark]]:
     """Check a parsed project file and build the project.
 
@@ -577,6 +596,8 @@ def read_project(data: object, strict: bool = True) -> tuple[Project | None, lis
     """
     r = _Remarks()
     _check_structure(data, r)
+    if strict:
+        _require_tasks(data, r)
     if r:
         return None, r.items
     model = _build_model(data)
