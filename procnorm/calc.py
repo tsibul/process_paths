@@ -210,8 +210,33 @@ def _step_labour(project: Project, call) -> Decimal | None:
                     n.executor_coefficients.get(call.executor))
 
 
-def _skips(project: Project, s: Slice) -> list[tuple[str, str, Decimal | None]]:
-    """Check axes of the slice with no value or on the first value."""
+def _task_axes(project: Project, v: Variant) -> Slice:
+    """Initial values of the priced check axes the task of a variant adds to its slices.
+
+    These are the check axes with a skip price on the entities that another path of the same
+    task touches and this variant does not; the variant leaves them at their initial values. A
+    variant without a task adds none.
+    """
+    task = project.tasks.get(v.code)
+    if task is None:
+        return {}
+    m = project.model
+    names: set[str] = set()
+    for other in m.variants:
+        if project.tasks.get(other.code) == task:
+            names.update(variant_entities(m, other))
+    names -= set(variant_entities(m, v))
+    if not names:
+        return {}
+    s0 = initial_slice(m, replace(v, entities=tuple(names)))
+    prices = project.norm.skip_prices
+    return {(e, a): s0[(e, a)] for e, a in check_axes(m) if (e, a) in s0 and (e, a) in prices}
+
+
+def _skips(project: Project, s: Slice, outside: Slice) -> list[tuple[str, str, Decimal | None]]:
+    """Check axes of the slice, or of ``outside`` (see :func:`_task_axes`), with no value or on
+    the first value."""
+    s = {**outside, **s}
     out = []
     for e, a in check_axes(project.model):
         if (e, a) not in s:
@@ -229,8 +254,9 @@ def _sum(prices) -> Decimal | None:
     return total
 
 
-def _slice_result(project: Project, name: str, index: int, reached: bool, s: Slice) -> SliceResult:
-    found = _skips(project, s)
+def _slice_result(project: Project, name: str, index: int, reached: bool, s: Slice,
+                  outside: Slice) -> SliceResult:
+    found = _skips(project, s, outside)
     return SliceResult(name, index, reached, found, _sum(p for _, _, p in found))
 
 
@@ -283,12 +309,13 @@ def _row(project: Project, v: Variant, columns: list[str]) -> Row:
         if c.executor in labour:
             labour[c.executor] = _add(labour[c.executor], w)
     last = len(slices) - 1
+    outside = _task_axes(project, v)
     results = []
     for ns in project.model.named_slices:
         i = find_slice(v, slices, ns)
         idx = last if i is None else i
-        results.append(_slice_result(project, ns.name, idx, i is not None, slices[idx]))
-    results.append(_slice_result(project, FINAL, last, True, slices[last]))
+        results.append(_slice_result(project, ns.name, idx, i is not None, slices[idx], outside))
+    results.append(_slice_result(project, FINAL, last, True, slices[last], outside))
     return Row(v.code, v.title, project.sides[v.code], len(v.calls), labour, total, results,
                project.tasks.get(v.code), reason, missing, error)
 
@@ -448,7 +475,8 @@ def _reason_at(project: Project, v: Variant, number: int) -> str | None:
     return None
 
 
-def _done_total(project: Project, s: Slice) -> Decimal | None:
+def _done_total(project: Project, s: Slice, outside: Slice) -> Decimal | None:
+    s = {**outside, **s}
     total: Decimal | None = ZERO
     for e, a in check_axes(project.model):
         if (e, a) in s and s[(e, a)] is not None and s[(e, a)] != project.model.entity(e).axis(a).values[0]:
@@ -473,12 +501,13 @@ def series(project: Project, code: str) -> list[Point]:
         i = find_slice(v, slices, ns)
         if i is not None:
             reached.setdefault(i, []).append(ns.name)
+    outside = _task_axes(project, v)
     out, labour = [], ZERO
     for i, c in enumerate(v.calls, 1):
         labour = _add(labour, _step_labour(project, c))
-        found = _skips(project, slices[i])
+        found = _skips(project, slices[i], outside)
         out.append(Point(i, c.kind, c.executor, labour, [(e, a) for e, a, _ in found], len(found),
-                         _sum(p for _, _, p in found), _done_total(project, slices[i]),
+                         _sum(p for _, _, p in found), _done_total(project, slices[i], outside),
                          reached.get(i, [])))
     return out
 
@@ -495,9 +524,10 @@ def start_point(project: Project, code: str) -> Point:
     """
     v = next(x for x in project.model.variants if x.code == code)
     s0 = initial_slice(project.model, v)
-    found = _skips(project, s0)
+    outside = _task_axes(project, v)
+    found = _skips(project, s0, outside)
     return Point(0, "", "", ZERO, [(e, a) for e, a, _ in found], len(found),
-                 _sum(p for _, _, p in found), _done_total(project, s0), [])
+                 _sum(p for _, _, p in found), _done_total(project, s0, outside), [])
 
 
 def chain(project: Project, code: str) -> list[Link]:
