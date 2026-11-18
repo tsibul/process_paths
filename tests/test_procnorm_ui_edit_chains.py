@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from procnorm import edit
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
-from procnorm.ui.comparison import OUT
+from measure_twice import edit
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.comparison import OUT
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 A, B, V = "А", "Б", "В"  # А: 7 calls, its first step has none; В: 6 calls

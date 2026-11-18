@@ -7,7 +7,7 @@ import copy
 
 import pytest
 
-from procnorm import edit
+from measure_twice import edit
 from tests.test_procnorm_edit_rename import base, numbers, ok, refused, strings
 
 # Every place where a word of the base project is used (a set: the order is not part of the rule).

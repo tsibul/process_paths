@@ -14,14 +14,14 @@ from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLay
                                QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from procnorm import export
-from procnorm.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, series
-from procnorm.project import FINAL, Project
-from procnorm.ui import style
-from procnorm.ui.labour_scale import LabourScale
-from procnorm.ui.line_charts import LineCharts
-from procnorm.ui.pages import Page
-from procnorm.ui.tables import ARROW, CHECK, DASH, Table, label, mono
+from measure_twice import export
+from measure_twice.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, series
+from measure_twice.project import FINAL, Project
+from measure_twice.ui import style
+from measure_twice.ui.labour_scale import LabourScale
+from measure_twice.ui.line_charts import LineCharts
+from measure_twice.ui.pages import Page
+from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label, mono
 
 SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
 SIDE_TEXT = style.SIDE_TEXT

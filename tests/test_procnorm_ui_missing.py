@@ -14,14 +14,14 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from procnorm import export
-from procnorm.calc import compare
-from procnorm.project import read_project
-from procnorm.store import Store
-from procnorm.ui import style
-from procnorm.ui.app import MainWindow
-from procnorm.ui.labour_scale import LabourScale
-from procnorm.ui.line_charts import LineCharts
+from measure_twice import export
+from measure_twice.calc import compare
+from measure_twice.project import read_project
+from measure_twice.store import Store
+from measure_twice.ui import style
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.labour_scale import LabourScale
+from measure_twice.ui.line_charts import LineCharts
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 TASK = "Постирать бельё"

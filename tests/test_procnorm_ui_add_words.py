@@ -13,9 +13,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
-from procnorm import edit
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice import edit
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 from tests.test_procnorm_edit_delete import with_spares
 
 

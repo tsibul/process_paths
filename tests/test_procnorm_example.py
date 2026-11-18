@@ -1,4 +1,4 @@
-"""Tests of the built-in example project of procnorm."""
+"""Tests of the built-in example project of Measure Twice."""
 
 import os
 from pathlib import Path
@@ -9,11 +9,17 @@ import pytest
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from procnorm.example import (EXAMPLE_FILE, EXAMPLE_NAME, SEEDED, add_example, first_run,
-                              load_example)
-from procnorm.project import load_file
-from procnorm.store import Store
-from procnorm.ui.app import build_window
+from measure_twice.example import (
+    EXAMPLE_FILE,
+    EXAMPLE_NAME,
+    SEEDED,
+    add_example,
+    first_run,
+    load_example,
+)
+from measure_twice.project import load_file
+from measure_twice.store import Store
+from measure_twice.ui.app import build_window
 
 
 @pytest.fixture(scope="module")

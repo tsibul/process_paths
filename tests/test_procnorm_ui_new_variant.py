@@ -11,10 +11,10 @@ import json
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from procnorm import edit
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
-from procnorm.ui.comparison import NO_PAIR, OUT
+from measure_twice import edit
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.comparison import NO_PAIR, OUT
 
 # Made-up project: two variants of one task, a variant parameter, two executors.
 TEA = {

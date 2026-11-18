@@ -12,7 +12,7 @@ import copy
 import re
 from decimal import Decimal
 
-from procnorm.project import FINAL, Remark, read_project
+from measure_twice.project import FINAL, Remark, read_project
 
 NUMBER_TABLES = ("kind_costs", "executor_coefficients", "scope_coefficients", "axis_skip_prices")
 

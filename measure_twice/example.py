@@ -9,8 +9,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings
 
-from procnorm.project import Project, load_file
-from procnorm.store import Store
+from measure_twice.project import Project, load_file
+from measure_twice.store import Store
 
 EXAMPLE_FILE = Path(__file__).parent / "data" / "example.json"
 EXAMPLE_NAME = "Fix a leaking tap"

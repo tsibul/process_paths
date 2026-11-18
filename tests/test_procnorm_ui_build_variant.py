@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 TEXT = (Path(__file__).parent / "data" / "laundry.json").read_text("utf-8")
 LAUNDRY = json.loads(TEXT, parse_float=Decimal)

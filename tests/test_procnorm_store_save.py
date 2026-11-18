@@ -8,8 +8,8 @@ from decimal import Decimal
 
 import pytest
 
-from procnorm.project import read_project
-from procnorm.store import Store, dumps
+from measure_twice.project import read_project
+from measure_twice.store import Store, dumps
 from tests.test_procnorm_project import base
 
 

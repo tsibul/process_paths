@@ -1,4 +1,4 @@
-# procnorm: six prompts for an AI chat
+# Measure Twice: six prompts for an AI chat
 
 The person talks to an AI chat (ChatGPT, Gemini) in six steps and only copies the prompts below.
 Each step is one prompt; the person adds at most a sentence or two, then answers the AI's
@@ -10,7 +10,7 @@ Step 6 is built by the program when it refuses the file; it is used again until 
 Use it first, in a new chat. Replace {task} with one or two sentences about the task.
 
 ```text
-We will prepare a file for procnorm, a program that compares ways of doing one task by labour.
+We will prepare a file for Measure Twice, a program that compares ways of doing one task by labour.
 We go in six steps; I will give you a prompt for each. Rules for the whole conversation:
 - Do each step yourself. Do not stop to ask me questions. Where unsure, take the likely answer.
 - End every answer with "Points to check": 2-4 numbered doubtful places. I answer "yes" or
@@ -100,7 +100,7 @@ Use it when the executors and numbers are agreed.
 
 ```text
 Step 5. File.
-Write what we agreed as one procnorm file: JSON, whole, in one code block, in my language.
+Write what we agreed as one Measure Twice file: JSON, whole, in one code block, in my language.
 Use only the actions agreed at steps 2-4; add no preparation (get or put away tools) I did not
 name. First run each variant through the axes yourself. Then "Points to check":
 choices you made.

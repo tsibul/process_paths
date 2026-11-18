@@ -10,9 +10,15 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.edit import (add_call, copy_variant, delete_variant, move_call, remove_call,
-                           rename_variant)
-from procnorm.project import read_project
+from measure_twice.edit import (
+    add_call,
+    copy_variant,
+    delete_variant,
+    move_call,
+    remove_call,
+    rename_variant,
+)
+from measure_twice.project import read_project
 
 TEXT = (Path(__file__).parent / "data" / "laundry.json").read_text(encoding="utf-8")
 A, B = "А", "Б"

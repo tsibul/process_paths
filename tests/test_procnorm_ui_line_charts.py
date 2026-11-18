@@ -16,10 +16,10 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from procnorm.calc import compare, series, start_point
-from procnorm.project import read_project
-from procnorm.ui import style
-from procnorm.ui.line_charts import LineCharts
+from measure_twice.calc import compare, series, start_point
+from measure_twice.project import read_project
+from measure_twice.ui import style
+from measure_twice.ui.line_charts import LineCharts
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 

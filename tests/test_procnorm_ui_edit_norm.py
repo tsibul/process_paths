@@ -13,10 +13,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLineEdit
 
-from procnorm.cli import main as cli
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
-from procnorm.ui.comparison import SIDES
+from measure_twice.cli import main as cli
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.comparison import SIDES
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 WASH = "Постирать"  # cost 1, every variant uses it

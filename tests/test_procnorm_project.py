@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Tests of reading and checking a procnorm project file."""
+"""Tests of reading and checking a Measure Twice project file."""
 
 import copy
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.project import load_file, parse_text, read_project
+from measure_twice.project import load_file, parse_text, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 TEXT = LAUNDRY.read_text(encoding="utf-8")

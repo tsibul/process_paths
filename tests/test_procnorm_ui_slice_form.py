@@ -13,8 +13,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 # Made-up project: a chair is primed, painted and its legs fixed; a table is sanded.
 WORKSHOP = json.loads("""

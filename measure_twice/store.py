@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm.project import Project, read_project
+from measure_twice.project import Project, read_project
 
 SCHEMA_VERSION = "1"
 
@@ -74,6 +74,10 @@ def dumps(data: object) -> str:
 def default_path() -> Path:
     """Path of the database; the folder is created.
 
+    When the new database does not exist yet but the one of the old program name
+    (``procnorm/procnorm.db``) does, the old one is used in place: nothing is copied or moved,
+    and the new folder is not created.
+
     :return: the path.
     :rtype: Path
     """
@@ -81,9 +85,13 @@ def default_path() -> Path:
         base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    folder = base / "procnorm"
+    folder = base / "measure_twice"
+    path = folder / "measure_twice.db"
+    old = base / "procnorm" / "procnorm.db"
+    if not path.exists() and old.exists():
+        return old
     folder.mkdir(parents=True, exist_ok=True)
-    return folder / "procnorm.db"
+    return path
 
 
 def _now() -> str:

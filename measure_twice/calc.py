@@ -12,7 +12,7 @@ from process_paths.engine import Slice, TransitionError, apply, initial_slice, r
 from process_paths.model import Call, Variant
 from process_paths.norm import find_slice
 
-from procnorm.project import FINAL, Project, check_axes
+from measure_twice.project import FINAL, Project, check_axes
 
 ZERO = Decimal(0)
 

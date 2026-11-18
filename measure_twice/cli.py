@@ -9,12 +9,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from procnorm import export
-from procnorm.project import load_file
+from measure_twice import export
+from measure_twice.project import load_file
 
 
 def _parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="procnorm", description="Compare the path variants of a project.")
+    p = argparse.ArgumentParser(
+        prog="measure-twice",
+        description="Compare the path variants of a project.",
+    )
     sub = p.add_subparsers(dest="command")
     c = sub.add_parser("check", help="check a project file")
     c.add_argument("file")
@@ -33,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _parser().parse_args(argv)
     if args.command is None:
-        from procnorm.ui.app import main as ui_main
+        from measure_twice.ui.app import main as ui_main
         ui_main()
         return 0
     project, remarks = load_file(Path(args.file))

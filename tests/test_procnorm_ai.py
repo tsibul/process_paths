@@ -11,11 +11,21 @@ import pytest
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QPushButton
 
-from procnorm.ai import (INSTRUCTIONS_FILE, PROMPT_LIMIT, PROMPTS_FILE, extract_json, instructions,
-                         parse_prompts, prompts, remarks_prompt, request_text, task_limit,
-                         task_prompt)
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.ai import (
+    INSTRUCTIONS_FILE,
+    PROMPT_LIMIT,
+    PROMPTS_FILE,
+    extract_json,
+    instructions,
+    parse_prompts,
+    prompts,
+    remarks_prompt,
+    request_text,
+    task_limit,
+    task_prompt,
+)
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 DOCS = Path(__file__).parent.parent / "docs"
 EXAMPLE = DOCS / "example_tap.json"
@@ -123,7 +133,7 @@ def test_six_prompts_from_the_packaged_file():
         "Remarks",
     ]
     assert found[1].note == "Use it when the list of ways is agreed."
-    assert found[0].text.startswith("We will prepare a file for procnorm")
+    assert found[0].text.startswith("We will prepare a file for Measure Twice")
     assert "{task}" in found[0].text
     assert "{remarks}" in found[5].text
     assert found[4].text.startswith("Step 5. File.")

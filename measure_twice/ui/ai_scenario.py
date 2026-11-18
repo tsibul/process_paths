@@ -15,8 +15,8 @@ from PySide6.QtGui import QGuiApplication, QPainter, QTextCursor
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
                                QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
-from procnorm.ai import Prompt, prompts, remarks_prompt, task_limit, task_prompt
-from procnorm.ui.tables import label
+from measure_twice.ai import Prompt, prompts, remarks_prompt, task_limit, task_prompt
+from measure_twice.ui.tables import label
 
 TITLE = "Add a process with AI"
 COPIED = "✓ Copied. Paste it into your AI chat."

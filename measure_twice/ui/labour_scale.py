@@ -17,10 +17,10 @@ from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen, QStaticText
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget
 
-from procnorm.calc import Point, Row, fmt, money, series, start_point
-from procnorm.project import Project
-from procnorm.ui import style
-from procnorm.ui.tables import CHECK, mono
+from measure_twice.calc import Point, Row, fmt, money, series, start_point
+from measure_twice.project import Project
+from measure_twice.ui import style
+from measure_twice.ui.tables import CHECK, mono
 
 LABEL_W = 230
 AXIS_H = 22

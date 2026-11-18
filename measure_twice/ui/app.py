@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Main window of procnorm, version 1: stored projects, remarks, four read-only tabs."""
+"""Main window of Measure Twice, version 1: stored projects, remarks, four read-only tabs."""
 
 from __future__ import annotations
 
@@ -15,21 +15,29 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QInputDialog, QLabel, QMainWindow, QMessageBox, QPushButton,
                                QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
-from procnorm.calc import empty_steps, project_empty_steps
-from procnorm import edit
-from procnorm.ai import extract_json
-from procnorm.example import EXAMPLE_NAME, add_example, first_run
-from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
-                           rename_variant, set_number)
-from procnorm.project import Project, load_file, parse_text, read_project
-from procnorm.store import Store, default_path
-from procnorm.ui.ai_scenario import TITLE as AI_TITLE, AiScenarioDialog
-from procnorm.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
-from procnorm.ui.comparison import ComparisonPage
-from procnorm.ui.pages import DictionaryPage, NormPage
-from procnorm.ui.remarks import RemarksPanel
-from procnorm.ui.style import ACCENT, STYLE
-from procnorm.ui.tables import label
+from measure_twice.calc import empty_steps, project_empty_steps
+from measure_twice import edit
+from measure_twice.ai import extract_json
+from measure_twice.example import EXAMPLE_NAME, add_example, first_run
+from measure_twice.edit import (
+    add_call,
+    copy_code,
+    copy_variant,
+    delete_variant,
+    move_call,
+    remove_call,
+    rename_variant,
+    set_number,
+)
+from measure_twice.project import Project, load_file, parse_text, read_project
+from measure_twice.store import Store, default_path
+from measure_twice.ui.ai_scenario import TITLE as AI_TITLE, AiScenarioDialog
+from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
+from measure_twice.ui.comparison import ComparisonPage
+from measure_twice.ui.pages import DictionaryPage, NormPage
+from measure_twice.ui.remarks import RemarksPanel
+from measure_twice.ui.style import ACCENT, STYLE
+from measure_twice.ui.tables import label
 
 LAST = "last_project"
 NEW_NAME = "New project"
@@ -97,7 +105,7 @@ class MainWindow(QMainWindow):
         self.current_id: int | None = None
         self._amber: list[str] = []  # variants that got errors after a dictionary edit
         self._scenario: AiScenarioDialog | None = None  # kept between openings until a load
-        self.setWindowTitle("procnorm")
+        self.setWindowTitle("Measure Twice")
         self.setStyleSheet(STYLE)
         self.resize(1100, 780)
 
@@ -107,7 +115,7 @@ class MainWindow(QMainWindow):
         lay.setSpacing(0)
         head = QVBoxLayout()
         head.setContentsMargins(16, 14, 16, 12)
-        head.addWidget(label("procnorm", "title"))
+        head.addWidget(label("Measure Twice", "title"))
         bar = QHBoxLayout()
         bar.setSpacing(8)
         bar.addWidget(label("<b>Project:</b>"))
@@ -312,7 +320,7 @@ class MainWindow(QMainWindow):
             Delete asks ``confirm`` first; a copy is chosen, after a delete the neighbour is chosen.
             ``variant`` with ``(code, {field: value})`` changes several fields at once.
             ``header`` with ``(code, field, value)`` changes one field of
-            :func:`procnorm.edit.set_variant`; ``new`` with ``()`` adds a variant ``New N``
+            :func:`measure_twice.edit.set_variant`; ``new`` with ``()`` adds a variant ``New N``
             and chooses it.
         :return: whether the edit was accepted.
         :rtype: bool
@@ -719,12 +727,12 @@ class MainWindow(QMainWindow):
 
     def confirm(self, text: str) -> bool:
         """Ask yes or no."""
-        answer = QMessageBox.question(self, "procnorm", text)
+        answer = QMessageBox.question(self, "Measure Twice", text)
         return answer == QMessageBox.StandardButton.Yes
 
     def warn(self, text: str) -> None:
         """Show a problem."""
-        QMessageBox.warning(self, "procnorm", text)
+        QMessageBox.warning(self, "Measure Twice", text)
 
     def ask_name(self, text: str) -> str | None:
         """Ask the name of a new project; ``None`` when cancelled."""
@@ -792,11 +800,25 @@ def build_window(store: Store, settings: QSettings, select: int | None = None) -
     return MainWindow(store, settings)
 
 
+def carry_settings(new: QSettings, old: QSettings) -> None:
+    """Copy the settings of the old program name once; the old ones stay in place.
+
+    :param new: the settings of Measure Twice; copied into only when they have no keys.
+    :param old: the settings of the old program name.
+    """
+    if new.allKeys():
+        return
+    for key in old.allKeys():
+        new.setValue(key, old.value(key))
+    new.sync()
+
+
 def main() -> int:
     """Run the window over the default store."""
     app = QApplication.instance() or QApplication(sys.argv)
     store = Store(default_path())
-    settings = QSettings("procnorm", "procnorm")
+    settings = QSettings("measure_twice", "measure_twice")
+    carry_settings(settings, QSettings("procnorm", "procnorm"))
     window = build_window(store, settings, first_run(store, settings))
     window.show()
     try:

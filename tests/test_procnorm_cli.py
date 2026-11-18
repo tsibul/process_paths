@@ -7,7 +7,7 @@ import csv
 import io
 from pathlib import Path
 
-from procnorm.cli import main
+from measure_twice.cli import main
 
 LAUNDRY = str(Path(__file__).parent / "data" / "laundry.json")
 

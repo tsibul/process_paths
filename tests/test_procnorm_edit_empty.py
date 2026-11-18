@@ -3,10 +3,10 @@
 
 """Tests of the empty project: the start of the manual input."""
 
-from procnorm import edit
-from procnorm.calc import compare
-from procnorm.project import read_project
-from procnorm.store import Store
+from measure_twice import edit
+from measure_twice.calc import compare
+from measure_twice.project import read_project
+from measure_twice.store import Store
 
 
 def test_empty_project_reads_leniently():

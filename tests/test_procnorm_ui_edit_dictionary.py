@@ -12,10 +12,10 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLineEdit
 
-from procnorm import edit
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
-from procnorm.ui.pages import WORD
+from measure_twice import edit
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.pages import WORD
 from tests.test_procnorm_edit_delete import with_spares
 
 # Every sort of word, by a name the made-up project has (see tests.test_procnorm_edit_rename).

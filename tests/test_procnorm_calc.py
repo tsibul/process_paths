@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Tests of the comparison and step details of procnorm."""
+"""Tests of the comparison and step details of Measure Twice."""
 
 import copy
 import json
@@ -10,9 +10,19 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.calc import (Link, chain, compare, details, empty_steps, fmt, groups, project_empty_steps,
-                           series, start_point)
-from procnorm.project import load_file, read_project
+from measure_twice.calc import (
+    Link,
+    chain,
+    compare,
+    details,
+    empty_steps,
+    fmt,
+    groups,
+    project_empty_steps,
+    series,
+    start_point,
+)
+from measure_twice.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 D = Decimal

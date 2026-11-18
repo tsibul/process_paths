@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from procnorm import export
-from procnorm.calc import compare, groups, money
-from procnorm.project import load_file, read_project
+from measure_twice import export
+from measure_twice.calc import compare, groups, money
+from measure_twice.project import load_file, read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 

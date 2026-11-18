@@ -10,8 +10,8 @@ from pathlib import Path
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPlainTextEdit, QPushButton, QVBoxLayout
 
-from procnorm.project import Remark
-from procnorm.ui.tables import label
+from measure_twice.project import Remark
+from measure_twice.ui.tables import label
 
 
 FILE_NOTE = "Nothing was stored. Fix the file and load it again."

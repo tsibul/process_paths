@@ -1,6 +1,6 @@
 # Встроенный пример «Fix a leaking tap»
 
-Файл данных: `docs/example_tap.json` (формат схемы 1, как `tests/data/laundry.json`; читается строго, `python3 -m procnorm table docs/example_tap.json` считает). Всё выдуманное, тексты на английском.
+Файл данных: `docs/example_tap.json` (формат схемы 1, как `tests/data/laundry.json`; читается строго, `python3 -m measure_twice table docs/example_tap.json` считает). Всё выдуманное, тексты на английском.
 
 ## Что в модели
 

@@ -10,9 +10,9 @@ from decimal import Decimal
 
 import pytest
 
-from procnorm.calc import compare
-from procnorm import edit
-from procnorm.project import read_project
+from measure_twice.calc import compare
+from measure_twice import edit
+from measure_twice.project import read_project
 
 # Made-up project; every word is written once in the dictionary and spelled unlike any other
 # string of the file, so "the old name is nowhere" is a plain search. The value "wrapped" is one

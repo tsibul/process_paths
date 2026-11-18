@@ -9,8 +9,8 @@ import json
 
 import pytest
 
-from procnorm import edit
-from procnorm.project import read_project
+from measure_twice import edit
+from measure_twice.project import read_project
 
 # Made-up project with one variant parameter and two variants.
 BASE = json.loads("""

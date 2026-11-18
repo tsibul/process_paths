@@ -10,8 +10,8 @@ import io
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm.calc import Comparison, Group, Row, Step, compare, details, fmt, groups, money
-from procnorm.project import FINAL, Project
+from measure_twice.calc import Comparison, Group, Row, Step, compare, details, fmt, groups, money
+from measure_twice.project import FINAL, Project
 
 DASH = "—"
 ARROW = "→"

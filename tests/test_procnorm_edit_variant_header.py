@@ -9,8 +9,8 @@ import json
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm import edit
-from procnorm.project import read_project
+from measure_twice import edit
+from measure_twice.project import read_project
 
 LAUNDRY = json.loads(
     (Path(__file__).parent / "data" / "laundry.json").read_text("utf-8"), parse_float=Decimal)

@@ -15,10 +15,10 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFrame, 
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
                                QStyledItemDelegate, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from procnorm.calc import fmt
-from procnorm.project import Project, check_axes
-from procnorm.ui import style
-from procnorm.ui.tables import ARROW, CHECK, DASH, Table, label
+from measure_twice.calc import fmt
+from measure_twice.project import Project, check_axes
+from measure_twice.ui import style
+from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label
 
 NOT_SET = "not set"
 SAVED_NOTE = "Changes are saved at once. To keep the old numbers, copy the project."

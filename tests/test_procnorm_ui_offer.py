@@ -9,8 +9,8 @@ import json
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 from test_procnorm_ui_chains import _chains_file
 

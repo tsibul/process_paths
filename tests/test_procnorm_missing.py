@@ -5,8 +5,8 @@
 
 from decimal import Decimal as D
 
-from procnorm import calc
-from procnorm.project import read_project
+from measure_twice import calc
+from measure_twice.project import read_project
 from tests.test_procnorm_project import base, variant
 
 

@@ -24,12 +24,21 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGrid
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton,
                                QRadioButton, QStyle, QStyledItemDelegate, QVBoxLayout, QWidget)
 
-from procnorm.calc import Link, Row, allowed_kinds, chain, compare, empty_steps, groups, slice_at
-from procnorm.project import Project
-from procnorm.ui import style
-from procnorm.ui.comparison import NO_PAIR, OUT, PAD_X, SIDE_TEXT, GroupHeader
-from procnorm.ui.pages import Page
-from procnorm.ui.tables import Table, item, label, mono
+from measure_twice.calc import (
+    Link,
+    Row,
+    allowed_kinds,
+    chain,
+    compare,
+    empty_steps,
+    groups,
+    slice_at,
+)
+from measure_twice.project import Project
+from measure_twice.ui import style
+from measure_twice.ui.comparison import NO_PAIR, OUT, PAD_X, SIDE_TEXT, GroupHeader
+from measure_twice.ui.pages import Page
+from measure_twice.ui.tables import Table, item, label, mono
 
 LIST_WIDTH = 300  # px, as the mockup's path list
 STEP_COL = 32  # step number column, px
@@ -739,7 +748,7 @@ class ChainsPage(Page):
     its code: ``("move", (code, number, ±1))``, ``("remove", (code, number))``,
     ``("add", (code, after, call, step))``, ``("copy", (code,))``, ``("delete", (code,))``,
     ``("rename", (code, new code, title))``, ``("header", (code, field, value))`` with a field of
-    :func:`procnorm.edit.set_variant` (``side``, ``task``, ``out_of_comparison``, ``params``,
+    :func:`measure_twice.edit.set_variant` (``side``, ``task``, ``out_of_comparison``, ``params``,
     ``entities``, ``initial``).
     ``("new", ())`` asks for a new variant.
     """

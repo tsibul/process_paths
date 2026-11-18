@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.project import load_file
-from procnorm.store import ProjectInfo, Store, default_path, dumps
+from measure_twice.project import load_file
+from measure_twice.store import ProjectInfo, Store, default_path, dumps
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 
@@ -102,5 +102,39 @@ def test_default_path_xdg(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.platform", "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
     p = default_path()
-    assert p == tmp_path / "procnorm" / "procnorm.db"
+    assert p == tmp_path / "measure_twice" / "measure_twice.db"
     assert p.parent.is_dir()
+
+
+def test_default_path_keeps_old_database(tmp_path, monkeypatch):
+    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    old = tmp_path / "procnorm" / "procnorm.db"
+    old.parent.mkdir()
+    old.write_bytes(b"made-up")
+    p = default_path()
+    assert p == old
+    assert old.read_bytes() == b"made-up"
+    assert not (tmp_path / "measure_twice").exists()
+
+
+def test_default_path_new_database_wins(tmp_path, monkeypatch):
+    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    old = tmp_path / "procnorm" / "procnorm.db"
+    old.parent.mkdir()
+    old.write_bytes(b"old")
+    new = tmp_path / "measure_twice" / "measure_twice.db"
+    new.parent.mkdir()
+    new.write_bytes(b"new")
+    assert default_path() == new
+
+
+def test_default_path_windows_keeps_old_database(tmp_path, monkeypatch):
+    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    old = tmp_path / "procnorm" / "procnorm.db"
+    old.parent.mkdir()
+    old.write_bytes(b"made-up")
+    assert default_path() == old
+    assert not (tmp_path / "measure_twice").exists()

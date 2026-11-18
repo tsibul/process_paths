@@ -17,11 +17,11 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from procnorm.calc import allowed_kinds, slice_at
-from procnorm.project import read_project
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
-from procnorm.ui.tables import mono
+from measure_twice.calc import allowed_kinds, slice_at
+from measure_twice.project import read_project
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
+from measure_twice.ui.tables import mono
 
 # Made-up project: K1 and K2 run, K3 has no transitions; a test breaks K2 at its first transition.
 KITCHEN = {

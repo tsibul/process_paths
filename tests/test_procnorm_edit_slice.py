@@ -7,8 +7,8 @@ from a file, the refusals are the refusals of the read."""
 import copy
 import json
 
-from procnorm import edit
-from procnorm.project import read_project
+from measure_twice import edit
+from measure_twice.project import read_project
 
 # Made-up project: an order with a status and a flag, a variant parameter with two executors.
 BASE = json.loads("""

@@ -1,4 +1,4 @@
-# procnorm: input file format and rules for filling it in
+# Measure Twice: input file format and rules for filling it in
 
 This document is addressed to a language model that prepares a project file in a conversation with a person. The person does not read or edit the file: they load it into the application and see the result in its window. So the file must pass the check in full; the person will pass the check's remarks to you as they are.
 

@@ -7,7 +7,7 @@ file tests/data/laundry.json."""
 import json
 from pathlib import Path
 
-from procnorm import edit
+from measure_twice import edit
 
 LAUNDRY = json.loads(
     (Path(__file__).parent / "data" / "laundry.json").read_text(encoding="utf-8"))

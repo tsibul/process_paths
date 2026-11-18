@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from procnorm.edit import set_number
-from procnorm.project import read_project
+from measure_twice.edit import set_number
+from measure_twice.project import read_project
 
 TEXT = (Path(__file__).parent / "data" / "laundry.json").read_text(encoding="utf-8")
 

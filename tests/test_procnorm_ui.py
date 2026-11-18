@@ -1,4 +1,4 @@
-"""Tests of the procnorm window (version 1)."""
+"""Tests of the Measure Twice window (version 1)."""
 
 import os
 
@@ -11,8 +11,8 @@ import pytest
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication
 
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 EXAMPLE = Path(__file__).parent / "data" / "laundry.json"
 
@@ -323,8 +323,8 @@ def test_filter_theirs_hides_ours_and_empty_groups(twelve):
 
 
 def test_two_open_at_once_steps_and_skips_left(twelve):
-    from procnorm.calc import details, series
-    from procnorm.project import load_file
+    from measure_twice.calc import details, series
+    from measure_twice.project import load_file
     project, _ = load_file(twelve.twelve_path)
     c = twelve.comparison
     assert c.open_codes() == []
@@ -414,8 +414,8 @@ def test_screenshot_twelve(twelve):
 # --- Compare steps view (piece 6)
 
 def _series(win, code):
-    from procnorm.calc import series
-    from procnorm.project import load_file
+    from measure_twice.calc import series
+    from measure_twice.project import load_file
     project, _ = load_file(win.twelve_path)
     return series(project, code)
 
@@ -448,7 +448,7 @@ def test_compare_steps_cells_equal_series(twelve):
         points = _series(twelve, code)
         for p in points:
             cell = v.cell(p.number, code)
-            from procnorm.calc import money
+            from measure_twice.calc import money
             assert cell.lines() == [p.kind, money(p.labour), f"Skips left: {p.skips_count}"]
             assert cell.marker_text() == " ".join(f"{n} ✓" for n in p.slices)
     assert v.cell(4, "А").marker_text() == "постирано ✓"  # Постирать is step 4 of А
@@ -576,7 +576,7 @@ def test_out_of_comparison_group_has_numbers_reason_and_steps(twelve):
 def test_steps_table_cuts_no_word(twelve):
     from PySide6.QtCore import QRect
     from PySide6.QtGui import QFontMetrics
-    from procnorm.ui.comparison import STEP_NUMERIC
+    from measure_twice.ui.comparison import STEP_NUMERIC
     t = _shown_at(twelve, 1100, "Ж")  # Ж has the long executor name
     assert any(len(t.item(r, 2).text().split()) > 3 for r in range(t.rowCount()))
     from PySide6.QtWidgets import QStyle
@@ -597,7 +597,7 @@ def test_steps_table_cuts_no_word(twelve):
 # --- charts and labour scale on the comparison tab
 
 def _shown_charts(c):
-    from procnorm.ui.line_charts import LineCharts
+    from measure_twice.ui.line_charts import LineCharts
     return [w for w in c.findChildren(LineCharts) if w.isVisibleTo(c)]
 
 

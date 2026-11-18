@@ -10,9 +10,9 @@ from pathlib import Path
 import pytest
 
 from process_paths.engine import initial_slice, run_variant
-from procnorm.calc import allowed_kinds, slice_at
-from procnorm.edit import add_call
-from procnorm.project import read_project
+from measure_twice.calc import allowed_kinds, slice_at
+from measure_twice.edit import add_call
+from measure_twice.project import read_project
 
 LAUNDRY = Path(__file__).parent / "data" / "laundry.json"
 CODES = ["А", "Б", "В"]

@@ -6,7 +6,7 @@
 import pytest
 
 from process_paths.engine import TransitionError, run_variant
-from procnorm.project import read_project
+from measure_twice.project import read_project
 from tests.test_procnorm_project import base, has, kind, variant
 
 

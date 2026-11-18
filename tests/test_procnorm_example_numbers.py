@@ -2,9 +2,9 @@
 
 from decimal import Decimal
 
-from procnorm.calc import compare
-from procnorm.example import EXAMPLE_FILE
-from procnorm.project import load_file
+from measure_twice.calc import compare
+from measure_twice.example import EXAMPLE_FILE
+from measure_twice.project import load_file
 
 
 def test_example_final_skipped_checks():

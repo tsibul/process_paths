@@ -1,4 +1,4 @@
-"""Tests of the Step chains tab of the procnorm window."""
+"""Tests of the Step chains tab of the Measure Twice window."""
 
 import os
 
@@ -12,11 +12,11 @@ import pytest
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
-from procnorm.calc import compare, groups
-from procnorm.project import load_file, read_project
-from procnorm.store import Store
-from procnorm.ui import style
-from procnorm.ui.app import MainWindow
+from measure_twice.calc import compare, groups
+from measure_twice.project import load_file, read_project
+from measure_twice.store import Store
+from measure_twice.ui import style
+from measure_twice.ui.app import MainWindow
 
 EXAMPLE = Path(__file__).parent / "data" / "laundry.json"
 TASK = "Постирать бельё"

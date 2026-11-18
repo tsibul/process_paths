@@ -7,8 +7,8 @@ import json
 from decimal import Decimal
 from pathlib import Path
 
-from procnorm.calc import compare, series, start_point
-from procnorm.project import read_project
+from measure_twice.calc import compare, series, start_point
+from measure_twice.project import read_project
 
 PROMPTS = Path(__file__).parent.parent / "docs" / "ai_prompts_en.md"
 D = Decimal

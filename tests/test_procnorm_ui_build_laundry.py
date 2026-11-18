@@ -14,8 +14,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from procnorm.store import Store
-from procnorm.ui.app import MainWindow
+from measure_twice.store import Store
+from measure_twice.ui.app import MainWindow
 
 LAUNDRY = json.loads(
     (Path(__file__).parent / "data" / "laundry.json").read_text(encoding="utf-8"))

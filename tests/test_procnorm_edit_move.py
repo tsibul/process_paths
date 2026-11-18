@@ -8,9 +8,9 @@ import json
 
 import pytest
 
-from procnorm import edit
-from procnorm.calc import compare
-from procnorm.project import read_project
+from measure_twice import edit
+from measure_twice.calc import compare
+from measure_twice.project import read_project
 
 # Made-up project: two entities with the existence axis, two kinds, two variants.
 BASE = json.loads("""

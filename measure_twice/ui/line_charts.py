@@ -12,10 +12,10 @@ from PySide6.QtCore import QMargins, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from procnorm.calc import Point, Row, series, start_point
-from procnorm.export import SIDES
-from procnorm.project import Project
-from procnorm.ui import style
+from measure_twice.calc import Point, Row, series, start_point
+from measure_twice.export import SIDES
+from measure_twice.project import Project
+from measure_twice.ui import style
 
 
 def _view(title: str, y_title: str) -> QChartView:
