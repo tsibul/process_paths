@@ -23,7 +23,7 @@ from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, mo
                            rename_variant, set_number)
 from procnorm.project import Project, load_file, parse_text, read_project
 from procnorm.store import Store, default_path
-from procnorm.ui.ai_dialogs import AskAiDialog, PasteAnswerDialog
+from procnorm.ui.ai_scenario import TITLE as AI_TITLE, AiScenarioDialog
 from procnorm.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
 from procnorm.ui.comparison import ComparisonPage
 from procnorm.ui.pages import DictionaryPage, NormPage
@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         self.settings = settings
         self.current_id: int | None = None
         self._amber: list[str] = []  # variants that got errors after a dictionary edit
+        self._scenario: AiScenarioDialog | None = None  # kept between openings until a load
         self.setWindowTitle("procnorm")
         self.setStyleSheet(STYLE)
         self.resize(1100, 780)
@@ -119,8 +120,7 @@ class MainWindow(QMainWindow):
         self.save_button = self._button(bar, "Save file", self.on_save)
         self.copy_button = self._button(bar, "Copy", self.copy_project)
         self.delete_button = self._button(bar, "Delete", self.delete_project)
-        self.ask_ai_button = self._button(bar, "Ask AI", self.on_ask_ai)
-        self.paste_answer_button = self._button(bar, "Paste answer", self.on_paste_answer)
+        self.ai_button = self._button(bar, AI_TITLE, self.on_ai)
         self.example_button = self._button(bar, "Example", self.show_example)
         self.example_button.setToolTip(f"Add the {EXAMPLE_NAME} example")
         head.addLayout(bar)
@@ -160,6 +160,8 @@ class MainWindow(QMainWindow):
 
         last = settings.value(LAST) if settings is not None else None
         self.refresh(int(last) if last is not None else None)
+        # Wide enough for the whole button row.
+        self.resize(max(1100, self.minimumSizeHint().width()), 780)
 
     def _build_offer(self) -> None:
         strip = self.tabs.strip
@@ -663,16 +665,15 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentWidget(self.comparison)
         self.statusBar().showMessage(message)
 
-    def ask_ai_dialog(self) -> AskAiDialog:
-        """The Ask AI dialog, not yet shown."""
-        dialog = AskAiDialog(self)
-        dialog.copied.connect(
-            lambda: self.statusBar().showMessage("Copied. Paste it into the AI chat."))
-        return dialog
+    def ai_scenario(self) -> AiScenarioDialog:
+        """The AI scenario screen, not yet shown: the same one until an answer loads."""
+        if self._scenario is None:
+            self._scenario = AiScenarioDialog(self.load_text, self)
+            self._scenario.accepted.connect(self._scenario_done)
+        return self._scenario
 
-    def paste_answer_dialog(self) -> PasteAnswerDialog:
-        """The Paste answer dialog, not yet shown."""
-        return PasteAnswerDialog(self.load_text, self)
+    def _scenario_done(self) -> None:
+        self._scenario = None
 
     def new_project(self, name: str) -> bool:
         """Create an empty project, select it and open the Dictionary tab.
@@ -737,15 +738,10 @@ class MainWindow(QMainWindow):
         if name is not None:
             self.new_project(name)
 
-    def on_ask_ai(self) -> None:
-        dialog = self.ask_ai_dialog()
-        dialog.exec()
-        dialog.deleteLater()
-
-    def on_paste_answer(self) -> None:
-        dialog = self.paste_answer_dialog()
-        dialog.exec()
-        dialog.deleteLater()
+    def on_ai(self) -> None:
+        dialog = self.ai_scenario()
+        if dialog.exec() == AiScenarioDialog.DialogCode.Accepted:
+            dialog.deleteLater()
 
     def on_load(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load project file", "", JSON_FILTER)

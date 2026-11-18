@@ -1,4 +1,4 @@
-"""Tests of the AI request text, the JSON extraction and the Ask AI and Paste answer dialogs."""
+"""Tests of the AI request text, the six prompts, the JSON extraction and the AI scenario screen."""
 
 import os
 
@@ -11,7 +11,9 @@ import pytest
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QPushButton
 
-from procnorm.ai import INSTRUCTIONS_FILE, extract_json, instructions, request_text
+from procnorm.ai import (INSTRUCTIONS_FILE, PROMPT_LIMIT, PROMPTS_FILE, extract_json, instructions,
+                         parse_prompts, prompts, remarks_prompt, request_text, task_limit,
+                         task_prompt)
 from procnorm.store import Store
 from procnorm.ui.app import MainWindow
 
@@ -69,6 +71,115 @@ def test_request_text_puts_description_after_instructions():
     assert text == head + "\n\nMy process:\nWe repaint a fence.\nTwo people."
 
 
+# --- the six prompts
+
+PROMPTS_MD = """# Some title
+
+Intro text.
+
+## Prompt 1. Start
+
+Use it first.
+
+```text
+Line one {task}
+Line two
+```
+
+## Prompt 2. Finish
+
+Use it last.
+
+```text
+Fix:
+{remarks}
+```
+"""
+
+
+def test_packaged_prompts_equal_docs_prompts():
+    assert PROMPTS_FILE.read_bytes() == (DOCS / "ai_prompts_en.md").read_bytes()
+
+
+def test_parse_prompts_takes_number_name_note_and_text():
+    found = parse_prompts(PROMPTS_MD)
+    assert [(p.number, p.name, p.note) for p in found] == [
+        (1, "Start", "Use it first."),
+        (2, "Finish", "Use it last."),
+    ]
+    assert found[0].text == "Line one {task}\nLine two"
+    assert found[1].text == "Fix:\n{remarks}"
+
+
+def test_six_prompts_from_the_packaged_file():
+    found = prompts()
+    assert [p.number for p in found] == [1, 2, 3, 4, 5, 6]
+    assert [p.name for p in found] == [
+        "Task",
+        "Steps",
+        "Same actions and checks",
+        "Who and how much",
+        "File",
+        "Remarks",
+    ]
+    assert found[1].note == "Use it when the list of ways is agreed."
+    assert found[0].text.startswith("We will prepare a file for procnorm")
+    assert "{task}" in found[0].text
+    assert "{remarks}" in found[5].text
+    assert found[4].text.startswith("Step 5. File.")
+    assert '"normalization": {' in found[4].text
+    assert not found[4].text.endswith("```")
+
+
+def test_task_prompt_fills_the_task():
+    text = task_prompt("We wash a car.")
+    assert "My task: We wash a car.\n" in text
+    assert "{task}" not in text
+
+
+def test_remarks_prompt_puts_one_remark_per_line():
+    text = remarks_prompt(["kind A: bad", "variant B: worse"])
+    assert "Its remarks:\nkind A: bad\nvariant B: worse\n" in text
+    assert "{remarks}" not in text
+
+
+def test_prompt_limit_is_six_thousand():
+    assert PROMPT_LIMIT == 6000
+
+
+def test_every_prompt_fits_the_limit():
+    for prompt in prompts():
+        assert len(prompt.text) <= PROMPT_LIMIT
+
+
+def test_task_limit_fills_prompt_one_to_the_limit():
+    limit = task_limit()
+    assert limit > 0
+    assert len(task_prompt("x" * limit)) == PROMPT_LIMIT
+
+
+def test_few_remarks_go_in_whole():
+    lines = [f"variant V{i}: a made-up remark" for i in range(5)]
+    text = remarks_prompt(lines)
+    assert "\n".join(lines) in text
+    assert "more" not in text.replace("Its remarks:", "")
+
+
+def test_many_remarks_are_cut_with_and_more():
+    lines = [f"variant V{i}: " + "a made-up remark " * 5 for i in range(200)]
+    text = remarks_prompt(lines)
+    assert len(text) <= PROMPT_LIMIT
+    head, rest = text.split("Its remarks:\n", 1)
+    shown = rest.split("\n")
+    kept = next(i for i, line in enumerate(shown) if line.startswith("and "))
+    assert 0 < kept < 200
+    assert shown[:kept] == lines[:kept]
+    assert shown[kept] == f"and {200 - kept} more"
+    tail = f"and {200 - kept} more"
+    one_more = text.replace(tail, lines[kept] + "\n" + f"and {200 - kept - 1} more")
+    assert len(one_more) > PROMPT_LIMIT
+
+
 # --- extracting the JSON
 
 
@@ -106,7 +217,7 @@ def test_extract_nothing_found():
     assert extract_json("An open { never closed") is None
 
 
-# --- the buttons
+# --- the entry button
 
 
 def _bar_texts(win) -> list[str]:
@@ -120,34 +231,26 @@ def _bar_texts(win) -> list[str]:
     return texts
 
 
-def test_buttons_at_the_end_of_the_row(win):
+def test_ai_button_after_delete(win):
     texts = _bar_texts(win)
-    assert texts[-3:] == ["Ask AI", "Paste answer", "Example"]
-    assert texts[-4] == "Delete"
+    assert texts[-2:] == ["Add a process with AI", "Example"]
+    assert texts[-3] == "Delete"
+    assert "Ask AI" not in texts
+    assert "Paste answer" not in texts
     assert win.example_button.toolTip() == "Add the Fix a leaking tap example"
     assert win.example_button.isEnabled()
 
 
-# --- Ask AI
+# --- loading an answer
 
 
-def test_ask_ai_preview_follows_description(win):
-    dlg = win.ask_ai_dialog()
-    assert dlg.windowTitle() == "Ask AI"
-    assert dlg.preview.isReadOnly()
-    dlg.description.setPlainText("We bake bread at night.")
-    assert dlg.preview.toPlainText() == request_text("We bake bread at night.")
-
-
-def test_ask_ai_copy_text(win):
-    dlg = win.ask_ai_dialog()
-    dlg.description.setPlainText("We wash a car.")
-    dlg.copy_button.click()
-    assert QGuiApplication.clipboard().text() == request_text("We wash a car.")
-    assert win.statusBar().currentMessage() == "Copied. Paste it into the AI chat."
-
-
-# --- Paste answer
+def test_button_row_fits_the_default_width(win):
+    win.show()
+    QApplication.processEvents()
+    right = win.example_button.mapTo(win, win.example_button.rect().topRight()).x()
+    assert right < win.width()
+    assert win.width() >= 1100
+    assert win.width() == max(1100, win.minimumSizeHint().width())
 
 
 def test_load_text_adds_project(win, store):
@@ -157,11 +260,204 @@ def test_load_text_adds_project(win, store):
     assert win.project_names() == ["Change a bike tyre"]
 
 
-def test_paste_answer_loads_fenced_json(win, store):
-    dlg = win.paste_answer_dialog()
-    assert dlg.windowTitle() == "Paste answer"
+# --- the scenario screen
+
+
+NOTES = [
+    "Describe the job in one or two sentences, then copy the prompt into your AI chat.",
+    "Use it when you have agreed on the list of ways.",
+    "Use it when you have agreed on the steps of each way.",
+    "Use it when you have agreed on the actions and the checks.",
+    "Use it when you have agreed who does what and how long it takes.",
+    "The program found problems in the file. Copy this prompt into the same chat.",
+]
+TASK = "We change a bike tyre: patch the tube, fit a new tube, ask a shop."
+
+
+def _scenario(win):
+    dlg = win.ai_scenario()
     dlg.show()
-    dlg.text.setPlainText("Here it is.\n```json\n" + _example_text() + "\n```\nGood luck.")
+    return dlg
+
+
+def _states(dlg) -> list[str]:
+    return [card.state for card in dlg.cards]
+
+
+def _copy_and_next(dlg, number):
+    card = dlg.cards[number - 1]
+    card.copy_button.click()
+    card.next_button.click()
+
+
+def _to_step_five(dlg):
+    dlg.task.setPlainText(TASK)
+    for number in (1, 2, 3, 4):
+        _copy_and_next(dlg, number)
+
+
+def test_scenario_opens_at_step_one(win):
+    dlg = _scenario(win)
+    assert dlg.windowTitle() == "Add a process with AI"
+    assert [card.title.text() for card in dlg.cards] == [
+        "1. Task",
+        "2. Steps",
+        "3. Same actions and checks",
+        "4. Who and how much",
+        "5. File",
+        "6. Remarks",
+    ]
+    assert _states(dlg) == ["current", "future", "future", "future", "future", "future"]
+    first = dlg.cards[0]
+    assert first.note.text() == NOTES[0]
+    assert first.prompt_view.isVisible()
+    assert first.prompt_view.isReadOnly()
+    assert dlg.task.isVisible()
+    assert first.copy_button.text() == "Copy prompt"
+    assert not first.copy_button.isEnabled()
+    assert not first.next_button.isVisible()
+    for card in dlg.cards[1:]:
+        assert not card.prompt_view.isVisible()
+        assert not card.again_button.isVisible()
+    dlg.close()
+
+
+def test_task_fills_prompt_one_and_copy(win):
+    dlg = _scenario(win)
+    first = dlg.cards[0]
+    dlg.task.setPlainText(TASK)
+    assert first.prompt_view.toPlainText() == task_prompt(TASK)
+    assert first.copy_button.isEnabled()
+    first.copy_button.click()
+    assert QGuiApplication.clipboard().text() == task_prompt(TASK)
+    assert first.copied.text() == "✓ Copied. Paste it into your AI chat."
+    assert first.copied.isVisible()
+    assert first.next_button.isVisible()
+    assert first.next_button.text() == "Next step"
+    dlg.close()
+
+
+def test_header_notes_are_the_screen_wording(win):
+    dlg = _scenario(win)
+    assert [card.note.text() for card in dlg.cards] == NOTES
+    dlg.close()
+
+
+def test_task_field_is_held_to_the_limit(win):
+    dlg = _scenario(win)
+    limit = task_limit()
+    assert dlg.task_left.text() == f"{limit} characters left"
+    assert dlg.task_left.isVisible()
+    dlg.task.setPlainText("We wash a car.")
+    assert dlg.task_left.text() == f"{limit - 14} characters left"
+    dlg.task.setPlainText("y" * (limit + 50))
+    assert dlg.task.toPlainText() == "y" * limit
+    assert dlg.task_left.text() == "0 characters left"
+    assert len(dlg.cards[0].prompt_view.toPlainText()) == PROMPT_LIMIT
+    dlg.close()
+
+
+def test_next_step_folds_the_done_step(win):
+    dlg = _scenario(win)
+    dlg.task.setPlainText(TASK)
+    _copy_and_next(dlg, 1)
+    assert _states(dlg) == ["done", "current", "future", "future", "future", "future"]
+    first, second = dlg.cards[0], dlg.cards[1]
+    assert first.mark.text() == "✓"
+    assert first.summary.text() == TASK
+    assert first.again_button.isVisible()
+    assert first.again_button.text() == "Show prompt again"
+    assert not first.prompt_view.isVisible()
+    assert not dlg.task.isVisible()
+    assert second.prompt_view.toPlainText() == prompts()[1].text
+    assert not second.next_button.isVisible()
+    second.copy_button.click()
+    assert QGuiApplication.clipboard().text() == prompts()[1].text
+    _copy_and_next(dlg, 2)
+    assert _states(dlg) == ["done", "done", "current", "future", "future", "future"]
+    assert dlg.cards[1].summary.text() == "Prompt copied"
+    dlg.close()
+
+
+def test_show_prompt_again_opens_and_copies(win):
+    dlg = _scenario(win)
+    dlg.task.setPlainText(TASK)
+    _copy_and_next(dlg, 1)
+    first = dlg.cards[0]
+    first.again_button.click()
+    assert first.prompt_view.isVisible()
+    assert first.prompt_view.toPlainText() == task_prompt(TASK)
+    assert first.again_button.text() == "Hide prompt"
+    assert not first.next_button.isVisible()
+    assert not dlg.task.isVisible()
+    QGuiApplication.clipboard().setText("")
+    first.copy_button.click()
+    assert QGuiApplication.clipboard().text() == task_prompt(TASK)
+    assert _states(dlg) == ["done", "current", "future", "future", "future", "future"]
+    first.again_button.click()
+    assert not first.prompt_view.isVisible()
+    assert first.again_button.text() == "Show prompt again"
+    dlg.close()
+
+
+def test_step_five_has_answer_field_and_load(win):
+    dlg = _scenario(win)
+    _to_step_five(dlg)
+    assert _states(dlg) == ["done", "done", "done", "done", "current", "future"]
+    fifth = dlg.cards[4]
+    assert fifth.prompt_view.toPlainText() == prompts()[4].text
+    assert dlg.answer.isVisible()
+    assert dlg.load_button.isVisible()
+    assert dlg.load_button.text() == "Load file"
+    assert not fifth.next_button.isVisible()
+    assert not dlg.error.isVisible()
+    dlg.close()
+
+
+def test_load_without_json_stays_at_step_five(win, store):
+    dlg = _scenario(win)
+    _to_step_five(dlg)
+    dlg.answer.setPlainText("I could not make the file.")
+    dlg.load_button.click()
+    assert dlg.isVisible()
+    assert dlg.error.isVisible()
+    assert dlg.error.text() == "No JSON object found in the text."
+    assert dlg.error.objectName() == "err"
+    assert _states(dlg) == ["done", "done", "done", "done", "current", "future"]
+    assert store.list() == []
+    dlg.close()
+
+
+def test_refused_file_opens_step_six(win, store):
+    dlg = _scenario(win)
+    _to_step_five(dlg)
+    dlg.answer.setPlainText("```json\n" + _broken_text() + "\n```")
+    dlg.load_button.click()
+    assert dlg.isVisible()
+    assert store.list() == []
+    assert _states(dlg) == ["done", "done", "done", "done", "done", "current"]
+    assert dlg.cards[4].summary.text() == "Not accepted: 1 remark"
+    sixth = dlg.cards[5]
+    expected = remarks_prompt(["kind Shut off water: unknown entity No such entity"])
+    assert sixth.prompt_view.toPlainText() == expected
+    sixth.copy_button.click()
+    assert QGuiApplication.clipboard().text() == expected
+    assert dlg.back_button.isVisible()
+    assert dlg.back_button.text() == "Back to step 5"
+    assert not sixth.next_button.isVisible()
+    dlg.close()
+
+
+def test_back_to_step_five_and_load_the_fixed_file(win, store):
+    dlg = _scenario(win)
+    _to_step_five(dlg)
+    dlg.answer.setPlainText(_broken_text())
+    dlg.load_button.click()
+    dlg.back_button.click()
+    assert _states(dlg) == ["done", "done", "done", "done", "current", "future"]
+    assert dlg.answer.isVisible()
+    assert dlg.answer.toPlainText() == ""
+    dlg.answer.setPlainText("Fixed:\n```json\n" + _example_text() + "\n```\n")
     dlg.load_button.click()
     assert dlg.result() == QDialog.DialogCode.Accepted
     assert not dlg.isVisible()
@@ -173,44 +469,22 @@ def test_paste_answer_loads_fenced_json(win, store):
     assert win.statusBar().currentMessage() == "Loaded Change a bike tyre"
 
 
-def test_paste_answer_without_json_keeps_dialog(win, store):
-    dlg = win.paste_answer_dialog()
-    dlg.show()
-    dlg.text.setPlainText("I could not make the file.")
-    dlg.load_button.click()
-    assert dlg.isVisible()
-    assert dlg.result() != QDialog.DialogCode.Accepted
-    assert dlg.error.isVisible()
-    assert dlg.error.text() == "No JSON object found in the text."
-    assert dlg.error.objectName() == "err"
-    assert store.list() == []
-    dlg.close()
-
-
-def test_paste_answer_with_remarks_lists_them(win, store):
-    dlg = win.paste_answer_dialog()
-    dlg.show()
-    text = "```json\n" + _broken_text() + "\n```"
-    dlg.text.setPlainText(text)
-    dlg.load_button.click()
-    assert dlg.isVisible()
-    assert dlg.text.toPlainText() == text
-    assert store.list() == []
-    lines = dlg.remark_lines()
-    assert lines == ["kind Shut off water: unknown entity No such entity"]
-    assert dlg.remarks.isVisible()
-    assert dlg.remarks.toPlainText() == "\n".join(lines)
-    assert not dlg.error.isVisible()
-    assert dlg.copy_remarks_button.isVisible()
-    assert dlg.copy_remarks_button.text() == "Copy remarks"
-    dlg.copy_remarks_button.click()
-    assert QGuiApplication.clipboard().text() == "\n".join(lines)
-    dlg.close()
-
-
-def test_paste_answer_cancel(win, store):
-    dlg = win.paste_answer_dialog()
-    dlg.show()
-    dlg.cancel_button.click()
-    assert dlg.result() == QDialog.DialogCode.Rejected
+def test_closed_scenario_keeps_its_place(win):
+    dlg = _scenario(win)
+    dlg.task.setPlainText(TASK)
+    _copy_and_next(dlg, 1)
+    dlg.close_button.click()
     assert not dlg.isVisible()
+    again = win.ai_scenario()
+    assert again is dlg
+    assert _states(again) == ["done", "current", "future", "future", "future", "future"]
+
+
+def test_scenario_starts_anew_after_a_load(win):
+    dlg = _scenario(win)
+    _to_step_five(dlg)
+    dlg.answer.setPlainText(_example_text())
+    dlg.load_button.click()
+    again = win.ai_scenario()
+    assert again is not dlg
+    assert _states(again) == ["current", "future", "future", "future", "future", "future"]

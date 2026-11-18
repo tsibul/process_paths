@@ -119,14 +119,98 @@ QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px;
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}
 QScrollBar {{ background: {SUB}; }}
 
-QDialog#aiDialog QPlainTextEdit {{
-    border: 1px solid {BORDER};
-    border-radius: 6px;
-    background: {BG};
+QFrame#aiTop {{
+  border: none;
+  border-bottom: 1px solid {BORDER};
 }}
 
-QDialog#aiDialog QPlainTextEdit[readOnly="true"] {{
-    background: {SUB};
+QLabel#aiTopTitle {{
+  font-size: 15px;
+  font-weight: 700;
+}}
+
+QPushButton#aiLink {{
+  background: transparent;
+  border: none;
+  color: {ACCENT};
+  font-size: 13px;
+  padding: 0;
+}}
+
+QFrame#aiStep {{
+  background: {BG};
+  border: 1px solid {BORDER};
+  border-radius: {RADIUS};
+}}
+
+QFrame#aiStep[state="current"] {{
+  border-color: {ACCENT};
+}}
+
+QFrame#aiStepHead {{
+  background: transparent;
+  border: none;
+  border-top-left-radius: {RADIUS};
+  border-top-right-radius: {RADIUS};
+}}
+
+QFrame#aiStepHead[state="current"] {{
+  background: {TINT};
+}}
+
+QWidget#aiStepBody {{
+  background: transparent;
+}}
+
+QLabel#aiStepTitle {{
+  color: {TEXT2};
+}}
+
+QLabel#aiStepTitle[state="current"] {{
+  color: {ACCENT};
+  font-weight: 700;
+}}
+
+QLabel#aiStepTitle[state="future"] {{
+  color: {NOT_ALLOWED};
+}}
+
+QLabel#aiMark {{
+  color: {OK};
+  font-weight: 700;
+}}
+
+QLabel#aiSummary {{
+  color: {TEXT2};
+  font-size: 13px;
+}}
+
+QLabel#aiCaption {{
+  color: {ACCENT};
+  font-size: 13px;
+  font-weight: 700;
+}}
+
+QPlainTextEdit#aiPrompt,
+QPlainTextEdit#aiAnswer,
+QPlainTextEdit#aiTask {{
+  border: 1px solid {BORDER};
+  border-radius: {RADIUS};
+  background: {BG};
+}}
+
+QPlainTextEdit#aiPrompt,
+QPlainTextEdit#aiAnswer {{
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 13px;
+}}
+
+QPlainTextEdit#aiPrompt {{
+  background: {SUB};
+}}
+
+QPlainTextEdit#aiTask {{
+  border-color: {ACCENT};
 }}
 
 QPushButton#icon:disabled {{
