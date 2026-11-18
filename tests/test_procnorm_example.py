@@ -85,3 +85,32 @@ def test_window_opens_on_example_comparison(app, store, settings):
 def test_packaged_example_equals_docs_example():
     docs = Path(__file__).parent.parent / "docs" / "example_tap.json"
     assert EXAMPLE_FILE.read_bytes() == docs.read_bytes()
+
+
+def test_example_button_adds_example(app, store, settings):
+    other, _ = load_file(EXAMPLE_FILE)
+    other.name = "Mine"
+    store.add(other)
+    window = build_window(store, settings)
+    window.tabs.setCurrentWidget(window.dictionary)
+    window.example_button.click()
+    assert sorted(names(store)) == sorted(["Mine", EXAMPLE_NAME])
+    assert window.projects.currentText() == EXAMPLE_NAME
+    assert window.tabs.currentWidget() is window.comparison
+    assert window.statusBar().currentMessage() == "Added Fix a leaking tap"
+    window.close()
+
+
+def test_example_button_selects_existing_example(app, store, settings):
+    pid = add_example(store)
+    other, _ = load_file(EXAMPLE_FILE)
+    other.name = "Mine"
+    mine = store.add(other)
+    window = build_window(store, settings, mine)
+    window.tabs.setCurrentWidget(window.dictionary)
+    window.example_button.click()
+    assert sorted(names(store)) == sorted(["Mine", EXAMPLE_NAME])
+    assert window.current_id == pid
+    assert window.tabs.currentWidget() is window.comparison
+    assert window.statusBar().currentMessage() == "Example is already in the list"
+    window.close()

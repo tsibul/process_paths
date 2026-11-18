@@ -119,6 +119,16 @@ QFrame#remarks QPlainTextEdit {{ border: 1px solid {BORDER}; border-radius: 6px;
 QStatusBar {{ background: {BG}; color: {TEXT2}; font-size: 13px; border-top: 1px solid {BORDER}; }}
 QScrollBar {{ background: {SUB}; }}
 
+QDialog#aiDialog QPlainTextEdit {{
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    background: {BG};
+}}
+
+QDialog#aiDialog QPlainTextEdit[readOnly="true"] {{
+    background: {SUB};
+}}
+
 QPushButton#icon:disabled {{
     color: {OFF};
     background: transparent;

@@ -17,11 +17,13 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
 
 from procnorm.calc import empty_steps, project_empty_steps
 from procnorm import edit
-from procnorm.example import first_run
+from procnorm.ai import extract_json
+from procnorm.example import EXAMPLE_NAME, add_example, first_run
 from procnorm.edit import (add_call, copy_code, copy_variant, delete_variant, move_call, remove_call,
                            rename_variant, set_number)
-from procnorm.project import Project, load_file, read_project
+from procnorm.project import Project, load_file, parse_text, read_project
 from procnorm.store import Store, default_path
+from procnorm.ui.ai_dialogs import AskAiDialog, PasteAnswerDialog
 from procnorm.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
 from procnorm.ui.comparison import ComparisonPage
 from procnorm.ui.pages import DictionaryPage, NormPage
@@ -33,6 +35,7 @@ LAST = "last_project"
 NEW_NAME = "New project"
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = "Project files (*.json);;All files (*)"
+NO_JSON = "No JSON object found in the text."
 
 
 def _dot_icon() -> QIcon:
@@ -116,6 +119,10 @@ class MainWindow(QMainWindow):
         self.save_button = self._button(bar, "Save file", self.on_save)
         self.copy_button = self._button(bar, "Copy", self.copy_project)
         self.delete_button = self._button(bar, "Delete", self.delete_project)
+        self.ask_ai_button = self._button(bar, "Ask AI", self.on_ask_ai)
+        self.paste_answer_button = self._button(bar, "Paste answer", self.on_paste_answer)
+        self.example_button = self._button(bar, "Example", self.show_example)
+        self.example_button.setToolTip(f"Add the {EXAMPLE_NAME} example")
         head.addLayout(bar)
         self.remarks_panel = RemarksPanel()
         head.addWidget(self.remarks_panel)
@@ -623,6 +630,50 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Loaded {Path(path).name} over the project")
         return True
 
+    def load_text(self, text: str) -> tuple[bool, str | list[str]]:
+        """Load a project from an AI answer as a new project, like a loaded file.
+
+        :param text: the pasted answer; its JSON object is taken out of it.
+        :return: ``(True, status message)``, ``(False, message)`` when no JSON is found,
+            or ``(False, remark lines)``.
+        :rtype: tuple[bool, str | list[str]]
+        """
+        found = extract_json(text)
+        if found is None:
+            return False, NO_JSON
+        project, remarks = parse_text(found)
+        if project is None:
+            return False, [str(r) for r in remarks]
+        self.remarks_panel.hide()
+        self.refresh(self.store.add(project))
+        self._offer(project)
+        message = f"Loaded {project.name}"
+        self.statusBar().showMessage(message)
+        return True, message
+
+    def show_example(self) -> None:
+        """Add the example unless it is in the list, select it and open the Comparison tab."""
+        present = next((i.id for i in self.store.list() if i.name == EXAMPLE_NAME), None)
+        if present is None:
+            self.refresh(add_example(self.store))
+            message = f"Added {EXAMPLE_NAME}"
+        else:
+            self.refresh(present)
+            message = "Example is already in the list"
+        self.tabs.setCurrentWidget(self.comparison)
+        self.statusBar().showMessage(message)
+
+    def ask_ai_dialog(self) -> AskAiDialog:
+        """The Ask AI dialog, not yet shown."""
+        dialog = AskAiDialog(self)
+        dialog.copied.connect(
+            lambda: self.statusBar().showMessage("Copied. Paste it into the AI chat."))
+        return dialog
+
+    def paste_answer_dialog(self) -> PasteAnswerDialog:
+        """The Paste answer dialog, not yet shown."""
+        return PasteAnswerDialog(self.load_text, self)
+
     def new_project(self, name: str) -> bool:
         """Create an empty project, select it and open the Dictionary tab.
 
@@ -685,6 +736,16 @@ class MainWindow(QMainWindow):
         name = self.ask_name(NEW_NAME)
         if name is not None:
             self.new_project(name)
+
+    def on_ask_ai(self) -> None:
+        dialog = self.ask_ai_dialog()
+        dialog.exec()
+        dialog.deleteLater()
+
+    def on_paste_answer(self) -> None:
+        dialog = self.paste_answer_dialog()
+        dialog.exec()
+        dialog.deleteLater()
 
     def on_load(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load project file", "", JSON_FILTER)
