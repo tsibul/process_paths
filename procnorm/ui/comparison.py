@@ -370,9 +370,6 @@ class StepsView(QFrame):
         box.addWidget(grid_frame)
         self.scale = LabourScale(project, rows)
         box.addWidget(self.scale)
-        self.charts = LineCharts()  # the lines of this task only, as the columns
-        self.charts.set_rows(project, rows)
-        box.addWidget(self.charts)
 
     def codes(self) -> list[str]:
         """Codes of the columns, left to right."""
@@ -389,6 +386,22 @@ class StepsView(QFrame):
     def cell(self, step: int, code: str) -> StepCell | None:
         """A cell; ``None`` below the last step of a shorter variant."""
         return self._cells.get((step, code))
+
+
+class ChartPair(QWidget):
+    """The two line charts of one task under the table, with the task name above them."""
+
+    def __init__(self, project: Project, group: Group, rows: list[Row]) -> None:
+        super().__init__()
+        box = QVBoxLayout(self)
+        box.setContentsMargins(0, 12, 0, 0)
+        box.setSpacing(4)
+        self.title = QLabel(f"Task: {group.task}")
+        self.title.setObjectName("groupTitle")
+        box.addWidget(self.title)
+        self.charts = LineCharts()  # the lines of this task only, as the rows of the table
+        self.charts.set_rows(project, rows)
+        box.addWidget(self.charts)
 
 
 class GroupTree(QTreeWidget):
@@ -495,6 +508,12 @@ class ComparisonPage(Page):
         self.tree.header().sectionClicked.connect(self._header_clicked)
         self.tree.itemClicked.connect(self._item_clicked)
         self.box.addWidget(self.tree)
+        self.charts_box = QWidget()  # one pair of charts per task group, under the table
+        self.charts_lay = QVBoxLayout(self.charts_box)
+        self.charts_lay.setContentsMargins(0, 0, 0, 0)
+        self.charts_lay.setSpacing(0)
+        self._pairs: list[ChartPair] = []
+        self.box.addWidget(self.charts_box)
         self.hint = label(HINT, "note")
         self.box.addWidget(self.hint)
         self.notes = label("", "note")
@@ -595,6 +614,7 @@ class ComparisonPage(Page):
         t = self.tree
         t.clear()
         self._items = {}
+        self._render_charts()
         if self._cmp is None:
             t.fit()
             return
@@ -625,6 +645,23 @@ class ComparisonPage(Page):
             if code in self._items:
                 self._expand(self._items[code])
         t.fit()
+
+    def _render_charts(self) -> None:
+        """One pair of charts per task group with a variant shown; lines as the rows of the table."""
+        for pair in self._pairs:
+            self.charts_lay.removeWidget(pair)
+            pair.hide()
+            pair.deleteLater()
+        self._pairs = []
+        if self._cmp is None:
+            return
+        for g in self._groups:
+            rows = self._shown_rows(g)
+            if g.kind != "task" or not rows:
+                continue
+            pair = ChartPair(self._project, g, rows)
+            self.charts_lay.addWidget(pair)
+            self._pairs.append(pair)
 
     def _variant_item(self, parent: QTreeWidgetItem, r: Row, grey: bool, least: bool) -> QTreeWidgetItem:
         cmp = self._cmp
@@ -727,6 +764,7 @@ class ComparisonPage(Page):
 
     def _table_mode(self, on: bool) -> None:
         self.tree.setVisible(on)
+        self.charts_box.setVisible(on)
         self.hint.setVisible(on)
         self.export_bar.setVisible(on)
         for b in self.side_buttons.buttons():
@@ -765,6 +803,10 @@ class ComparisonPage(Page):
     def is_bold(self, code: str, header: str) -> bool:
         """Whether a cell is bold."""
         return self._items[code].font(self._keys.index(header)).bold()
+
+    def chart_pairs(self) -> list[ChartPair]:
+        """Chart pairs under the table, top to bottom."""
+        return list(self._pairs)
 
     def group_headers(self) -> list[GroupHeader]:
         """Headers of the shown groups, top to bottom."""

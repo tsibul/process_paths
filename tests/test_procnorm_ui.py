@@ -605,13 +605,80 @@ def _lines(view):
     return [s.name() for s in view.chart().series()]
 
 
-def test_table_view_has_no_line_charts(twelve):
+def _codes(view):
+    return [s.name().split(" · ")[0] for s in view.chart().series()]
+
+
+def _task_groups(c):
+    """Title and shown codes of each group with a Compare steps button, top to bottom."""
+    t = c.tree
+    out = []
+    for i in range(t.topLevelItemCount()):
+        top = t.topLevelItem(i)
+        h = t.itemWidget(top, 0)
+        if h.compare is not None:
+            out.append((h.title.text(), [top.child(j).text(0) for j in range(top.childCount())]))
+    return out
+
+
+def test_table_view_has_one_chart_pair_per_task_group(twelve):
     c = twelve.comparison
-    assert not hasattr(c, "charts")
-    assert _shown_charts(c) == []
+    pairs = c.chart_pairs()
+    assert [p.title.text() for p in pairs] == [t for t, _ in _task_groups(c)]
+    assert _shown_charts(c) == [p.charts for p in pairs]
+    for p, (_, codes) in zip(pairs, _task_groups(c)):
+        assert _codes(p.charts.labour) == codes
+        assert _codes(p.charts.checks) == codes
 
 
-def test_compare_steps_charts_with_view_columns_under_scale(twelve):
+def test_chart_pairs_right_under_the_table(twelve):
+    c = twelve.comparison
+    assert c.box.indexOf(c.charts_box) == c.box.indexOf(c.tree) + 1
+    assert c.charts_box.parent() is c.widget()
+
+
+def test_chart_legend_is_code_and_side(twelve):
+    c = twelve.comparison
+    side = {"own": "Ours", "other": "Theirs"}
+    rows = {r.code: r for g in c._groups for r in g.rows}
+    for p in c.chart_pairs():
+        for view in (p.charts.labour, p.charts.checks):
+            assert _lines(view) == [f"{k} · {side[rows[k].side]}" for k in _codes(view)]
+
+
+def test_two_groups_never_share_lines(twelve):
+    c = twelve.comparison
+    sets = [set(_codes(p.charts.labour)) for p in c.chart_pairs()]
+    assert len(sets) >= 2
+    for i, a in enumerate(sets):
+        for b in sets[i + 1:]:
+            assert a and b and not a & b
+
+
+def test_table_charts_follow_side_filter(twelve):
+    c = twelve.comparison
+    c.set_side("other")
+    pairs = c.chart_pairs()
+    assert [p.title.text() for p in pairs] == [t for t, _ in _task_groups(c)]
+    for p, (_, codes) in zip(pairs, _task_groups(c)):
+        assert _codes(p.charts.labour) == codes
+    assert all(r.side == "other" for g in c._groups for r in g.rows
+               if r.code in {k for p in pairs for k in _codes(p.charts.labour)})
+    c.set_side("all")
+    assert len(c.chart_pairs()) == len(_task_groups(c))
+
+
+def test_group_with_no_variant_left_has_no_pair(twelve):
+    c = twelve.comparison
+    theirs = {g.task for g in c._groups
+              if g.kind == "task" and any(r.side == "other" for r in g.rows)}
+    all_tasks = {g.task for g in c._groups if g.kind == "task"}
+    assert theirs != all_tasks  # some task group has no variant of theirs
+    c.set_side("other")
+    assert {p.title.text() for p in c.chart_pairs()} == {f"Task: {t}" for t in theirs}
+
+
+def test_compare_steps_has_no_charts_and_hides_the_table_ones(twelve):
     c = twelve.comparison
     for i in range(len(c.group_headers())):
         h = c.group_headers()[i]
@@ -619,39 +686,19 @@ def test_compare_steps_charts_with_view_columns_under_scale(twelve):
             continue
         h.compare.click()
         v = c.steps_view
-        assert _shown_charts(c) == [v.charts]
-        assert v.charts.parent() is v
-        assert v.layout().indexOf(v.charts) > v.layout().indexOf(v.scale)
-        assert _lines(v.charts.labour) == v.codes()
-        assert _lines(v.charts.checks) == v.codes()
+        assert not hasattr(v, "charts")
+        assert _shown_charts(c) == []
+        assert not c.charts_box.isVisibleTo(c)
         v.back.click()
 
 
-def test_two_groups_never_share_lines(twelve):
+def test_back_to_table_brings_charts_back(twelve):
     c = twelve.comparison
-    c.group_headers()[0].compare.click()
-    first = set(_lines(c.steps_view.charts.labour))
-    c.steps_view.back.click()
-    c.group_headers()[1].compare.click()
-    second = set(_lines(c.steps_view.charts.labour))
-    assert first and second and not first & second
-
-
-def test_compare_steps_charts_follow_side_filter(twelve):
-    c = twelve.comparison
-    c.set_side("other")
-    c.group_headers()[1].compare.click()
-    v = c.steps_view
-    assert set(v.codes()) == {"Б", "В"}
-    assert _lines(v.charts.labour) == v.codes()
-    assert _lines(v.charts.checks) == v.codes()
-
-
-def test_back_to_table_no_charts(twelve):
-    c = twelve.comparison
+    before = [p.title.text() for p in c.chart_pairs()]
     c.group_headers()[1].compare.click()
     c.steps_view.back.click()
-    assert _shown_charts(c) == []
+    assert [p.title.text() for p in c.chart_pairs()] == before
+    assert _shown_charts(c) == [p.charts for p in c.chart_pairs()]
 
 
 def test_scale_in_compare_steps_with_view_columns(twelve):

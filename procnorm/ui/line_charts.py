@@ -13,6 +13,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from procnorm.calc import Point, Row, series, start_point
+from procnorm.export import SIDES
 from procnorm.project import Project
 from procnorm.ui import style
 
@@ -51,7 +52,8 @@ class LineCharts(QWidget):
     """``Labour by step`` above ``Checks done by step``; one line per given variant.
 
     A line goes from point 0 (the initial slice) to the last step of its path. Own variants
-    are drawn solid, other variants dashed; the colour of a line is fixed by the place of its variant in the project; a line is named by the variant code.
+    are drawn solid, other variants dashed; the colour of a line is fixed by the place of its
+    variant in the project; a line is named by the variant code and side, as ``T1 · Ours``.
     """
 
     def __init__(self, parent: QWidget | None = None):
@@ -85,7 +87,7 @@ class LineCharts(QWidget):
         x_max, y_max = 1, 0.0
         for r in rows:
             s = QLineSeries()
-            s.setName(r.code)
+            s.setName(f"{r.code} · {SIDES.get(r.side, r.side)}")
             pen = QPen(QColor(style.SERIES[order.index(r.code) % len(style.SERIES)]))
             pen.setWidth(2)
             pen.setStyle(Qt.SolidLine if r.side == "own" else Qt.DashLine)

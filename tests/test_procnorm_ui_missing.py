@@ -172,11 +172,12 @@ def test_steps_of_error_variant_show_all_transitions(win):
 
 def test_compare_steps_without_such_variants(win):
     c = win.comparison
+    [pair] = c.chart_pairs()
+    assert [s.name().split(" · ")[0] for s in pair.charts.labour.chart().series()] == ["Б", "В"]
     c.open_steps(c._groups[0])
     v = c.steps_view
     assert v.codes() == ["Б", "В"]
     assert [r.code for r in v.scale.rows()] == ["Б", "В"]
-    assert [s.name() for s in v.charts.labour.chart().series()] == ["Б", "В"]
 
 
 def test_no_line_and_no_bar(app):
@@ -186,7 +187,7 @@ def test_no_line_and_no_bar(app):
     charts = LineCharts()
     charts.set_rows(p, rows)
     for view in (charts.labour, charts.checks):
-        assert [s.name() for s in view.chart().series()] == ["Б", "В"]
+        assert [s.name().split(" · ")[0] for s in view.chart().series()] == ["Б", "В"]
     scale = LabourScale(p, rows)
     assert [r.code for r in scale.rows()] == ["Б", "В"]
 
