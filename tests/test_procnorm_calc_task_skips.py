@@ -75,3 +75,69 @@ def test_variant_without_task_counts_its_own_entities_only():
         v.pop("task")
     p = project_of(d, strict=False)
     assert finals(p) == {"A": D(0), "B": D(0)}
+
+
+def absent_project() -> dict:
+    """A part that one path checks and another throws away; a spare that only one path fits."""
+    return {
+        "format": 1,
+        "name": "Absent parts",
+        "existence_axis": {"name": "exists", "absent": "no"},
+        "entities": [
+            {
+                "name": "Part",
+                "axes": [
+                    {"name": "exists", "values": ["yes", "no"]},
+                    {"name": "check", "values": ["not checked", "checked"]},
+                ],
+            },
+            {
+                "name": "Spare",
+                "axes": [
+                    {"name": "exists", "values": ["no", "yes"]},
+                    {"name": "check", "values": ["not checked", "checked"]},
+                ],
+            },
+        ],
+        "kinds": [
+            {"name": "Check part", "entity": "Part", "axis": "check",
+             "from": "not checked", "to": "checked", "check": True},
+            {"name": "Throw part away", "entity": "Part", "axis": "exists",
+             "from": "yes", "to": "no"},
+            {"name": "Fit spare", "entity": "Spare", "axis": "exists",
+             "from": "no", "to": "yes"},
+            {"name": "Check spare", "entity": "Spare", "axis": "check",
+             "from": "not checked", "to": "checked", "check": True},
+        ],
+        "executors": ["Owner"],
+        "instruments": ["hands"],
+        "scopes": ["job"],
+        "batch_scope": "job",
+        "variants": [
+            {"code": "A", "title": "Check the part", "side": "own", "task": "Fix",
+             "calls": [["Check part", "Owner", "hands", "job"]]},
+            {"code": "B", "title": "Throw the part away", "side": "own", "task": "Fix",
+             "calls": [["Throw part away", "Owner", "hands", "job"]]},
+            {"code": "C", "title": "Throw away, fit and check a spare", "side": "other",
+             "task": "Fix",
+             "calls": [["Throw part away", "Owner", "hands", "job"],
+                       ["Fit spare", "Owner", "hands", "job"],
+                       ["Check spare", "Owner", "hands", "job"]]},
+        ],
+        "normalization": {
+            "batch_size": 1,
+            "kind_costs": {"Check part": 1, "Throw part away": 1, "Fit spare": 1,
+                           "Check spare": 1},
+            "executor_coefficients": {"Owner": 1},
+            "scope_coefficients": {"job": 1},
+            "axis_skip_prices": {"Part": {"check": 3}, "Spare": {"check": 5}},
+        },
+    }
+
+
+def test_check_axis_of_absent_entity_is_not_skipped():
+    p = project_of(absent_project())
+    assert finals(p) == {"A": D(0), "B": D(0), "C": D(0)}
+    assert start_point(p, "B").skips == [("Part", "check")]
+    assert [point.skips for point in series(p, "B")] == [[]]
+    assert [point.skips for point in series(p, "C")] == [[], [("Spare", "check")], []]

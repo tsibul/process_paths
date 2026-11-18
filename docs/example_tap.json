@@ -52,6 +52,13 @@
       "name": "Washer",
       "axes": [
         {
+          "name": "exists",
+          "values": [
+            "yes",
+            "no"
+          ]
+        },
+        {
           "name": "state",
           "values": [
             "worn",
@@ -140,6 +147,22 @@
           "Tap",
           "water",
           "off"
+        ]
+      ]
+    },
+    {
+      "name": "Throw away the old washer",
+      "entity": "Washer",
+      "axis": "exists",
+      "from": "yes",
+      "to": "no",
+      "zero_weight": true,
+      "zero_weight_note": "Goes out with the old tap",
+      "requires": [
+        [
+          "Tap",
+          "mount",
+          "removed"
         ]
       ]
     },
@@ -356,6 +379,12 @@
           "whole job"
         ],
         [
+          "Throw away the old washer",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
           "Fit the new tap",
           "Owner",
           "tool kit",
@@ -386,8 +415,8 @@
           "calls": 1
         },
         {
-          "text": "Take the old tap off",
-          "calls": 1
+          "text": "Take the old tap off and throw it away with its washer",
+          "calls": 2
         },
         {
           "text": "Fit the new tap",

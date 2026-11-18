@@ -215,7 +215,8 @@ def _task_axes(project: Project, v: Variant) -> Slice:
 
     These are the check axes with a skip price on the entities that another path of the same
     task touches and this variant does not; the variant leaves them at their initial values. A
-    variant without a task adds none.
+    variant without a task adds none. An entity absent at the start never comes into existence
+    on this variant, so it adds none either.
     """
     task = project.tasks.get(v.code)
     if task is None:
@@ -230,16 +231,24 @@ def _task_axes(project: Project, v: Variant) -> Slice:
         return {}
     s0 = initial_slice(m, replace(v, entities=tuple(names)))
     prices = project.norm.skip_prices
-    return {(e, a): s0[(e, a)] for e, a in check_axes(m) if (e, a) in s0 and (e, a) in prices}
+    return {(e, a): s0[(e, a)] for e, a in check_axes(m)
+            if (e, a) in s0 and (e, a) in prices and not _absent(project, s0, e)}
+
+
+def _absent(project: Project, s: Slice, entity: str) -> bool:
+    """Whether the entity does not exist in the slice (its existence axis is on "absent")."""
+    m = project.model
+    return s.get((entity, m.existence_axis)) == m.absent_value
 
 
 def _skips(project: Project, s: Slice, outside: Slice) -> list[tuple[str, str, Decimal | None]]:
     """Check axes of the slice, or of ``outside`` (see :func:`_task_axes`), with no value or on
-    the first value."""
+    the first value. An axis of an entity absent in the slice is not a skip: the entity has
+    left existence or never came into it."""
     s = {**outside, **s}
     out = []
     for e, a in check_axes(project.model):
-        if (e, a) not in s:
+        if (e, a) not in s or _absent(project, s, e):
             continue
         first = project.model.entity(e).axis(a).values[0]
         if s[(e, a)] is None or s[(e, a)] == first:
