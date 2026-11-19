@@ -112,6 +112,33 @@ def test_copy_takes_first_free_number():
         assert st.get(st.copy(first)).name == "Стирка белья (4)"
 
 
+def test_copy_of_numbered_copy_does_not_grow():
+    with Store(":memory:") as st:
+        first = st.add(_project())
+        second = st.copy(first)
+        third = st.copy(second)
+        assert st.get(third).name == "Стирка белья (3)"
+        assert st.get(st.copy(third)).name == "Стирка белья (4)"
+
+
+def test_add_numbered_name_counts_from_base():
+    with Store(":memory:") as st:
+        st.add(_project())
+        st.add(_named("Стирка белья (2)"))
+        i = st.add(_named("Стирка белья (2)"))
+        assert st.get(i).name == "Стирка белья (3)"
+        st.replace(i, _named("Стирка белья (2)"))
+        assert st.get(i).name == "Стирка белья (3)"
+
+
+def test_number_without_base_project_is_kept():
+    with Store(":memory:") as st:
+        i = st.add(_named("План (2024)"))
+        assert st.get(i).name == "План (2024)"
+        j = st.add(_named("План (2024)"))
+        assert st.get(j).name == "План (2024) (2)"
+
+
 def test_replace_numbers_name_of_another_only():
     with Store(":memory:") as st:
         first = st.add(_project())

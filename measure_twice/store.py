@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import sys
 from dataclasses import dataclass
@@ -136,6 +137,9 @@ class Store:
     def _free_name(self, name: str, own_id: int | None = None) -> str:
         """The name itself when no other project has it, else ``"<name> (2)"``, ``(3)``, ...
 
+        A name ending in `` (n)`` whose base name is another project is numbered from the base,
+        so the name does not grow.
+
         :param name: wanted name.
         :param own_id: id of the project being written, its own name is not taken.
         :return: the first free name.
@@ -143,6 +147,9 @@ class Store:
         """
         taken = {row[0] for row in self._db.execute(
             "SELECT name FROM project WHERE id IS NOT ?", (own_id,))}
+        match = re.fullmatch(r"(.*) \(\d+\)", name)
+        if match and match.group(1) in taken:
+            name = match.group(1)
         free, number = name, 1
         while free in taken:
             number += 1
