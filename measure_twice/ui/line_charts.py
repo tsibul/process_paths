@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Two line charts of the comparison: labour and price of checks done, by step."""
+"""Line charts of the comparison: labour, labour with waiting, and price of checks done, by step."""
 
 from __future__ import annotations
 
@@ -49,7 +49,9 @@ def _view(title: str, y_title: str) -> QChartView:
 
 
 class LineCharts(QWidget):
-    """``Labour by step`` above ``Checks done by step``; one line per given variant.
+    """``Labour by step`` above ``Checks done by step``; one line per given variant. When the
+    project sets ``labour_per_waiting_hour`` above 0, ``Labour + waiting by step`` goes between
+    them.
 
     A line goes from point 0 (the initial slice) to the last step of its path. Own variants
     are drawn solid, other variants dashed; the colour of a line is fixed by the place of its
@@ -59,10 +61,13 @@ class LineCharts(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.labour = _view("Labour by step", "Labour")
+        self.labour_waiting = _view("Labour + waiting by step", "Labour + waiting")
+        self.labour_waiting.hide()
         self.checks = _view("Checks done by step", "Price of checks done")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.labour)
+        lay.addWidget(self.labour_waiting)
         lay.addWidget(self.checks)
 
     def set_rows(self, project: Project | None, rows: Sequence[Row]) -> None:
@@ -75,6 +80,10 @@ class LineCharts(QWidget):
         order = [v.code for v in project.model.variants] if project else []
         pts = {r.code: [start_point(project, r.code)] + series(project, r.code) for r in rows}
         self._fill(self.labour, rows, pts, order, lambda p: p.labour)
+        weighted = project is not None and project.norm.labour_per_waiting_hour > 0
+        self.labour_waiting.setVisible(weighted)
+        self._fill(self.labour_waiting, rows if weighted else [], pts, order,
+                   lambda p: p.labour_waiting)
         self._fill(self.checks, rows, pts, order, lambda p: p.done_total)
 
     @staticmethod

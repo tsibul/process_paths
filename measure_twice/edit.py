@@ -15,6 +15,7 @@ from decimal import Decimal
 from measure_twice.project import FINAL, Remark, read_project
 
 NUMBER_TABLES = ("kind_costs", "executor_coefficients", "scope_coefficients", "axis_skip_prices")
+WAITING_WEIGHT = "labour_per_waiting_hour"  # a single number of the normalization, not a table
 
 _NUMBER = re.compile(r"-?(\d+\.?\d*|\.\d+)")
 
@@ -32,10 +33,11 @@ def set_number(data: dict, table: str, key: str | tuple[str, str], text: str
     """Set, change or clear one number of the normalization.
 
     :param data: the parsed project file; not changed.
-    :param table: ``kind_costs``, ``executor_coefficients``, ``scope_coefficients`` or
-        ``axis_skip_prices``.
+    :param table: ``kind_costs``, ``executor_coefficients``, ``scope_coefficients``,
+        ``axis_skip_prices``, or :data:`WAITING_WEIGHT` (a single number, ``key`` is ``None``).
     :param key: the name (kind, executor, scope), or ``(entity, check axis)`` for ``axis_skip_prices``.
-    :param text: the typed number, comma or point; empty text removes the number ("not set").
+    :param text: the typed number, comma or point; empty text removes the number ("not set"; for
+        :data:`WAITING_WEIGHT` it means 0).
     :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused.
     :rtype: tuple[dict | None, list[Remark]]
     """
@@ -44,6 +46,8 @@ def set_number(data: dict, table: str, key: str | tuple[str, str], text: str
     def refuse(reason: str) -> tuple[None, list[Remark]]:
         return None, [Remark(where, reason)]
 
+    if table == WAITING_WEIGHT:
+        return _set_waiting_weight(data, text)
     if table not in NUMBER_TABLES:
         return refuse(f"unknown table: {table}")
     pair = table == "axis_skip_prices"
@@ -53,6 +57,9 @@ def set_number(data: dict, table: str, key: str | tuple[str, str], text: str
     if table == "kind_costs" and any(
             k.get("name") == key and k.get("zero_weight") is True for k in data.get("kinds", [])):
         return refuse(f"kind {label} has zero weight, its cost is always 0")
+    if table == "kind_costs" and any(
+            k.get("name") == key and "waiting" in k for k in data.get("kinds", [])):
+        return refuse(f"kind {label} is a waiting kind, it has no labour cost")
 
     number = None
     if text.strip():
@@ -84,6 +91,23 @@ def set_number(data: dict, table: str, key: str | tuple[str, str], text: str
     if project is None:
         return None, remarks
     return new, []
+
+
+def _set_waiting_weight(data: dict, text: str) -> tuple[dict | None, list[Remark]]:
+    """Set or clear ``labour_per_waiting_hour``; see :func:`set_number`."""
+    where = f"normalization, {WAITING_WEIGHT}"
+    new = copy.deepcopy(data)
+    norm = new["normalization"]
+    if not text.strip():
+        norm.pop(WAITING_WEIGHT, None)
+        return _checked(new)
+    number = _parse(text)
+    if number is None:
+        return None, [Remark(where, f"not a number: {text.strip()}")]
+    if number < 0:
+        return None, [Remark(where, "must not be below zero")]
+    norm[WAITING_WEIGHT] = number
+    return _checked(new)
 
 
 # ---------- transitions and variants ----------
@@ -1114,7 +1138,8 @@ def set_existence_axis(data: dict, name: str, absent: str) -> tuple[dict | None,
 # ---------- transition kinds ----------
 
 _KIND_REQUIRED = ("entity", "axis", "from", "to")
-_KIND_STRUCTURE = _KIND_REQUIRED + ("requires", "check", "zero_weight", "zero_weight_note")
+_KIND_STRUCTURE = _KIND_REQUIRED + ("requires", "check", "zero_weight", "zero_weight_note",
+                                    "waiting", "waiting_unit")
 
 
 def _kind_refuse(what: str, reason: str) -> tuple[None, list[Remark]]:
@@ -1156,6 +1181,21 @@ def _kind_entry(name: str, structure: object) -> tuple[dict | None, str | None]:
         return None, "zero_weight_note must be a text"
     if note and note.strip():
         kind["zero_weight_note"] = note.strip()
+    waiting = structure.get("waiting")
+    if isinstance(waiting, str):
+        # a typed number is read as the file reader does; empty text is no waiting; other text
+        # goes to the read, which refuses it with the remark of a bad waiting
+        typed = waiting.strip()
+        parsed = _parse(typed)
+        if parsed is not None:
+            waiting = parsed
+        elif typed:
+            waiting = typed
+        else:
+            waiting = None
+    if waiting is not None:
+        kind["waiting"] = waiting
+        kind["waiting_unit"] = structure.get("waiting_unit")
     return kind, None
 
 
@@ -1166,7 +1206,7 @@ def _check_axes_of(new: dict) -> set[tuple[str, str]]:
 def _drop_numbers(new: dict, kind: dict, check_axes_before: set[tuple[str, str]]) -> None:
     """Remove the numbers that the edited kind has made unneeded."""
     norm = new["normalization"]
-    if kind.get("zero_weight") is True:
+    if kind.get("zero_weight") is True or "waiting" in kind:
         norm.get("kind_costs", {}).pop(kind["name"], None)
     prices = norm.get("axis_skip_prices", {})
     for entity, axis in check_axes_before - _check_axes_of(new):
@@ -1206,7 +1246,8 @@ def add_kind(data: dict, name: str, structure: dict) -> tuple[dict | None, list[
     :param name: the new name of the kind; spaces around it are dropped.
     :param structure: everything but the name: ``entity``, ``axis``, ``from``, ``to``
         (required), ``requires`` (list of ``[entity, axis, value]``), ``check``, ``zero_weight``,
-        ``zero_weight_note``. A missing or empty optional part is not written.
+        ``zero_weight_note``, ``waiting`` (a number or typed text) with ``waiting_unit``
+        (``hours`` or ``days``). A missing or empty optional part is not written.
     :return: ``(new data, [])``, or ``(None, remarks)`` when the edit is refused: a taken or
         empty name, a wrong shape, or what the lenient read refuses (unknown names, "from" equal
         to "to", a condition on the own axis, the same entity, axis, "from" and "to" as another
@@ -1220,8 +1261,8 @@ def set_kind(data: dict, name: str, structure: dict) -> tuple[dict | None, list[
     """Change the whole structure of a kind in one edit; the name and the place stay.
 
     The structure is the same as in :func:`add_kind`. A number that is no longer needed goes:
-    the cost of a kind that became zero-weight, the skip price of an axis that is no longer
-    a check axis. A variant that no longer runs is not refused: the lenient read puts it to
+    the cost of a kind that became zero-weight or waiting, the skip price of an axis that is
+    no longer a check axis. A variant that no longer runs is not refused: the lenient read puts it to
     ``Project.errors``.
 
     :param data: the parsed project file; not changed.

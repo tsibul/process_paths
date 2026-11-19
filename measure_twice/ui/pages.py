@@ -97,6 +97,11 @@ EDIT = "✎"
 START_HINT = ("Start with entities, their axes and values. Then add kinds, executors, instruments "
               "and scopes. Add variants on the Step chains tab.")
 ZERO_NOTE = "Zero weight clears the cost of this kind."
+WAITING_NOTE = "Waiting kinds have no labour cost and are not checks"
+WAITING_UNITS = ("hours", "days")
+WAITING_WEIGHT_LABEL = "Labour per hour of waiting (in your cost unit)"
+WAITING_WEIGHT_HINT = "0 = waiting is shown but not added to labour"
+WAITING_WEIGHT = "labour_per_waiting_hour"  # the name of the setting, as edit.set_number takes it
 CHECK_NOTE = "a check changes the axis it checks; a skipped one is priced"
 ROW_NOTE = "A row is either a state (entity, axis, value) or a parameter (parameter, executor)."
 GROUP_HINT = "all rows must hold"
@@ -324,19 +329,21 @@ class ConditionRow(QWidget):
 
 class KindForm(QFrame):
     """The form of a transition kind: name; entity, axis, "from" and "to" lists, each filled by
-    the one before; condition rows; ``Check``; ``Zero weight`` with its note; ``Add`` (a new kind)
-    or ``Apply`` (a changed kind) and ``Cancel``. Enter in the name submits, Esc cancels;
+    the one before; condition rows; ``Check``; ``Zero weight`` with its note; ``Waiting`` (a
+    number and a unit; when set, ``Check`` and ``Zero weight`` are not offered); ``Add`` (a new
+    kind) or ``Apply`` (a changed kind) and ``Cancel``. Enter in the name submits, Esc cancels;
     ``resized`` is emitted when a condition row comes or goes.
 
     :param model: the dictionary the lists are filled from.
     :param kind: the kind to change; ``None`` for a new kind.
+    :param waiting: ``(waiting, unit)`` of the kind to change; ``None`` when it is not waiting.
     """
 
     submitted = Signal()
     cancelled = Signal()
     resized = Signal()
 
-    def __init__(self, model, kind=None) -> None:
+    def __init__(self, model, kind=None, waiting: tuple[Decimal, str] | None = None) -> None:
         super().__init__()
         self.setObjectName("kindForm")
         self.words = _Words(model)
@@ -379,8 +386,8 @@ class KindForm(QFrame):
         grid.addLayout(self.condition_box, 3, 1)
 
         self.check = QCheckBox("Check")
-        check_note = _form_label(CHECK_NOTE)
-        grid.addLayout(self._line([self.check, check_note]), 4, 1)
+        self.check_note = _form_label(CHECK_NOTE)
+        grid.addLayout(self._line([self.check, self.check_note]), 4, 1)
 
         self.zero_weight = QCheckBox("Zero weight")
         self.note = QLineEdit()
@@ -393,6 +400,18 @@ class KindForm(QFrame):
         self.zero_line = label(ZERO_NOTE, "note")
         grid.addWidget(self.zero_line, 6, 1)
 
+        self.waiting = QLineEdit()
+        self.waiting.setObjectName("addField")
+        self.waiting.setPlaceholderText("none")
+        self.waiting.setMaximumWidth(90)
+        self.waiting_unit = _pick(90)
+        self.waiting_unit.addItems(list(WAITING_UNITS))
+        grid.addWidget(_form_label("Waiting"), 7, 0)
+        grid.addLayout(self._line([self.waiting, self.waiting_unit]), 7, 1)
+        self.waiting_note = label(WAITING_NOTE, "note")
+        grid.addWidget(self.waiting_note, 8, 1)
+        self.waiting.textChanged.connect(self._waiting_changed)
+
         self.submit_button = QPushButton("Add" if self.adding else "Apply")
         self.submit_button.setObjectName("small")
         self.submit_button.setProperty("primary", True)
@@ -400,7 +419,7 @@ class KindForm(QFrame):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setObjectName("small")
         self.cancel_button.clicked.connect(self.cancelled)
-        grid.addLayout(self._line([self.submit_button, self.cancel_button]), 7, 0, 1, 2)
+        grid.addLayout(self._line([self.submit_button, self.cancel_button]), 9, 0, 1, 2)
 
         _refill(self.entity, self.words.entities())
         self._entity_changed()
@@ -408,6 +427,10 @@ class KindForm(QFrame):
         self.axis.currentIndexChanged.connect(self._axis_changed)
         if kind is not None:
             self._fill(kind)
+        if waiting is not None:
+            self.waiting.setText(fmt(waiting[0]))
+            _choose(self.waiting_unit, waiting[1])
+        self._waiting_changed()
 
     @staticmethod
     def _line(widgets: list[QWidget]) -> QHBoxLayout:
@@ -446,6 +469,21 @@ class KindForm(QFrame):
         if len(values) > 1:
             self.target.setCurrentIndex(1)
 
+    def is_waiting(self) -> bool:
+        """Whether a waiting is typed: the kind is a waiting kind."""
+        return bool(self.waiting.text().strip())
+
+    def _waiting_changed(self) -> None:
+        """A waiting kind is offered neither ``Check`` nor ``Zero weight``.
+
+        The grey note says why.
+        """
+        waiting = self.is_waiting()
+        for w in (self.check, self.check_note, self.zero_weight, self.note, self.zero_line):
+            w.setVisible(not waiting)
+        self.waiting_note.setVisible(waiting)
+        self.resized.emit()
+
     def _add_row(self, triple: tuple[str, str, str] | None) -> None:
         row = ConditionRow(self.words, triple)
         row.removed.connect(lambda r=row: self._remove_row(r))
@@ -474,18 +512,23 @@ class KindForm(QFrame):
 
     def structure(self) -> dict:
         """Everything but the name, in the shape ``edit.add_kind`` takes; the note only with
-        ``Zero weight``."""
+        ``Zero weight``; a waiting kind has the waiting and its unit, and no check or zero
+        weight."""
+        waiting = self.is_waiting()
         structure = {
             "entity": self.entity.currentText(),
             "axis": self.axis.currentText(),
             "from": self.source.currentText(),
             "to": self.target.currentText(),
             "requires": [list(row.values()) for row in self._rows],
-            "check": self.check.isChecked(),
-            "zero_weight": self.zero_weight.isChecked(),
+            "check": self.check.isChecked() and not waiting,
+            "zero_weight": self.zero_weight.isChecked() and not waiting,
         }
-        if self.zero_weight.isChecked():
+        if structure["zero_weight"]:
             structure["zero_weight_note"] = self.note.text()
+        if waiting:
+            structure["waiting"] = self.waiting.text().strip()
+            structure["waiting_unit"] = self.waiting_unit.currentText()
         return structure
 
 
@@ -1117,6 +1160,7 @@ class DictionaryPage(Page):
         self._special_now: tuple[str, str] | None = None
         self._batch_now: str | None = None
         self._model = None
+        self._waiting: dict[str, tuple[Decimal, str]] = {}
         self.box.addWidget(label("Dictionary", "h2"))
         self._special_row()
         self.amber = label("")
@@ -1317,7 +1361,7 @@ class DictionaryPage(Page):
         kind = None
         if old is not None and self._model is not None:
             kind = next((k for k in self._model.kinds if k.name == old), None)
-        form = KindForm(self._model, kind)
+        form = KindForm(self._model, kind, self._waiting.get(old) if old is not None else None)
         form.submitted.connect(lambda: self._kind_submitted(form, old))
         return form
 
@@ -1444,6 +1488,7 @@ class DictionaryPage(Page):
         self.clear_refusal()
         if p is None:
             self._model = None
+            self._waiting = {}
             self._show_start_hint(False)
             self._show_special(None)
             for t in self.tables():
@@ -1451,6 +1496,7 @@ class DictionaryPage(Page):
             return
         m = p.model
         self._model = m
+        self._waiting = dict(p.waiting)
         self._show_start_hint(not m.variants)
         self._show_special(m)
         self.entities.set_words(self._entity_rows(m))
@@ -1646,10 +1692,11 @@ class NormPage(Page):
         self.box.addWidget(self.saved_note)
         self.batch = label("", "note")
         self.box.addWidget(self.batch)
+        self._refusals: dict[str, QLabel] = {}
+        self._waiting_weight_row()
         self.missing_label = label("", "warn")
         self.missing_label.hide()
         self.box.addWidget(self.missing_label)
-        self._refusals: dict[str, QLabel] = {}
         left, right = self.columns()
         left.addWidget(label("TRANSITION KINDS — COST", "h3"))
         self.costs = self._numbers(left, "kind_costs", ["Kind", "Cost"])
@@ -1675,6 +1722,32 @@ class NormPage(Page):
         self.box.addWidget(self.calls)
         self.box.addStretch(1)
 
+    def _waiting_weight_row(self) -> None:
+        """The number field of ``labour_per_waiting_hour`` with its hint and its refusal line."""
+        self._weight_text = ""
+        self.waiting_weight = QLineEdit()
+        self.waiting_weight.setObjectName("addField")
+        self.waiting_weight.setPlaceholderText("0")
+        self.waiting_weight.setMaximumWidth(90)
+        self.waiting_weight.editingFinished.connect(self._waiting_weight_edited)
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        row.addWidget(_form_label(WAITING_WEIGHT_LABEL))
+        row.addWidget(self.waiting_weight)
+        row.addWidget(label(WAITING_WEIGHT_HINT, "note"))
+        row.addStretch(1)
+        self.box.addLayout(row)
+        line = label("", "err")
+        line.hide()
+        self.box.addWidget(line)
+        self._refusals[WAITING_WEIGHT] = line
+
+    def _waiting_weight_edited(self) -> None:
+        text = self.waiting_weight.text()
+        if self._project is None or text.strip() == self._weight_text:
+            return
+        self.number_edited.emit(WAITING_WEIGHT, None, text)
+
     def _numbers(self, col: QVBoxLayout, name: str, headers: list[str]) -> NumberTable:
         t = NumberTable(name, headers)
         t.committed.connect(lambda key, text, name=name: self.number_edited.emit(name, key, text))
@@ -1697,6 +1770,7 @@ class NormPage(Page):
         self.clear_refusal()
         if p is None:
             self.batch.setText("")
+            self._show_waiting_weight("")
             self.missing_label.hide()
             for t in (self.costs, self.prices, self.exec_coef, self.scope_coef, self.errors, self.variants):
                 t.set_rows([])
@@ -1704,8 +1778,15 @@ class NormPage(Page):
             return
         n, m = p.norm, p.model
         self.batch.setText("" if n.batch_size is None else f"Batch size: {fmt(n.batch_size)}")
-        self.costs.set_numbers([(k.name, [k.name], Decimal(0) if k.zero_weight and k.name not in n.kind_costs
-                                 else n.kind_costs.get(k.name), not k.zero_weight) for k in m.kinds])
+        weight = n.labour_per_waiting_hour
+        self._show_waiting_weight(fmt(weight) if WAITING_WEIGHT in p.data["normalization"] else "")
+        no_labour = {k.name for k in m.kinds if k.zero_weight or k.name in p.waiting}
+        self.costs.set_numbers([
+            (k.name, [k.name],
+             Decimal(0) if k.name in no_labour and k.name not in n.kind_costs
+             else n.kind_costs.get(k.name),
+             k.name not in no_labour)
+            for k in m.kinds])
         self.prices.set_numbers([((e, a), [e, a], n.skip_prices.get((e, a)), True)
                                  for e, a in check_axes(m)])
         self.exec_coef.set_numbers([(x.name, [x.name], n.executor_coefficients.get(x.name), True)
@@ -1725,6 +1806,13 @@ class NormPage(Page):
         self._variant_selected()
         if keep:
             self.verticalScrollBar().setValue(scroll)
+
+    def _show_waiting_weight(self, text: str) -> None:
+        """Show the setting as stored; empty when the file does not set it."""
+        self._weight_text = text
+        self.waiting_weight.blockSignals(True)
+        self.waiting_weight.setText(text)
+        self.waiting_weight.blockSignals(False)
 
     # --- numbers
 

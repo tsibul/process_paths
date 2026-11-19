@@ -279,7 +279,8 @@ def test_groups_headers_and_marketing_texts(twelve):
     assert c.cell("А", "Side") == "● Ours"
     assert c.cell("Б", "Side") == "○ Theirs"
     assert c.headers() == ["Code", "Title", "Side", "Steps", "Labour · Человек", f"Labour · {LONG}",
-                           "Labour · total", "Skipped checks, постирано", "Skipped checks, end"]
+                           "Labour · total", "Waiting",
+                           "Skipped checks, постирано", "Skipped checks, end"]
     assert c.header_text("Labour · total") == "Labour\ntotal"
     assert c.header_text("Skipped checks, end") == "Skipped checks\nend"
 

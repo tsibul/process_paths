@@ -72,6 +72,8 @@ The application knows nothing about the subject: all names are yours, in words, 
 | `check` | no | `true` — the kind is a check; its axis becomes a check axis |
 | `zero_weight` | no | `true` — the transition stays in the path but carries no labour |
 | `zero_weight_note` | no | The reason; only together with `zero_weight: true`, non-empty text |
+| `waiting` | no | The kind is waiting: how long, a number greater than zero. Only together with `waiting_unit` |
+| `waiting_unit` | no | `"hours"` or `"days"`; a day counts as 24 hours. Only together with `waiting` |
 
 Rules:
 
@@ -80,6 +82,7 @@ Rules:
 - The appearance of an entity is a kind on the existence axis from the "does not exist" value; the disappearance is a kind into that value.
 - It is convenient to make a check axis of two values: "not checked", "checked". The initial one is "not checked".
 - Check axes of different entities may have the same name: the price of a skip is written per pair "entity, axis".
+- A waiting kind (with `waiting`) has no labour: its cost in `kind_costs` is omitted or `0`, it cannot be `check: true`, and executor and scope coefficients do not apply to it. Waiting is summed per path separately from labour.
 
 ### 3.3. Executors, instruments, scopes
 
@@ -150,11 +153,12 @@ Before writing a variant, walk through it step by step yourself, keeping the sli
 
 | Field | Required | Rule |
 |---|---|---|
-| `kind_costs` | yes | `{kind: cost}` — for each kind without `zero_weight`. For a kind with `zero_weight` the cost may be omitted; if written, only `0`. The cost of a kind without `zero_weight` is greater than zero |
+| `kind_costs` | yes | `{kind: cost}` — for each kind without `zero_weight` and without `waiting`. For a kind with `zero_weight` or `waiting` the cost may be omitted; if written, only `0`. The cost of a kind without `zero_weight` is greater than zero |
 | `executor_coefficients` | yes | `{executor: coefficient}` — for each executor. One whose labour is not counted (a program, a device) gets `0`. The coefficient is not less than zero |
 | `scope_coefficients` | yes | `{scope: coefficient}` — for each scope. The coefficient is not less than zero |
 | `axis_skip_prices` | yes | `{entity: {check axis: price}}` — for each check axis and only for them. The price is greater than zero |
 | `batch_size` | no | The size of the batch for which the scope coefficients are given; a reference number |
+| `labour_per_waiting_hour` | no | How much labour one hour of waiting is worth, in the cost unit. A number not less than zero; default `0`: waiting is shown but not added to labour. Above zero, the comparison adds "Labour + waiting" = labour + waiting hours × this number |
 | `uncounted_errors` | no | `{group: [text, …]}` — errors that have no axis of their own; shown as a list, not counted |
 
 - There must be no extra names: only those that are in the reference lists.
@@ -195,6 +199,9 @@ The check gives its remarks in English; the names in them are as written in the 
 | An extra name in normalization | cost of an unknown kind; price of an axis that is not a check axis | Remove |
 | A kind has `zero_weight`, but the cost is not 0 | weight is 0 but a cost is given | Set `0` |
 | A kind without `zero_weight` costs 0 | a kind with labour costs 0 | Give the labour, or mark the kind `zero_weight` if it is waiting or work without labour |
+| `waiting` without `waiting_unit`, or the other way round; waiting not above 0; a unit other than hours or days | `kind X: waiting needs a number above 0 and the unit hours or days` | Write both fields: a number above 0 and `"hours"` or `"days"` |
+| A waiting kind is marked `check` | a waiting kind cannot be a check | Remove `check` or `waiting` |
+| A waiting kind has a cost other than 0 | the kind is a waiting kind, its cost must be 0 or absent | Remove the cost or set `0` |
 | A number written as a string | a number was expected | Remove the quotes |
 | A negative number; skip price 0 | number out of the allowed range | Costs and coefficients are not less than zero, the skip price is greater than zero |
 | No `task` | `variant X: task is required` | Write the variant's task |

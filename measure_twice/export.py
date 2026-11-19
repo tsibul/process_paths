@@ -10,13 +10,16 @@ import io
 from decimal import Decimal
 from pathlib import Path
 
-from measure_twice.calc import Comparison, Group, Row, Step, compare, details, fmt, groups, money
+from measure_twice.calc import (Comparison, Group, Row, Step, compare, details, fmt, groups, money,
+                                waiting_text)
 from measure_twice.project import FINAL, Project
 
 DASH = "—"
 ARROW = "→"
 NOT_SET = "not set"
 NOT_REACHED = " (not reached)"
+WAITING = "Waiting"
+LABOUR_WAITING = "Labour + waiting"
 
 
 def number(d: Decimal | None, form=money) -> str:
@@ -30,19 +33,34 @@ def number(d: Decimal | None, form=money) -> str:
     return NOT_SET if d is None else form(d)
 
 
+def waiting_headers(cmp: Comparison) -> list[str]:
+    """The waiting columns after the labour total: ``Waiting``, and ``Labour + waiting`` when
+    ``labour_per_waiting_hour`` is above 0.
+
+    :param cmp: the table.
+    :return: the column names.
+    :rtype: list[str]
+    """
+    return [WAITING] + ([LABOUR_WAITING] if cmp.waiting_weight > 0 else [])
+
+
 def numbers(cmp: Comparison, r: Row) -> list[str]:
-    """Labour, total and skipped checks of a comparison row, as shown and exported.
+    """Labour, total, waiting and skipped checks of a comparison row, as shown and exported.
 
     A variant with a run error has no numbers: every cell is ``—``.
 
     :param cmp: the table.
     :param r: one of its rows.
-    :return: one text per labour column, the total, then one per slice.
+    :return: one text per labour column, the total, the waiting columns, then one per slice.
     :rtype: list[str]
     """
+    extra = waiting_headers(cmp)
     if r.error is not None:
-        return [DASH] * (len(cmp.executors) + 1 + len(cmp.slice_names))
+        return [DASH] * (len(cmp.executors) + 1 + len(extra) + len(cmp.slice_names))
     out = [number(r.labour[x]) for x in cmp.executors] + [number(r.total)]
+    out.append(waiting_text(r.waiting))
+    if LABOUR_WAITING in extra:
+        out.append(number(r.labour_waiting))
     return out + [number(s.total) + ("" if s.reached else NOT_REACHED) for s in r.slices]
 
 
@@ -77,7 +95,7 @@ OUT = "Out of comparison"
 
 def _header(cmp: Comparison) -> list[str]:
     return (["Code", "Title", "Side", "Steps"] + [f"Labour · {x}" for x in cmp.executors]
-            + ["Labour · total"]
+            + ["Labour · total"] + waiting_headers(cmp)
             + [f"Skipped checks, {'end' if n == FINAL else n}" for n in cmp.slice_names])
 
 

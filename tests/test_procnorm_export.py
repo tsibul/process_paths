@@ -90,7 +90,7 @@ def test_markdown(project):
     assert "| А | Аккуратная стирка | Ours | 7 |" in md
     assert "| 8.40 |" in md
     assert "| Б | Быстрая стирка | Theirs | 5 |" in md
-    assert "| Code | Title | Side | Steps | Labour · Человек | Labour · total | Skipped checks, постирано | Skipped checks, end |" in md
+    assert "| Code | Title | Side | Steps | Labour · Человек | Labour · total | Waiting | Skipped checks, постирано | Skipped checks, end |" in md
     assert "## Task: Постирать бельё" in md and "\n3 variants\n" in md
     assert "## No comparable variant" not in md
     assert "## Uncounted errors" in md and "### Вне модели" in md and "- порошок закончился" in md

@@ -43,12 +43,14 @@ TOP_FIELDS = {"format", "name", "description", "existence_axis", "entities", "ki
 ENTITY_FIELDS = {"name", "axes"}
 AXIS_FIELDS = {"name", "values", "inherit"}
 KIND_FIELDS = {"name", "entity", "axis", "from", "to", "requires", "check", "zero_weight",
-               "zero_weight_note"}
+               "zero_weight_note", "waiting", "waiting_unit"}
 VARIANT_FIELDS = {"code", "title", "side", "calls", "params", "entities", "initial",
                   "out_of_comparison", "task", "steps"}
 STEP_FIELDS = {"text", "calls"}
 NORM_FIELDS = {"batch_size", "kind_costs", "executor_coefficients", "scope_coefficients",
-               "axis_skip_prices", "uncounted_errors"}
+               "axis_skip_prices", "uncounted_errors", "labour_per_waiting_hour"}
+WAITING_UNITS = {"hours": 1, "days": 24}
+BAD_WAITING = "waiting needs a number above 0 and the unit hours or days"
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ class Normalization:
     :ivar skip_prices: ``{(entity, check axis): price}``.
     :ivar uncounted_errors: ``{group: [text]}``, shown, never counted.
     :ivar batch_size: informational batch size, or ``None``.
+    :ivar labour_per_waiting_hour: labour added per hour of waiting; 0 adds none.
     """
 
     kind_costs: dict[str, Decimal]
@@ -84,6 +87,7 @@ class Normalization:
     skip_prices: dict[tuple[str, str], Decimal]
     uncounted_errors: dict[str, list[str]] = field(default_factory=dict)
     batch_size: Decimal | None = None
+    labour_per_waiting_hour: Decimal = Decimal(0)
 
 
 @dataclass
@@ -101,6 +105,7 @@ class Project:
         the variant has no ``steps``.
     :ivar errors: ``{variant code: (1-based number of the failed call, reason)}``; only a lenient
         read fills it.
+    :ivar waiting: ``{kind: (waiting, unit)}`` of the waiting kinds; unit ``hours`` or ``days``.
     """
 
     name: str
@@ -112,6 +117,7 @@ class Project:
     tasks: dict[str, str | None] = field(default_factory=dict)
     steps: dict[str, list[tuple[str, int]] | None] = field(default_factory=dict)
     errors: dict[str, tuple[int, str]] = field(default_factory=dict)
+    waiting: dict[str, tuple[Decimal, str]] = field(default_factory=dict)
 
 
 class _Remarks:
@@ -218,6 +224,20 @@ def _numbers_map(r: _Remarks, where: str, v: object) -> None:
             r.add(f"{where} {k!r}", "number expected")
 
 
+def _good_waiting(k: dict) -> bool:
+    """:return: whether a kind has both waiting fields, a number above 0 and a known unit.
+    :rtype: bool
+    """
+    value = k.get("waiting")
+    return _is_number(value) and value > 0 and k.get("waiting_unit") in WAITING_UNITS
+
+
+def _waiting(data: dict) -> dict[str, tuple[Decimal, str]]:
+    """The waiting kinds of a file that passed stage 1: ``{kind: (waiting, unit)}``."""
+    return {k["name"]: (Decimal(k["waiting"]), k["waiting_unit"])
+            for k in data["kinds"] if "waiting" in k}
+
+
 def _check_steps(r: _Remarks, w: str, v: dict) -> None:
     steps = v["steps"]
     if not isinstance(steps, list):
@@ -314,6 +334,8 @@ def _check_structure(data: object, r: _Remarks) -> None:
             if "zero_weight_note" in k and (not _is_text(k["zero_weight_note"])
                                             or k.get("zero_weight") is not True):
                 r.add(w, "zero_weight_note needs zero_weight true and a text", soft=True)
+            if ("waiting" in k or "waiting_unit" in k) and not _good_waiting(k):
+                r.add(w, BAD_WAITING)
     elif "kinds" in data:
         r.add("kinds", "list expected")
     for f in ("executors", "instruments", "scopes"):
@@ -388,6 +410,8 @@ def _check_structure(data: object, r: _Remarks) -> None:
                 _numbers_map(r, f"normalization, axis_skip_prices, {en}", axes)
         if "batch_size" in n and not _is_number(n["batch_size"]):
             r.add("normalization, batch_size", "number expected")
+        if "labour_per_waiting_hour" in n and not _is_number(n["labour_per_waiting_hour"]):
+            r.add("normalization, labour_per_waiting_hour", "number expected")
         ue = n.get("uncounted_errors", {})
         if _obj(r, "normalization, uncounted_errors", ue):
             for g, texts in ue.items():
@@ -451,10 +475,12 @@ def check_axes(model: Model) -> list[tuple[str, str]]:
     return [(e.name, a.name) for e in model.entities for a in e.axes if (e.name, a.name) in marked]
 
 
-def _check_dictionary(model: Model, r: _Remarks) -> _Broken:
+def _check_dictionary(model: Model, r: _Remarks,
+                      waiting: dict[str, tuple[Decimal, str]] | None = None) -> _Broken:
     """Stage 2a: dictionary names and references.
 
     A reference to a broken entity or axis is not checked: the item that makes it is broken too.
+    A waiting kind may not be a check.
 
     :return: the broken items.
     """
@@ -515,6 +541,8 @@ def _check_dictionary(model: Model, r: _Remarks) -> _Broken:
                 r.add(w, f"condition: unknown {re_}/{ra}={rv}")
             if (re_, ra) == (k.entity, k.axis):
                 r.add(w, "condition on its own axis")
+        if k.check and waiting and k.name in waiting:
+            r.add(w, "a waiting kind cannot be a check")
         if len(r) > before:
             broken.kinds.add(k.name)
     _repeats(r, "variant_params", model.variant_params, "variant parameter")
@@ -584,12 +612,15 @@ def _check_variant_names(model: Model, broken: _Broken, r: _Remarks) -> set[str]
 
 
 def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
-                strict: bool = True) -> Normalization:
+                strict: bool = True,
+                waiting: dict[str, tuple[Decimal, str]] | None = None) -> Normalization:
     """Stage 2c: normalization against the dictionary; a strict read needs every number.
 
     The cost of a broken kind is not checked; a skip price is not called a price of a non-check
-    axis when a broken check kind may have meant that axis.
+    axis when a broken check kind may have meant that axis. A waiting kind has no labour: its
+    cost is 0 or absent.
     """
+    waiting = waiting or {}
     w = "normalization"
     costs = {k: Decimal(x) for k, x in n["kind_costs"].items()}
     ex = {k: Decimal(x) for k, x in n["executor_coefficients"].items()}
@@ -599,7 +630,11 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
     for k in model.kinds:
         if k.name in broken.kinds:
             continue
-        if k.zero_weight:
+        if k.name in waiting:
+            if k.name in costs and costs[k.name] != 0:
+                r.add(f"{w}, kind_costs",
+                      f"kind {k.name} is a waiting kind, its cost must be 0 or absent")
+        elif k.zero_weight:
             if k.name in costs and costs[k.name] != 0:
                 r.add(f"{w}, kind_costs", f"kind {k.name} has zero_weight, its cost must be 0 or absent")
         elif strict and k.name not in costs:
@@ -607,7 +642,7 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
     for name, x in costs.items():
         if name not in kinds:
             r.add(f"{w}, kind_costs", f"cost of unknown kind: {name}")
-        elif name in broken.kinds:
+        elif name in broken.kinds or name in waiting:
             continue
         elif x < 0:
             r.add(f"{w}, kind_costs", f"kind {name}: cost below zero")
@@ -641,8 +676,11 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
     batch = n.get("batch_size")
     if batch is not None and Decimal(batch) <= 0:
         r.add(f"{w}, batch_size", "must be above zero")
+    weight = Decimal(n.get("labour_per_waiting_hour", 0))
+    if weight < 0:
+        r.add(f"{w}, labour_per_waiting_hour", "must not be below zero")
     return Normalization(costs, ex, sc, prices, {g: list(t) for g, t in n.get("uncounted_errors", {}).items()},
-                         Decimal(batch) if batch is not None else None)
+                         Decimal(batch) if batch is not None else None, weight)
 
 
 def _on_broken(model: Model, v: Variant, broken: _Broken) -> bool:
@@ -717,9 +755,10 @@ def read_project(data: object, strict: bool = True) -> tuple[Project | None, lis
     if r.blocking:
         return None, r.items
     model = _build_model(data)
-    broken = _check_dictionary(model, r)
+    waiting = _waiting(data)
+    broken = _check_dictionary(model, r, waiting)
     bad = _check_variant_names(model, broken, r)
-    norm = _check_norm(model, data["normalization"], broken, r, strict)
+    norm = _check_norm(model, data["normalization"], broken, r, strict, waiting)
     errors: dict[str, tuple[int, str]] = {}
     _check_runs(model, bad, broken, r, None if strict else errors)
     if r:
@@ -729,7 +768,7 @@ def read_project(data: object, strict: bool = True) -> tuple[Project | None, lis
     steps = {v["code"]: [(s["text"], s["calls"]) for s in v["steps"]] if "steps" in v else None
              for v in data["variants"]}
     return Project(data["name"], data.get("description", ""), model, sides, norm, data, tasks,
-                   steps, errors), []
+                   steps, errors, waiting), []
 
 
 def parse_text(text: str) -> tuple[Project | None, list[Remark]]:

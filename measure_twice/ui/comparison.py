@@ -473,6 +473,9 @@ def _sort_keys(cmp: Comparison) -> list[Callable[[Row], object]]:
                                            lambda r: r.steps]
     keys += [lambda r, x=x: r.labour[x] for x in cmp.executors]
     keys.append(lambda r: r.total)
+    keys.append(lambda r: None if r.error else r.waiting)
+    if cmp.waiting_weight > 0:
+        keys.append(lambda r: r.labour_waiting)
     keys += [lambda r, i=i: r.slices[i].total if r.slices else None for i in range(len(cmp.slice_names))]
     return keys  # None: a number not set or a run error
 
@@ -572,13 +575,22 @@ class ComparisonPage(Page):
         cmp = self._cmp
         execs = cmp.executors if cmp else []
         names = [_slice_label(n) for n in cmp.slice_names] if cmp else []
-        two = ([("Labour", x) for x in execs] + [("Labour", "total")] + [("Skipped checks", n) for n in names]
-               if cmp else [])
-        self._keys = ["Code", "Title", "Side", "Steps"] + [
-            f"{a} · {b}" if a == "Labour" else f"{a}, {b}" for a, b in two]
+        labour = [("Labour", x) for x in execs] + [("Labour", "total")] if cmp else []
+        waiting = export.waiting_headers(cmp) if cmp else []
+        skips = [("Skipped checks", n) for n in names]
         fm = QFontMetrics(_head_font())
-        shown = ["Code", "Title", "Side", "Steps"] + [
-            f"{a}\n{fm.elidedText(b, Qt.TextElideMode.ElideRight, HEAD_LINE)}" for a, b in two]
+
+        def two_lines(a: str, b: str) -> str:
+            return f"{a}\n{fm.elidedText(b, Qt.TextElideMode.ElideRight, HEAD_LINE)}"
+
+        self._keys = (["Code", "Title", "Side", "Steps"]
+                      + [f"{a} · {b}" for a, b in labour]
+                      + waiting
+                      + [f"{a}, {b}" for a, b in skips])
+        shown = (["Code", "Title", "Side", "Steps"]
+                 + [two_lines(a, b) for a, b in labour]
+                 + waiting
+                 + [two_lines(a, b) for a, b in skips])
         t = self.tree
         t.clear()
         t.setColumnCount(len(shown))
@@ -673,7 +685,7 @@ class ComparisonPage(Page):
         it.setData(0, OWN, r.side == "own")
         it.setFlags(Qt.ItemFlag.ItemIsEnabled)
         first_skip = len(texts) - len(cmp.slice_names)
-        total = first_skip - 1
+        total = 4 + len(cmp.executors)
         for c in range(len(texts)):
             if c >= 3:
                 it.setTextAlignment(c, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)

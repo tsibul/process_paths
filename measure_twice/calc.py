@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Comparison of the variants of a checked project: labour and skipped checks."""
+"""Comparison of the variants of a checked project: labour, waiting and skipped checks."""
 
 from __future__ import annotations
 
@@ -12,9 +12,11 @@ from process_paths.engine import Slice, TransitionError, apply, initial_slice, r
 from process_paths.model import Call, Variant
 from process_paths.norm import find_slice, skipped_axes, task_axes
 
-from measure_twice.project import FINAL, Project, check_axes
+from measure_twice.project import FINAL, WAITING_UNITS, Project, check_axes
 
 ZERO = Decimal(0)
+DASH = "—"
+HOURS_IN_DAY = 24
 
 
 @dataclass
@@ -55,6 +57,9 @@ class Row:
         ``cost of Wash``, ``coefficient of executor X``, ``coefficient of scope Y``,
         ``skip price of E/a``.
     :ivar error: ``(call number, reason)`` of the run error, ``None`` when the run passes.
+    :ivar waiting: hours of waiting over the calls.
+    :ivar labour_waiting: total labour plus waiting hours × ``labour_per_waiting_hour``; ``None``
+        when the total is not set.
     """
 
     code: str
@@ -68,6 +73,8 @@ class Row:
     reason: str | None = None
     missing: list[str] = field(default_factory=list)
     error: tuple[int, str] | None = None
+    waiting: Decimal = ZERO
+    labour_waiting: Decimal | None = None
 
 
 @dataclass
@@ -80,6 +87,7 @@ class Comparison:
     :ivar excluded: ``[(code, title, reason)]`` of variants out of comparison.
     :ivar uncounted_errors: ``{group: [text]}``.
     :ivar excluded_rows: the variants out of comparison, computed, with ``reason``; file order.
+    :ivar waiting_weight: ``labour_per_waiting_hour``; above 0 the table has ``Labour + waiting``.
     """
 
     executors: list[str]
@@ -88,6 +96,7 @@ class Comparison:
     excluded: list[tuple[str, str, str]]
     uncounted_errors: dict[str, list[str]]
     excluded_rows: list[Row] = field(default_factory=list)
+    waiting_weight: Decimal = ZERO
 
 
 @dataclass
@@ -119,6 +128,9 @@ class Point:
     :ivar done_total: sum of the prices of the done checks (axis in the slice, with a value,
         not the first one); ``None`` when a price is not set.
     :ivar slices: names of the named slices reached at this step.
+    :ivar waiting: cumulative hours of waiting after the step.
+    :ivar labour_waiting: cumulative labour plus waiting hours × ``labour_per_waiting_hour``;
+        ``None`` when the labour is not set.
     """
 
     number: int
@@ -130,6 +142,8 @@ class Point:
     skips_total: Decimal | None
     done_total: Decimal | None
     slices: list[str]
+    waiting: Decimal = ZERO
+    labour_waiting: Decimal | None = ZERO
 
 
 @dataclass
@@ -184,11 +198,34 @@ class Link:
 
 
 def _cost(project: Project, kind: str) -> Decimal | None:
-    """Cost of a kind; 0 for an absent zero-weight kind, ``None`` when not set."""
+    """Cost of a kind; 0 for an absent zero-weight or waiting kind, ``None`` when not set."""
     cost = project.norm.kind_costs.get(kind)
-    if cost is None and project.model.kind(kind).zero_weight:
+    if cost is None and (project.model.kind(kind).zero_weight or kind in project.waiting):
         return ZERO
     return cost
+
+
+def waiting_hours(project: Project, kind: str) -> Decimal:
+    """Hours of waiting of one call of a kind; 0 for a kind that is not waiting.
+
+    No coefficient applies: waiting is not tied to an executor or a scope.
+
+    :param project: a checked project.
+    :param kind: the kind name.
+    :return: hours.
+    :rtype: Decimal
+    """
+    if kind not in project.waiting:
+        return ZERO
+    value, unit = project.waiting[kind]
+    return value * WAITING_UNITS[unit]
+
+
+def _with_waiting(project: Project, labour: Decimal | None, hours: Decimal) -> Decimal | None:
+    """Labour plus hours of waiting × ``labour_per_waiting_hour``."""
+    if labour is None:
+        return None
+    return labour + hours * project.norm.labour_per_waiting_hour
 
 
 def _product(*xs: Decimal | None) -> Decimal | None:
@@ -205,6 +242,8 @@ def _add(a: Decimal | None, b: Decimal | None) -> Decimal | None:
 
 
 def _step_labour(project: Project, call) -> Decimal | None:
+    if call.kind in project.waiting:
+        return ZERO
     n = project.norm
     return _product(_cost(project, call.kind), n.scope_coefficients.get(call.scope),
                     n.executor_coefficients.get(call.executor))
@@ -246,9 +285,10 @@ def _columns(project: Project) -> list[str]:
 def _missing(project: Project, v: Variant) -> list[str]:
     """Normalization numbers the variant needs and the project lacks, in dictionary order."""
     m, n = project.model, project.norm
-    kinds = {c.kind for c in v.calls}
-    executors = {c.executor for c in v.calls}
-    scopes = {c.scope for c in v.calls}
+    labour_calls = [c for c in v.calls if c.kind not in project.waiting]
+    kinds = {c.kind for c in labour_calls}
+    executors = {c.executor for c in labour_calls}
+    scopes = {c.scope for c in labour_calls}
     entities = set(variant_entities(m, v))
     out = [f"cost of {k.name}" for k in m.kinds if k.name in kinds and _cost(project, k.name) is None]
     out += [f"coefficient of executor {x.name}" for x in m.executors
@@ -279,9 +319,11 @@ def _row(project: Project, v: Variant, columns: list[str]) -> Row:
     slices = run_variant(project.model, v)
     labour: dict[str, Decimal | None] = {x: ZERO for x in columns}
     total: Decimal | None = ZERO
+    hours = ZERO
     for c in v.calls:
         w = _step_labour(project, c)
         total = _add(total, w)
+        hours += waiting_hours(project, c.kind)
         if c.executor in labour:
             labour[c.executor] = _add(labour[c.executor], w)
     last = len(slices) - 1
@@ -293,7 +335,8 @@ def _row(project: Project, v: Variant, columns: list[str]) -> Row:
         results.append(_slice_result(project, ns.name, idx, i is not None, slices[idx], outside))
     results.append(_slice_result(project, FINAL, last, True, slices[last], outside))
     return Row(v.code, v.title, project.sides[v.code], len(v.calls), labour, total, results,
-               project.tasks.get(v.code), reason, missing, error)
+               project.tasks.get(v.code), reason, missing, error, hours,
+               _with_waiting(project, total, hours))
 
 
 def compare(project: Project) -> Comparison:
@@ -315,7 +358,8 @@ def compare(project: Project) -> Comparison:
         else:
             rows.append(r)
     names = [ns.name for ns in project.model.named_slices] + [FINAL]
-    return Comparison(columns, names, rows, excluded, project.norm.uncounted_errors, excluded_rows)
+    return Comparison(columns, names, rows, excluded, project.norm.uncounted_errors, excluded_rows,
+                      project.norm.labour_per_waiting_hour)
 
 
 def _ordered(rows: list[Row]) -> list[Row]:
@@ -479,12 +523,14 @@ def series(project: Project, code: str) -> list[Point]:
             reached.setdefault(i, []).append(ns.name)
     outside = _task_axes(project, v)
     out, labour = [], ZERO
+    hours = ZERO
     for i, c in enumerate(v.calls, 1):
         labour = _add(labour, _step_labour(project, c))
+        hours += waiting_hours(project, c.kind)
         found = _skips(project, slices[i], outside)
         out.append(Point(i, c.kind, c.executor, labour, [(e, a) for e, a, _ in found], len(found),
                          _sum(p for _, _, p in found), _done_total(project, slices[i], outside),
-                         reached.get(i, [])))
+                         reached.get(i, []), hours, _with_waiting(project, labour, hours)))
     return out
 
 
@@ -556,6 +602,21 @@ def money(d: Decimal) -> str:
     :rtype: str
     """
     return format(d.quantize(Decimal("0.01"), ROUND_HALF_UP), "f")
+
+
+def waiting_text(hours: Decimal) -> str:
+    """Waiting as shown: ``N d`` for a whole number of days (24 h or more), else ``N h``;
+    ``—`` for no waiting.
+
+    :param hours: hours of waiting.
+    :return: text.
+    :rtype: str
+    """
+    if hours == 0:
+        return DASH
+    if hours >= HOURS_IN_DAY and hours % HOURS_IN_DAY == 0:
+        return f"{fmt(hours / HOURS_IN_DAY)} d"
+    return f"{fmt(hours)} h"
 
 
 def fmt(d: Decimal) -> str:

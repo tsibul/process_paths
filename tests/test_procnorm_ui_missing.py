@@ -257,8 +257,8 @@ def test_csv_equals_table_without_a_price(price_win):
 def test_markdown_out_table_and_details(win):
     md = export.markdown(lenient(_data()))
     out = md[md.index("## Out of comparison"):md.index("## Uncounted errors")]
-    assert f"| А | Аккуратная стирка | Ours | 7 | {NOT_SET} | {NOT_SET} | 0.00 | 0.00 | {REASON_A} |" in out
-    assert (f"| Е | Без развешивания | Theirs | 5 | {DASH} | {DASH} | {DASH} | {DASH} | "
+    assert f"| А | Аккуратная стирка | Ours | 7 | {NOT_SET} | {NOT_SET} | {DASH} | 0.00 | 0.00 | {REASON_A} |" in out
+    assert (f"| Е | Без развешивания | Theirs | 5 | {DASH} | {DASH} | {DASH} | {DASH} | {DASH} | "
             f"{REASON_E.replace('|', chr(92) + '|')} |") in out
     c = win.comparison
     for code in ("А", "Е"):
