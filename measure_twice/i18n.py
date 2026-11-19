@@ -19,7 +19,7 @@ from pathlib import Path
 from PySide6.QtCore import (QCoreApplication, QLibraryInfo, QLocale, QProcess, QSettings,
                             QTranslator)
 
-from measure_twice.message import Message
+from measure_twice.message import Message, Number
 
 KEY = "language"
 SOURCE = "en"  # the language of the strings in the code
@@ -125,15 +125,29 @@ def current() -> str:
 
 
 def locale() -> QLocale:
-    """The locale of the window language, for dates and numbers."""
-    return QLocale(_current)
+    """The locale of the window language, for dates and numbers; numbers without group separators,
+    as the core writes them."""
+    out = QLocale(_current)
+    out.setNumberOptions(QLocale.NumberOption.OmitGroupSeparator)
+    return out
+
+
+def number(text: str) -> str:
+    """A number of the core as the window shows it: the decimal separator of the window language.
+
+    :param text: the number written with the point, as :func:`measure_twice.calc.fmt` gives it.
+    :return: the text to show.
+    :rtype: str
+    """
+    return str(text).replace(".", locale().decimalPoint())
 
 
 def shown(text: object) -> str:
     """A text of the core in the language of the window.
 
     A :class:`~measure_twice.message.Message` has its template translated and its substitutions
-    filled in, each translated in turn; any other text is shown as it is. A translation that
+    filled in, each translated in turn; a :class:`~measure_twice.message.Number` gets the decimal
+    separator of the window language; any other text is shown as it is. A translation that
     lost a substitution shows the English text.
 
     :param text: a message, a plain text or ``None`` (an empty text).
@@ -142,6 +156,8 @@ def shown(text: object) -> str:
     """
     if text is None:
         return ""
+    if isinstance(text, Number):
+        return number(text)
     if not isinstance(text, Message):
         return str(text)
     template = text.template

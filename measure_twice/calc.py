@@ -12,7 +12,7 @@ from process_paths.engine import Slice, TransitionError, apply, initial_slice, r
 from process_paths.model import Call, Variant
 from process_paths.norm import find_slice, skipped_axes, task_axes
 
-from measure_twice.message import QT_TRANSLATE_NOOP, joined
+from measure_twice.message import QT_TRANSLATE_NOOP, Number, joined
 from measure_twice.project import FINAL, WAITING_UNITS, Project, check_axes
 
 ZERO = Decimal(0)
@@ -601,14 +601,14 @@ def project_empty_steps(project: Project) -> int:
     return sum(empty_steps(project, v.code) for v in project.model.variants)
 
 
-def money(d: Decimal) -> str:
+def money(d: Decimal) -> Number:
     """Comparison table number: two digits after the point, half up.
 
     :param d: the number.
     :return: text.
-    :rtype: str
+    :rtype: Number
     """
-    return format(d.quantize(Decimal("0.01"), ROUND_HALF_UP), "f")
+    return Number(format(d.quantize(Decimal("0.01"), ROUND_HALF_UP), "f"))
 
 
 def waiting_text(hours: Decimal) -> str:
@@ -626,12 +626,12 @@ def waiting_text(hours: Decimal) -> str:
     return QT_TRANSLATE_NOOP("Calc", "{number} h").format(number=fmt(hours))
 
 
-def fmt(d: Decimal) -> str:
+def fmt(d: Decimal) -> Number:
     """Decimal without trailing zeros and without exponent.
 
     :param d: the number.
     :return: text.
-    :rtype: str
+    :rtype: Number
     """
     t = format(d.normalize(), "f")
-    return "0" if t in ("-0", "") else t
+    return Number("0" if t in ("-0", "") else t)

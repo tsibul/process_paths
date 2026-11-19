@@ -18,6 +18,7 @@ from PySide6.QtCore import (QT_TRANSLATE_NOOP, QCoreApplication, QEvent, QPoint,
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen, QStaticText
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget
 
+from measure_twice import i18n
 from measure_twice.calc import Point, Row, fmt, money, series, start_point
 from measure_twice.project import Project
 from measure_twice.ui import style
@@ -86,7 +87,7 @@ class ScaleRow:
 
     def end_text(self) -> tuple[str, str]:
         """Right of the bar: total labour and the risk left at the end."""
-        return money(self.total), money(self.skips_total)
+        return i18n.number(money(self.total)), i18n.number(money(self.skips_total))
 
 
 def _ticks(end: Decimal) -> list[Decimal]:
@@ -107,10 +108,12 @@ def _row(project: Project, r: Row, colors: dict[str, tuple[str, str]]) -> ScaleR
                    last.skips_total, style.OK if last.skips_total == 0 else style.ERR)
     for a, b in zip(pts, pts[1:]):
         step = b.labour - a.labour
-        tip = f"{b.kind}, {b.executor}: {money(step)}"
+        text = i18n.number(money(step))
+        tip = f"{b.kind}, {b.executor}: {text}"
         if step:
             fill, ink = colors[b.executor]
-            out.segments.append(Segment(b.number, a.labour, b.labour, b.executor, fill, ink, money(step), tip))
+            out.segments.append(Segment(b.number, a.labour, b.labour, b.executor, fill, ink,
+                                        text, tip))
         else:
             out.zeros.append(Mark(b.number, b.labour, tip=tip))
         if b.done_total > a.done_total:
@@ -168,6 +171,10 @@ class LabourScale(QWidget):
     def ticks(self) -> list[Decimal]:
         """Round ticks of the axis, from 0 to the first one at or beyond :meth:`axis_end`."""
         return list(self._ticks)
+
+    def tick_texts(self) -> list[str]:
+        """The labels of the ticks, as drawn."""
+        return [i18n.number(fmt(t)) for t in self._ticks]
 
     def legend(self) -> list[tuple[str, str | None]]:
         """Legend items: text and swatch colour (``None`` for a drawn sign)."""
@@ -268,14 +275,14 @@ class LabourScale(QWidget):
     def _paint_axis(self, p: QPainter) -> None:
         body = self._body_h()
         p.setFont(_font(11))
-        for t in self._ticks:
+        for t, text in zip(self._ticks, self.tick_texts()):
             x = self.x_of(t)
             p.setPen(QPen(QColor(style.BORDER), 1))
             p.drawLine(QPointF(x, 0), QPointF(x, AXIS_H))
             p.setPen(QPen(QColor(style.SCALE_GRID), 1))
             p.drawLine(QPointF(x, AXIS_H), QPointF(x, body))
             p.setPen(QColor(style.TEXT2))
-            p.drawText(QRectF(x + 4, 2, 60, AXIS_H - 2), Qt.AlignmentFlag.AlignLeft, fmt(t))
+            p.drawText(QRectF(x + 4, 2, 60, AXIS_H - 2), Qt.AlignmentFlag.AlignLeft, text)
         p.setPen(QPen(QColor(style.BORDER), 1))
         p.drawLine(QPointF(LABEL_W, AXIS_H), QPointF(self.x_of(self._ticks[-1]), AXIS_H))
         p.drawLine(QPointF(LABEL_W, 0), QPointF(LABEL_W, AXIS_H))

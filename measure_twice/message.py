@@ -48,6 +48,25 @@ class Message(str):
         return _filled(self.context, self.template, args, self.n)
 
 
+class Number(str):
+    """A number of the core, written with the point; the window shows it with the decimal
+    separator of its language (``measure_twice.i18n.number``)."""
+
+
+def with_point(text: object) -> object:
+    """The same text with every number in it, a substitution too, left with the point.
+
+    :param text: a message, a number or any other text.
+    :return: a message whose numbers are plain texts; a number as a plain text; other text as it is.
+    """
+    if isinstance(text, Number):
+        return str(text)
+    if isinstance(text, Message) and text.args:
+        args = {k: with_point(v) for k, v in text.args.items()}
+        return Message(str(text), text.context, text.template, args, text.n)
+    return text
+
+
 def _english(template: str, args: dict, n: int | None) -> str:
     if n is not None:
         template = template.replace("%n", str(n))

@@ -4,7 +4,8 @@
 """Export of the comparison to Markdown and CSV.
 
 The texts are English; ``tr`` (the window gives its translation, ``measure_twice.i18n.shown``)
-turns each heading and cell into the language shown. The numbers keep the point.
+turns each heading and cell into the language shown, a number with the decimal separator of
+that language (a :class:`~measure_twice.message.Number`). The numbers of the CSV keep the point.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from typing import Callable
 
 from measure_twice.calc import (Comparison, Group, Row, Step, compare, details, fmt, groups, money,
                                 waiting_text)
-from measure_twice.message import QT_TRANSLATE_NOOP, translate
+from measure_twice.message import QT_TRANSLATE_NOOP, translate, with_point
 from measure_twice.project import FINAL, Project
 
 DASH = "—"
@@ -220,7 +221,7 @@ def csv_text(project: Project, tr: Tr = str) -> str:
     :rtype: str
     """
     buf = io.StringIO()
-    rows = [[tr(c) for c in line] for line in _grid(compare(project))]
+    rows = [[tr(with_point(c)) for c in line] for line in _grid(compare(project))]
     csv.writer(buf, lineterminator="\n").writerows(rows)
     return buf.getvalue()
 

@@ -13,6 +13,7 @@ from PySide6.QtCore import (QT_TRANSLATE_NOOP, QCoreApplication, QMargins, QRect
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
+from measure_twice import i18n
 from measure_twice.calc import Point, Row, series, start_point
 from measure_twice.project import Project
 from measure_twice.ui import style
@@ -166,8 +167,12 @@ def _view(title: str, y_title: str) -> ChartView:
     chart.legend().setAlignment(Qt.AlignRight)
     chart.legend().setLabelColor(QColor(style.TEXT))
     chart.legend().setMarkerShape(QLegend.MarkerShapeFromSeries)
+    # The labels take the decimal separator of the window language; a localized label takes
+    # neither "%d" nor "%g" without a precision.
+    chart.setLocale(i18n.locale())
+    chart.setLocalizeNumbers(True)
     step = QCoreApplication.translate("LineCharts", "Step")
-    for title_, align, fmt in ((step, Qt.AlignBottom, "%d"), (y_title, Qt.AlignLeft, "%g")):
+    for title_, align, fmt in ((step, Qt.AlignBottom, "%.0f"), (y_title, Qt.AlignLeft, "%.6g")):
         axis = QValueAxis()
         axis.setTitleText(title_)
         axis.setLabelFormat(fmt)

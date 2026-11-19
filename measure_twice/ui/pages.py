@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFrame, 
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
                                QStyledItemDelegate, QTableWidgetItem, QVBoxLayout, QWidget)
 
+from measure_twice import i18n
 from measure_twice.calc import fmt
 from measure_twice.project import Project, check_axes
 from measure_twice.ui import style
@@ -446,7 +447,7 @@ class KindForm(QFrame):
         if kind is not None:
             self._fill(kind)
         if waiting is not None:
-            self.waiting.setText(fmt(waiting[0]))
+            self.waiting.setText(i18n.number(fmt(waiting[0])))
             self.waiting_unit.setCurrentIndex(max(self.waiting_unit.findData(waiting[1]), 0))
         self._waiting_changed()
 
@@ -1703,14 +1704,15 @@ class NumberTable(Table):
         :param rows: ``(key, name cells, number or None, editable)``; ``None`` is a number not set.
         """
         not_set = translate("DictionaryPage", NOT_SET)
-        self.set_rows([names + [not_set if x is None else fmt(x)] for _, names, x, _ in rows])
+        self.set_rows([names + [not_set if x is None else i18n.number(fmt(x))]
+                       for _, names, x, _ in rows])
         self.clearSelection()  # the selection tint would hide the mark of a number not set
         col = self.columnCount() - 1
         for r, (key, _, x, editable) in enumerate(rows):
             for c in range(self.columnCount()):
                 self.item(r, c).setData(KEY, key)
             it = self.item(r, col)
-            it.setData(RAW, "" if x is None else fmt(x))
+            it.setData(RAW, "" if x is None else i18n.number(fmt(x)))
             if editable:
                 it.setFlags(it.flags() | Qt.ItemFlag.ItemIsEditable)
             if x is None:
@@ -1848,10 +1850,11 @@ class NormPage(Page):
         n, m = p.norm, p.model
         batch = ""
         if n.batch_size is not None:
-            batch = self.tr("Batch size: {size}").format(size=fmt(n.batch_size))
+            batch = self.tr("Batch size: {size}").format(size=i18n.number(fmt(n.batch_size)))
         self.batch.setText(batch)
         weight = n.labour_per_waiting_hour
-        self._show_waiting_weight(fmt(weight) if WAITING_WEIGHT in p.data["normalization"] else "")
+        shown = i18n.number(fmt(weight))
+        self._show_waiting_weight(shown if WAITING_WEIGHT in p.data["normalization"] else "")
         no_labour = {k.name for k in m.kinds if k.zero_weight or k.name in p.waiting}
         self.costs.set_numbers([
             (k.name, [k.name],
