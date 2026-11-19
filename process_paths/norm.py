@@ -5,18 +5,21 @@
 
 The labour of a call is ``kind cost × scope coefficient × executor coefficient``; the labour of
 a variant is the sum over its calls. A skip is a check axis (an axis changed by a kind marked
-``check``) that is still on its initial value (the first value of the axis) in a slice.
-Skips are counted in every named slice of the model (its condition) and in the final slice.
+``check``) that is still on its initial value (the first value of the axis) in a slice. A path
+counts the priced check axes of every entity that a path of its task touches (see
+:func:`task_axes`); an axis of an absent entity is no skip. Skips are counted in every named
+slice of the model (its condition) and in the final slice.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from collections.abc import Collection, Mapping
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from pathlib import Path
 
-from .engine import Slice, run_variant
+from .engine import Slice, absent, initial_slice, run_variant, variant_entities
 from .model import Model, ModelError, NamedSlice, SliceGroup, Variant
 
 #: Name of the final slice in the output.
@@ -143,6 +146,61 @@ def check_axes(model: Model) -> list[tuple[str, str]]:
     return [(e.name, a.name) for e in model.entities for a in e.axes if (e.name, a.name) in marked]
 
 
+def task_axes(model: Model, variant: Variant, tasks: Mapping[str, str | None],
+              priced: Collection[tuple[str, str]]) -> Slice:
+    """Initial values of the priced check axes the task of a variant adds to its slices.
+
+    These are the check axes with a skip price on the entities that another path of the same
+    task touches and this variant does not; the variant leaves them at their initial values. A
+    variant without a task adds none. An entity absent at the start never comes into existence
+    on this variant, so it adds none either.
+
+    :param model: the model.
+    :param variant: the variant.
+    :param tasks: ``{variant code: task, or None}``.
+    :param priced: the check axes with a skip price, ``(entity, axis)``.
+    :return: ``{(entity, axis): initial value}``.
+    :rtype: Slice
+    """
+    task = tasks.get(variant.code)
+    if task is None:
+        return {}
+    names: set[str] = set()
+    for other in model.variants:
+        if tasks.get(other.code) == task:
+            names.update(variant_entities(model, other))
+    names -= set(variant_entities(model, variant))
+    if not names:
+        return {}
+    s0 = initial_slice(model, replace(variant, entities=tuple(names)))
+    return {(e, a): s0[(e, a)] for e, a in check_axes(model)
+            if (e, a) in s0 and (e, a) in priced and not absent(model, s0, e)}
+
+
+def skipped_axes(model: Model, s: Slice, outside: Slice) -> list[tuple[str, str]]:
+    """Check axes of the slice, or of ``outside`` (see :func:`task_axes`), with no value or on
+    the first value.
+
+    An axis of an entity absent in the slice is not a skip: the entity has left existence or
+    never came into it. An axis in neither the slice nor ``outside`` is not counted.
+
+    :param model: the model.
+    :param s: the slice.
+    :param outside: axes the task adds, from :func:`task_axes`.
+    :return: ``[(entity, axis)]`` in dictionary order.
+    :rtype: list[tuple[str, str]]
+    """
+    s = {**outside, **s}
+    out = []
+    for e, a in check_axes(model):
+        if (e, a) not in s or absent(model, s, e):
+            continue
+        first = model.entity(e).axis(a).values[0]
+        if s[(e, a)] is None or s[(e, a)] == first:
+            out.append((e, a))
+    return out
+
+
 def validate(model: Model, norm: Normalization) -> None:
     """Check that the normalization matches the dictionaries.
 
@@ -191,22 +249,19 @@ def labour(model: Model, norm: Normalization, variant: Variant) -> tuple[dict[st
     return by, sum(by.values(), Decimal(0))
 
 
-def skips(model: Model, norm: Normalization, s: Slice) -> list[tuple[str, str, Decimal]]:
-    """Check axes still on their initial value in a slice.
-
-    An axis without a value (its entity does not exist or is not in the variant) is a skip too.
+def skips(model: Model, norm: Normalization, s: Slice,
+          outside: Slice | None = None) -> list[tuple[str, str, Decimal]]:
+    """Check axes still on their initial value in a slice, see :func:`skipped_axes`.
 
     :param model: the model.
     :param norm: the normalization.
     :param s: the slice.
+    :param outside: axes the task of the variant adds, from :func:`task_axes`.
     :return: ``(entity, axis, price)`` in dictionary order.
     :rtype: list[tuple[str, str, Decimal]]
     """
-    result = []
-    for e, a in check_axes(model):
-        if s.get((e, a)) in (None, model.entity(e).axis(a).values[0]):
-            result.append((e, a, norm.axis_skip_prices[a]))
-    return result
+    found = skipped_axes(model, s, outside or {})
+    return [(e, a, norm.axis_skip_prices[a]) for e, a in found]
 
 
 def _holds(variant: Variant, s: Slice, group: SliceGroup) -> bool:
@@ -231,10 +286,10 @@ def find_slice(variant: Variant, slices: list[Slice], ns: NamedSlice) -> int | N
 
 
 def _slice_skips(model: Model, norm: Normalization, name: str, index: int | None, reached: bool,
-                 slices: list[Slice]) -> SliceSkips:
+                 slices: list[Slice], outside: Slice) -> SliceSkips:
     if index is None:
         return SliceSkips(name, None, reached, None, None)
-    found = skips(model, norm, slices[index])
+    found = skips(model, norm, slices[index], outside)
     return SliceSkips(name, index, reached, found, sum((p for _, _, p in found), Decimal(0)))
 
 
@@ -250,12 +305,15 @@ def norm_variant(model: Model, norm: Normalization, variant: Variant) -> Variant
     slices = run_variant(model, variant)
     by, total = labour(model, norm, variant)
     final = len(slices) - 1
+    tasks = {v.code: v.task for v in model.variants}
+    priced = [(e, a) for e, a in check_axes(model) if a in norm.axis_skip_prices]
+    outside = task_axes(model, variant, tasks, priced)
     out = []
     for ns in model.named_slices:
         i = find_slice(variant, slices, ns)
         idx = i if i is not None else (final if norm.unreached_final else None)
-        out.append(_slice_skips(model, norm, ns.name, idx, i is not None, slices))
-    out.append(_slice_skips(model, norm, FINAL, final, True, slices))
+        out.append(_slice_skips(model, norm, ns.name, idx, i is not None, slices, outside))
+    out.append(_slice_skips(model, norm, FINAL, final, True, slices, outside))
     return VariantNorm(variant, by, total, out)
 
 

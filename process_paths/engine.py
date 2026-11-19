@@ -39,7 +39,7 @@ def variant_entities(model: Model, variant: Variant) -> list[str]:
     return [e.name for e in model.entities if e.name in names]
 
 
-def _absent(model: Model, s: Slice, entity: str) -> bool:
+def absent(model: Model, s: Slice, entity: str) -> bool:
     """:return: whether the entity does not exist in the slice.
     :rtype: bool
     """
@@ -82,7 +82,7 @@ def initial_slice(model: Model, variant: Variant) -> Slice:
         ex = ent.axis(model.existence_axis)
         if ex is not None:
             s[(name, ex.name)] = preset.get(ex.name, ex.values[0])
-        if _absent(model, s, name):
+        if absent(model, s, name):
             for ax in ent.axes:
                 if ax.name != model.existence_axis:
                     s[(name, ax.name)] = None

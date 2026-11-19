@@ -130,6 +130,7 @@ class Variant:
     :ivar out_of_comparison: optional reason why the variant is not compared with
         the competitors.
     :ivar params: variant parameters, ``{parameter: executor}``.
+    :ivar task: the task the variant solves, or ``None``; paths of one task are compared.
     """
 
     code: str
@@ -139,6 +140,7 @@ class Variant:
     initial: dict[str, dict[str, str]] = field(default_factory=dict)
     out_of_comparison: str | None = None
     params: dict[str, str] = field(default_factory=dict)
+    task: str | None = None
 
 
 @dataclass(frozen=True)
@@ -303,7 +305,8 @@ def parse_model(data: dict) -> Model:
         variants = [
             Variant(v["code"], v["title"], tuple(Call(*c) for c in v["calls"]),
                     tuple(v.get("entities", [])), v.get("initial", {}),
-                    v.get("out_of_comparison"), dict(v.get("params", {})))
+                    v.get("out_of_comparison"), dict(v.get("params", {})),
+                    v.get("task"))
             for v in data["variants"]
         ]
         model = Model(entities, ex["name"], ex["absent"], kinds, executors,
