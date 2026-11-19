@@ -144,6 +144,8 @@ def test_six_prompts_from_the_packaged_file():
 def test_prompt_one_marks_added_ways_in_the_title():
     text = prompts()[0].text
     assert 'End the title of each added way with "(added)"' in text
+    assert "action names get no mark" in text
+    assert "through our conversation" in text
 
 
 def test_prompt_two_names_steps_not_in_my_words():
@@ -154,6 +156,8 @@ def test_prompt_two_names_steps_not_in_my_words():
 def test_prompt_three_takes_a_check_from_my_words():
     text = prompts()[2].text
     assert "If my words call an action a check, it is a check." in text
+    assert "A check changes an attribute of its own, not the state it looks at" in text
+    assert "makes it absent" in text
     assert "Diagnosis and finding the cause are ordinary actions" not in text
 
 
@@ -166,6 +170,11 @@ def test_prompt_four_marks_waiting_instead_of_asking():
 def test_prompt_four_warns_about_added_steps():
     text = prompts()[3].text
     assert "If steps not in my words change a way's total noticeably" in text
+
+
+def test_prompt_four_scales_skip_price_to_the_fix():
+    text = prompts()[3].text
+    assert "comparable to the work of fixing what the skip lets through" in text
 
 
 def test_task_prompt_fills_the_task():

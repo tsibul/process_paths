@@ -25,9 +25,9 @@ My task: {task}
 Give the task one short name; all ways share it. List the ways to do it that you understood
 from my words: a short title, one line on what is done, and "own" (mine) or "other"
 (someone else's). Then add the usual ways I did not mention: only ways that really solve the
-task, always "other". End the title of each added way with "(added)" and keep it in every
-step and in the file. In "Points to check" name each added way and ask which ways are missing
-or extra.
+task, always "other". End the title of each added way with "(added)" and keep it
+through our conversation and in the file; action names get no mark. In "Points to check"
+name each added way and ask which ways are missing or extra.
 ```
 
 ## Prompt 2. Steps
@@ -68,10 +68,13 @@ Go over the steps of all ways together.
    on another thing's change. Only work without labour is "no labour".
 5. Mark the checks: a check confirms the result after an action, and skipping it has a price.
    If my words call an action a check, it is a check. Otherwise finding the cause of a fault
-   is an ordinary action. A check changes the thing it checks:
-   "Test for leaks: Tap, leak not tested -> tested". A way without a check gets no step for
-   it; the thing still has the check attribute, so the skip shows.
+   is an ordinary action. A check changes an attribute of its own, not the state it looks at:
+   "Test for leaks: Tap, leak not tested -> tested", "Inspect the seal: Washer, not inspected
+   -> inspected". A way without a check gets no step for it; the thing still has the check
+   attribute, so the skip shows.
 6. Say what appears or disappears along the way (a bucket put under, a visit booked).
+   A part that leaves with another thing gets its own no-labour action that makes it absent
+   (Washer: exists yes -> no, thrown away with the old tap); its checks are then not skipped.
 7. Waiting for someone is its own kind of action: not a check, not labour. It still changes an
    attribute of its own (Plumber visit: booked -> done).
 Then run each way: every action starts from the state the previous one left. Fix any that
@@ -96,7 +99,8 @@ Step 4. Who and how much.
    needed (water draining) costs 0.
 4. Say whether each action is done once for the whole job or for each unit; if per unit, how
    many units a batch has.
-5. For each check give the price of skipping it, more than 0. Never add it to labour.
+5. For each check give the price of skipping it, more than 0, in the labour unit,
+   comparable to the work of fixing what the skip lets through. Never add it to labour.
 6. Show the total of each way: sum of cost x executor coefficient x scope coefficient.
    If steps not in my words change a way's total noticeably, say so in "Points to check".
 Mark doubtful numbers with "?".
