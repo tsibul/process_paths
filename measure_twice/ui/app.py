@@ -10,10 +10,11 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
 from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout,
-                               QInputDialog, QLabel, QMainWindow, QMessageBox, QPushButton,
-                               QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
+                               QInputDialog, QLabel, QMainWindow, QMenu, QMessageBox,
+                               QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget,
+                               QWidgetAction)
 
 from measure_twice.calc import empty_steps, project_empty_steps
 from measure_twice import edit
@@ -31,7 +32,7 @@ from measure_twice.edit import (
 )
 from measure_twice.project import Project, load_file, parse_text, read_project
 from measure_twice.store import Store, default_path
-from measure_twice.ui.ai_scenario import TITLE as AI_TITLE, AiScenarioDialog
+from measure_twice.ui.ai_scenario import AiScenarioDialog
 from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
 from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.pages import DictionaryPage, NormPage
@@ -44,6 +45,7 @@ NEW_NAME = "New project"
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = "Project files (*.json);;All files (*)"
 NO_JSON = "No JSON object found in the text."
+EXPORT_HINT = "The program keeps your projects by itself. This makes a file to send or archive."
 
 
 def _dot_icon() -> QIcon:
@@ -123,15 +125,7 @@ class MainWindow(QMainWindow):
         self.projects.setItemDelegate(NoteDelegate(self.projects))
         self.projects.currentIndexChanged.connect(self._project_chosen)
         bar.addWidget(self.projects, 1)
-        self.new_button = self._button(bar, "New", self.on_new)
-        self.load_button = self._button(bar, "Load", self.on_load)
-        self.load_over_button = self._button(bar, "Load over", self.on_load_over)
-        self.save_button = self._button(bar, "Save file", self.on_save)
-        self.copy_button = self._button(bar, "Copy", self.copy_project)
-        self.delete_button = self._button(bar, "Delete", self.delete_project)
-        self.ai_button = self._button(bar, AI_TITLE, self.on_ai)
-        self.example_button = self._button(bar, "Example", self.show_example)
-        self.example_button.setToolTip(f"Add the {EXAMPLE_NAME} example")
+        self._build_menus(bar)
         head.addLayout(bar)
         self.remarks_panel = RemarksPanel()
         head.addWidget(self.remarks_panel)
@@ -239,10 +233,45 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() != 3:
             self._set_dot(True)
 
+    def _build_menus(self, bar: QHBoxLayout) -> None:
+        """The `+ New ▾` menu (making a project) and the `More ▾` menu (the open one)."""
+        self.new_menu = QMenu(self)
+        self.ai_action = self._item(self.new_menu, "With AI…", self.on_ai)
+        # The window for a pasted answer comes later; the item is shown grey until then.
+        self.paste_action = self.new_menu.addAction("Paste AI answer…")
+        self.paste_action.setEnabled(False)
+        self.load_action = self._item(self.new_menu, "From file…", self.on_load)
+        self.new_action = self._item(self.new_menu, "Empty", self.on_new)
+        self.example_action = self._item(self.new_menu, "Example", self.show_example)
+        self.example_action.setToolTip(f"Add the {EXAMPLE_NAME} example")
+        self.new_menu_button = self._menu_button(bar, "+ New ▾", self.new_menu)
+        self.new_menu_button.setProperty("primary", True)
+
+        self.more_menu = QMenu(self)
+        self.save_action = self._item(self.more_menu, "Export to file…", self.on_save)
+        hint = QLabel(EXPORT_HINT)
+        hint.setObjectName("menuHint")
+        self.export_hint = QWidgetAction(self.more_menu)
+        self.export_hint.setDefaultWidget(hint)
+        self.export_hint.setEnabled(False)
+        self.more_menu.addAction(self.export_hint)
+        self.copy_action = self._item(self.more_menu, "Duplicate", self.copy_project)
+        self.load_over_action = self._item(self.more_menu, "Replace from file…",
+                                           self.on_load_over)
+        self.delete_action = self._item(self.more_menu, "Delete…", self.delete_project)
+        self.more_menu_button = self._menu_button(bar, "More ▾", self.more_menu)
+
     @staticmethod
-    def _button(bar: QHBoxLayout, text: str, slot) -> QPushButton:
+    def _item(menu: QMenu, text: str, slot) -> QAction:
+        action = menu.addAction(text)
+        action.triggered.connect(lambda: slot())
+        return action
+
+    @staticmethod
+    def _menu_button(bar: QHBoxLayout, text: str, menu: QMenu) -> QPushButton:
         b = QPushButton(text)
-        b.clicked.connect(lambda: slot())
+        b.setObjectName("menuButton")
+        b.setMenu(menu)
         bar.addWidget(b)
         return b
 
@@ -287,8 +316,8 @@ class MainWindow(QMainWindow):
         project = self.store.get(pid) if pid is not None else None
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
             page.show_project(project)
-        for b in (self.load_over_button, self.save_button, self.copy_button, self.delete_button):
-            b.setEnabled(pid is not None)
+        for a in (self.save_action, self.copy_action, self.load_over_action, self.delete_action):
+            a.setEnabled(pid is not None)
         if self.settings is not None and pid is not None:
             self.settings.setValue(LAST, pid)
             self.settings.sync()

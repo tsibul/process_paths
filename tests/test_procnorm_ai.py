@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog
 
 from measure_twice.ai import (
     INSTRUCTIONS_FILE,
@@ -282,25 +282,14 @@ def test_extract_nothing_found():
 # --- the entry button
 
 
-def _bar_texts(win) -> list[str]:
-    bar = next(lay for lay in win.findChildren(QHBoxLayout)
-               if lay.indexOf(win.example_button) >= 0)
-    texts = []
-    for i in range(bar.count()):
-        w = bar.itemAt(i).widget()
-        if isinstance(w, QPushButton):
-            texts.append(w.text())
-    return texts
-
-
-def test_ai_button_after_delete(win):
-    texts = _bar_texts(win)
-    assert texts[-2:] == ["Add a process with AI", "Example"]
-    assert texts[-3] == "Delete"
+def test_ai_item_first_in_new_menu(win):
+    texts = [a.text() for a in win.new_menu.actions()]
+    assert texts[0] == "With AI…"
+    assert texts[-1] == "Example"
     assert "Ask AI" not in texts
     assert "Paste answer" not in texts
-    assert win.example_button.toolTip() == "Add the Fix a leaking tap example"
-    assert win.example_button.isEnabled()
+    assert win.example_action.toolTip() == "Add the Fix a leaking tap example"
+    assert win.example_action.isEnabled()
 
 
 # --- loading an answer
@@ -309,7 +298,7 @@ def test_ai_button_after_delete(win):
 def test_button_row_fits_the_default_width(win):
     win.show()
     QApplication.processEvents()
-    right = win.example_button.mapTo(win, win.example_button.rect().topRight()).x()
+    right = win.more_menu_button.mapTo(win, win.more_menu_button.rect().topRight()).x()
     assert right < win.width()
     assert win.width() >= 1100
     assert win.width() == max(1100, win.minimumSizeHint().width())

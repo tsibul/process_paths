@@ -171,7 +171,7 @@ def _add_slice(w, name, spec):
 
 
 def test_dictionary_typed_in_window_equals_file(win, store):
-    win.new_button.click()
+    win.new_action.trigger()
     _settle()
     assert win.tabs.currentWidget() is win.dictionary
     _set_existence_axis(win)

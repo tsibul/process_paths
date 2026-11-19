@@ -1,4 +1,4 @@
-"""Tests of the New button: an empty project made in the window."""
+"""Tests of the Empty item of the New menu: an empty project made in the window."""
 
 import os
 
@@ -53,20 +53,21 @@ def _answer(win, monkeypatch, name):
     return asked
 
 
-def test_new_button_in_project_row(win):
-    assert win.new_button.text() == "New"
-    assert win.new_button.isEnabled()
+def test_empty_item_in_new_menu(win):
+    assert win.new_action.text() == "Empty"
+    assert win.new_action.isEnabled()
+    assert win.new_action in win.new_menu.actions()
 
 
 def test_prompt_prefilled_with_new_project(win, monkeypatch):
     asked = _answer(win, monkeypatch, None)
-    win.new_button.click()
+    win.new_action.trigger()
     assert asked == ["New project"]
 
 
 def test_new_project_listed_selected_dictionary_open(win, store, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
-    win.new_button.click()
+    win.new_action.trigger()
     assert win.project_names() == ["Garden shed"]
     assert win.projects.currentText() == "Garden shed"
     assert win.current_id is not None
@@ -82,7 +83,7 @@ def test_new_project_beside_loaded_one(win, store, monkeypatch, tmp_path):
     f.write_text(json.dumps(with_spares(), default=float, ensure_ascii=False), encoding="utf-8")
     assert win.load_path(f)
     _answer(win, monkeypatch, "  Garden shed  ")
-    win.new_button.click()
+    win.new_action.trigger()
     assert len(win.project_names()) == 2
     assert win.projects.currentText() == "Garden shed"
     assert not win.offer_visible()
@@ -91,7 +92,7 @@ def test_new_project_beside_loaded_one(win, store, monkeypatch, tmp_path):
 
 def test_every_tab_shows_empty_project(app, win, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
-    win.new_button.click()
+    win.new_action.trigger()
     for page in (win.dictionary, win.norm, win.comparison, win.chains):
         win.tabs.setCurrentWidget(page)
         app.processEvents()
@@ -101,7 +102,7 @@ def test_every_tab_shows_empty_project(app, win, monkeypatch):
 
 def test_new_project_kept_after_restart(app, win, db, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
-    win.new_button.click()
+    win.new_action.trigger()
     pid = win.current_id
     win.close()
     with Store(db) as again:
@@ -115,7 +116,7 @@ def test_new_project_kept_after_restart(app, win, db, monkeypatch):
 @pytest.mark.parametrize("name", ["", "   "])
 def test_empty_name_refused_with_remark(win, store, monkeypatch, name):
     _answer(win, monkeypatch, name)
-    win.new_button.click()
+    win.new_action.trigger()
     assert store.list() == []
     assert win.project_names() == []
     assert not win.remarks_panel.isHidden()
@@ -125,23 +126,23 @@ def test_empty_name_refused_with_remark(win, store, monkeypatch, name):
 
 def test_cancel_makes_nothing(win, store, monkeypatch):
     _answer(win, monkeypatch, None)
-    win.new_button.click()
+    win.new_action.trigger()
     assert store.list() == []
     assert win.remarks_panel.isHidden()
 
 
 def test_remark_goes_after_good_name(win, monkeypatch):
     _answer(win, monkeypatch, "")
-    win.new_button.click()
+    win.new_action.trigger()
     _answer(win, monkeypatch, "Garden shed")
-    win.new_button.click()
+    win.new_action.trigger()
     assert win.remarks_panel.isHidden()
     assert win.project_names() == ["Garden shed"]
 
 
 def test_empty_dictionary_tables_show_dash_or_add_row(win, monkeypatch):
     _answer(win, monkeypatch, "Garden shed")
-    win.new_button.click()
+    win.new_action.trigger()
     page = win.dictionary
     tables = (page.kinds, page.slices, page.entities, page.executors, page.instruments,
               page.params)

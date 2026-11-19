@@ -100,7 +100,7 @@ def empty(app, store, monkeypatch):
     w.resize(1200, 900)
     w.show()
     monkeypatch.setattr(w, "ask_name", lambda text: "Garden shed")
-    w.new_button.click()
+    w.new_action.trigger()
     QApplication.processEvents()
     yield w
     w.close()

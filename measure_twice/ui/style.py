@@ -57,6 +57,36 @@ QPushButton[primary="true"]:disabled {{
 }}
 
 QPushButton:checked {{ border-color: {ACCENT}; color: {ACCENT}; font-weight: 600; }}
+
+QPushButton#menuButton::menu-indicator {{
+  image: none;
+  width: 0px;
+}}
+
+QMenu {{
+  background: {BG};
+  border: 1px solid {BORDER};
+  padding: 4px 0;
+}}
+
+QMenu::item {{
+  padding: 6px 24px 6px 16px;
+}}
+
+QMenu::item:selected {{
+  background: {TINT};
+  color: {TEXT};
+}}
+
+QMenu::item:disabled {{
+  color: {NOT_ALLOWED};
+}}
+
+QLabel#menuHint {{
+  font-size: 13px;
+  color: {TEXT2};
+  padding: 0 24px 6px 16px;
+}}
 QComboBox {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 6px; padding: 5px 12px;
             min-width: 240px; }}
 QComboBox QAbstractItemView {{ background: {BG}; border: 1px solid {BORDER};
