@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measure Twice — русский перевод: наставление</title>
+<style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      font: 16px/1.4 system-ui, sans-serif;
+      overflow-wrap: anywhere;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 12px;
+    }
+
+    .box {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #8884;
+      padding: 6px 8px;
+      text-align: start;
+      vertical-align: top;
+      white-space: pre-wrap;
+    }
+
+    th {
+      background: #8882;
+    }
+
+    td.num {
+      color: #888;
+      white-space: nowrap;
+    }
+
+    td.empty {
+      background: #fc03;
+    }
+
+    @media (max-width: 600px) {
+      thead {
+        display: none;
+      }
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      tr {
+        border: 1px solid #8886;
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+
+      td {
+        border: 0;
+        border-bottom: 1px solid #8884;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        color: #888;
+      }
+
+      td.note:empty {
+        display: none;
+      }
+    }
+</style>
+</head>
+<body>
+<h1>Measure Twice — русский перевод: наставление</h1>
+<div class="box">
+<table>
+<thead><tr><th>№</th><th>English</th><th>Translation</th><th>Comment</th></tr></thead>
+<tbody>
+<tr><td class="num" data-label="№">1</td><td data-label="English"># Measure Twice: input file format and rules for filling it in</td><td dir="auto" data-label="Translation"># Measure Twice: формат входного файла и правила заполнения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">2</td><td data-label="English">This document is addressed to a language model that prepares a project file in a conversation with a person. The person does not read or edit the file: they load it into the application and see the result in its window. So the file must pass the check in full; the person will pass the check's remarks to you as they are.</td><td dir="auto" data-label="Translation">Документ адресован языковой модели, которая в разговоре с человеком готовит файл проекта. Человек файл не читает и не правит: он загружает его в приложение и видит результат в окне. Поэтому файл должен пройти проверку целиком; замечания проверки человек передаст тебе как есть.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">3</td><td data-label="English">## 1. What the file describes</td><td dir="auto" data-label="Translation">## 1. Что описывает файл</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">4</td><td data-label="English">- **Entity** — something that has a state. **Axis** — one independent attribute of an entity. An axis has a list of **values**.
+- **Slice** — the values of all axes at one moment.
+- **Transition kind** — a change of the value of one axis of one entity: it was "from", it became "to". Nothing else changes in a transition.
+- **Transition** in a variant — a quadruple: transition kind, executor, instrument, scope.
+- **Variant** — a linear chain of transitions. There are no forks: a fork is written as two variants.
+- **Normalization** — the numbers. The **weight** of a transition = kind cost × scope coefficient × executor coefficient. The weight of a variant is the sum over its transitions.
+- **Check** — a flag of a transition kind. **Check axis** — the axis that such a kind changes. **Skip** — a check axis that stayed on its initial value; a skip has a price.</td><td dir="auto" data-label="Translation">- **Сущность** — то, у чего есть состояние. **Ось** — один независимый признак сущности. У оси — перечень **значений**.
+- **Срез** — значения всех осей в один момент.
+- **Вид перехода** — смена значения одной оси одной сущности: было «из», стало «в». Больше при переходе ничего не меняется.
+- **Переход** в варианте — четвёрка: вид перехода, исполнитель, инструмент, охват.
+- **Вариант** — линейная цепочка переходов. Развилок нет: развилка записывается двумя вариантами.
+- **Нормировка** — числа. **Вес** перехода = стоимость вида × коэффициент охвата × коэффициент исполнителя. Вес варианта — сумма по переходам.
+- **Проверка** — признак вида перехода. **Ось проверки** — ось, которую меняет такой вид. **Пропуск** — ось проверки, оставшаяся на начальном значении; у пропуска есть цена.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">5</td><td data-label="English">The application knows nothing about the subject: all names are yours, in words, in the person's language. The numbers are assigned by the person; do not invent them silently — propose them and ask.</td><td dir="auto" data-label="Translation">Приложение ничего не знает о предмете: все названия — твои, словами, на языке человека. Числа назначает человек; не придумывай их молча — предложи и спроси.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">6</td><td data-label="English">## 2. General rules</td><td dir="auto" data-label="Translation">## 2. Общие правила</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">7</td><td data-label="English">- One JSON file in UTF-8 encoding.
+- A reference is a name written letter for letter the same as in the place where it is declared (case, spaces, accents and other special characters).
+- Numbers are JSON numbers (`2`, `0.1`), not strings.
+- The order in lists matters: everything is shown in that order, and the first value of an axis is the initial one.
+- An optional field that is not needed is not written at all.</td><td dir="auto" data-label="Translation">- Один файл JSON в кодировке UTF-8.
+- Ссылка — это название, записанное буква в букву так же, как в месте, где оно объявлено (регистр, пробелы, «ё»).
+- Числа — числами JSON (`2`, `0.1`), не строками.
+- Порядок в списках значим: в этом порядке всё показывается, а первое значение оси — начальное.
+- Необязательное поле, которое не нужно, не пиши вовсе.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">8</td><td data-label="English">## 3. Sections of the file</td><td dir="auto" data-label="Translation">## 3. Разделы файла</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">9</td><td data-label="English">| Field | Required | What it is |
+|---|---|---|
+| `format` | yes | Format number: `1` |
+| `name` | yes | Project name |
+| `description` | no | One or two sentences about the project |
+| `existence_axis` | yes | `{"name": …, "absent": …}`: the name of the existence axis and the value meaning "does not exist". Always written, even if no entity has such an axis |
+| `entities` | yes | Entities with axes and values |
+| `kinds` | yes | Transition kinds |
+| `executors` | yes | List of executor names |
+| `instruments` | yes | List of instrument names |
+| `scopes` | yes | List of scope names |
+| `batch_scope` | yes | One of the scopes — the one that means "once for the whole batch" |
+| `variant_params` | no | List of variant parameter names |
+| `named_slices` | no | Named slices with conditions |
+| `variants` | yes | Variants |
+| `normalization` | yes | Normalization |</td><td dir="auto" data-label="Translation">| Поле | Обязательно | Что это |
+|---|---|---|
+| `format` | да | Номер формата: `1` |
+| `name` | да | Название проекта |
+| `description` | нет | Одна-две фразы о проекте |
+| `existence_axis` | да | `{"name": …, "absent": …}`: название оси наличия и значение «не существует». Пишется всегда, даже если ни у одной сущности такой оси нет |
+| `entities` | да | Сущности с осями и значениями |
+| `kinds` | да | Виды переходов |
+| `executors` | да | Список названий исполнителей |
+| `instruments` | да | Список названий инструментов |
+| `scopes` | да | Список названий охватов |
+| `batch_scope` | да | Один из охватов — тот, что значит «один раз на всю пачку» |
+| `variant_params` | нет | Список названий параметров варианта |
+| `named_slices` | нет | Именованные срезы с условиями |
+| `variants` | да | Варианты |
+| `normalization` | да | Нормировка |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">10</td><td data-label="English">### 3.1. Entities: `entities`</td><td dir="auto" data-label="Translation">### 3.1. Сущности: `entities`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">11</td><td data-label="English">```json
+{"name": "Laundry", "axes": [
+  {"name": "state", "values": ["dirty", "washed", "put away"]}
+]}
+```</td><td dir="auto" data-label="Translation">```json
+{"name": "Бельё", "axes": [
+  {"name": "состояние", "values": ["грязное", "постирано", "убрано"]}
+]}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">12</td><td data-label="English">- Entity names are not repeated; axis names are not repeated within an entity; values are not repeated within an axis.
+- An axis has at least one value. **The first value is the initial one.**
+- An axis is one independent attribute. If two attributes change independently, they are two axes, not one axis with a list of combinations.
+- **Existence axis.** An entity that appears or disappears along the way gets an axis named as in `existence_axis.name`; among its values there must be `existence_axis.absent`. If this value is first, the entity does not exist at the start. While the entity does not exist, its other axes have no values. When it appears they get their initial values; when it disappears they lose them.
+- `inherit` (optional, on an axis): `[["Entity", "axis"], …]` — where the axis takes its value from at the moment the entity appears: from the first source that has a value and whose value is among the values of this axis; otherwise the first value of the axis.</td><td dir="auto" data-label="Translation">- Названия сущностей не повторяются; названия осей не повторяются внутри сущности; значения не повторяются внутри оси.
+- У оси есть хотя бы одно значение. **Первое значение — начальное.**
+- Ось — один независимый признак. Если два признака меняются независимо, это две оси, а не одна с перечнем сочетаний.
+- **Ось наличия.** Сущность, которая появляется или исчезает по ходу, получает ось с названием из `existence_axis.name`; среди её значений обязано быть `existence_axis.absent`. Если это значение первое, сущности в начале нет. Пока сущности нет, остальные её оси значений не имеют. При появлении они получают начальные значения, при исчезновении — теряют.
+- `inherit` (необязательно, у оси): `[["Сущность", "ось"], …]` — откуда ось берёт значение в момент появления сущности: от первого источника, у которого значение есть и оно входит в значения этой оси; иначе — первое значение оси.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">13</td><td data-label="English">### 3.2. Transition kinds: `kinds`</td><td dir="auto" data-label="Translation">### 3.2. Виды переходов: `kinds`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">14</td><td data-label="English">```json
+{"name": "Wash", "entity": "Laundry", "axis": "state",
+ "from": "dirty", "to": "washed",
+ "requires": [["Wash cycle", "presence", "present"]]}
+```</td><td dir="auto" data-label="Translation">```json
+{"name": "Постирать", "entity": "Бельё", "axis": "состояние",
+ "from": "грязное", "to": "постирано",
+ "requires": [["Цикл стирки", "наличие", "есть"]]}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">15</td><td data-label="English">| Field | Required | Rule |
+|---|---|---|
+| `name` | yes | Not repeated |
+| `entity`, `axis` | yes | An existing entity and its axis |
+| `from`, `to` | yes | Values of this axis; `from` is not equal to `to` |
+| `requires` | no | Condition: a list of triples `[entity, axis, value]`. The transition is possible only if all triples hold in the current slice. A condition does not refer to the kind's own axis |
+| `check` | no | `true` — the kind is a check; its axis becomes a check axis |
+| `zero_weight` | no | `true` — the transition stays in the path but carries no labour |
+| `zero_weight_note` | no | The reason; only together with `zero_weight: true`, non-empty text |
+| `waiting` | no | The kind is waiting: how long, a number greater than zero. Only together with `waiting_unit` |
+| `waiting_unit` | no | `"hours"` or `"days"`; a day counts as 24 hours. Only together with `waiting` |</td><td dir="auto" data-label="Translation">| Поле | Обязательно | Правило |
+|---|---|---|
+| `name` | да | Не повторяется |
+| `entity`, `axis` | да | Существующие сущность и её ось |
+| `from`, `to` | да | Значения этой оси; `from` не равно `to` |
+| `requires` | нет | Условие: список троек `[сущность, ось, значение]`. Переход возможен, только если все тройки выполнены в текущем срезе. Условие не ссылается на собственную ось вида |
+| `check` | нет | `true` — вид является проверкой; его ось становится осью проверки |
+| `zero_weight` | нет | `true` — переход остаётся в пути, но труда не несёт |
+| `zero_weight_note` | нет | Причина; только вместе с `zero_weight: true`, непустой текст |
+| `waiting` | нет | Вид — ожидание: сколько длится, число больше нуля. Только вместе с `waiting_unit` |
+| `waiting_unit` | нет | `"hours"` (часы) или `"days"` (дни); день считается за 24 часа. Только вместе с `waiting` |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">16</td><td data-label="English">Rules:</td><td dir="auto" data-label="Translation">Правила:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">17</td><td data-label="English">- A kind is a change of state, not an action of a particular person. Who does it and with what is written in the transition. Therefore **there cannot be two kinds with the same entity, axis, "from" and "to"**.
+- **A kind must not duplicate a chain of other kinds on the same axis.** If there are "a → b" and "b → c", a kind "a → c" cannot exist: one shift would be written in two ways. If a short path is needed, remove the intermediate value or write both steps.
+- The appearance of an entity is a kind on the existence axis from the "does not exist" value; the disappearance is a kind into that value.
+- It is convenient to make a check axis of two values: "not checked", "checked". The initial one is "not checked".
+- Check axes of different entities may have the same name: the price of a skip is written per pair "entity, axis".
+- A waiting kind (with `waiting`) has no labour: its cost in `kind_costs` is omitted or `0`, it cannot be `check: true`, and executor and scope coefficients do not apply to it. Waiting is summed per path separately from labour.</td><td dir="auto" data-label="Translation">- Вид — это смена состояния, а не действие определённого лица. Кто и чем делает, записывается в переходе. Поэтому **двух видов с одинаковыми сущностью, осью, «из» и «в» быть не может**.
+- **Вид не должен повторяться цепочкой других видов по той же оси.** Если есть «а → б» и «б → в», вида «а → в» быть не может: один сдвиг записывался бы двумя способами. Нужен короткий путь — убери промежуточное значение или запиши оба шага.
+- Появление сущности — вид по оси наличия из значения «не существует»; исчезновение — в это значение.
+- Ось проверки удобно делать из двух значений: «не проверено», «проверено». Начальное — «не проверено».
+- Оси проверки разных сущностей могут называться одинаково: цена пропуска записывается по паре «сущность, ось».
+- У вида-ожидания (с `waiting`) нет трудоёмкости: его стоимость в `kind_costs` не пишется или равна `0`, он не может быть `check: true`, коэффициенты исполнителя и объёма к нему не применяются. Ожидание суммируется по пути отдельно от трудоёмкости.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">18</td><td data-label="English">### 3.3. Executors, instruments, scopes</td><td dir="auto" data-label="Translation">### 3.3. Исполнители, инструменты, охваты</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">19</td><td data-label="English">Three lists of names, without repeats within a list.</td><td dir="auto" data-label="Translation">Три списка названий, без повторов внутри списка.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">20</td><td data-label="English">- Executor — who does it: a person, a program, a device.
+- Instrument — what it is done with. It is not part of the calculation, it only describes.
+- Scope — what the action falls on: on each unit or once for the whole batch. `batch_scope` names the "per batch" scope.</td><td dir="auto" data-label="Translation">- Исполнитель — кто делает: человек, программа, устройство.
+- Инструмент — чем делает. В расчёт не входит, только описывает.
+- Охват — на что приходится действие: на каждую единицу или один раз на всю пачку. `batch_scope` называет охват «на пачку».</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">21</td><td data-label="English">### 3.4. Variant parameters: `variant_params`</td><td dir="auto" data-label="Translation">### 3.4. Параметры варианта: `variant_params`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">22</td><td data-label="English">A parameter is a named role that one of the executors fills in each variant. It is needed when a slice condition depends on who fills this role. If there is no such dependency, do not write the field.</td><td dir="auto" data-label="Translation">Параметр — названная роль, которую в каждом варианте занимает один из исполнителей. Нужен, когда условие среза зависит от того, кто эту роль занимает. Если такой зависимости нет, поле не пиши.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">23</td><td data-label="English">```json
+"variant_params": ["recipient"]
+```</td><td dir="auto" data-label="Translation">```json
+"variant_params": ["получатель"]
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">24</td><td data-label="English">Then **every** variant has: `"params": {"recipient": "Person"}`.</td><td dir="auto" data-label="Translation">Тогда у **каждого** варианта: `"params": {"получатель": "Человек"}`.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">25</td><td data-label="English">### 3.5. Named slices: `named_slices`</td><td dir="auto" data-label="Translation">### 3.5. Именованные срезы: `named_slices`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">26</td><td data-label="English">A named slice is a moment at which skips are counted. It is set by a condition; in a variant it is the first slice where the condition holds.</td><td dir="auto" data-label="Translation">Срез с именем — момент, на котором считаются пропуски. Задаётся условием; в варианте это первый срез, где условие выполнено.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">27</td><td data-label="English">```json
+"named_slices": {
+  "washed": {"any": [
+    {"states": [["Laundry", "state", "washed"]]}
+  ]}
+}
+```</td><td dir="auto" data-label="Translation">```json
+"named_slices": {
+  "постирано": {"any": [
+    {"states": [["Бельё", "состояние", "постирано"]]}
+  ]}
+}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">28</td><td data-label="English">- `any` — a non-empty list of groups; one satisfied group is enough ("or").
+- In a group all rows hold together ("and"). Rows are `states`: triples `[entity, axis, value]`, and `params`: pairs `[variant parameter, executor]`. A group without rows is not allowed.
+- The final slice always exists and is not written. The name `final` is taken.
+- If the condition did not occur in a variant, the slice coincides with the final one.</td><td dir="auto" data-label="Translation">- `any` — непустой список групп; достаточно одной выполненной группы («или»).
+- В группе все строки выполняются вместе («и»). Строки — `states`: тройки `[сущность, ось, значение]`, и `params`: пары `[параметр варианта, исполнитель]`. Группа без строк недопустима.
+- Конечный срез есть всегда, его не записывают. Название `final` занято.
+- Если условие в варианте не наступило, срез совпадает с конечным.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">29</td><td data-label="English">### 3.6. Variants: `variants`</td><td dir="auto" data-label="Translation">### 3.6. Варианты: `variants`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">30</td><td data-label="English">```json
+{"code": "B", "title": "Quick wash", "side": "other", "task": "Wash the laundry", "calls": [
+  ["Start the machine", "Person", "washing machine", "whole load"],
+  ["Wash", "Machine", "washing machine", "whole load"]
+]}
+```</td><td dir="auto" data-label="Translation">```json
+{"code": "Б", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
+  ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
+  ["Постирать", "Машина", "стиральная машина", "вся загрузка"]
+]}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">31</td><td data-label="English">| Field | Required | Rule |
+|---|---|---|
+| `code` | yes | A short code, not repeated |
+| `title` | yes | Title |
+| `side` | no | `"own"` — own, `"other"` — someone else's; without the field — own |
+| `task` | yes | The variant's task: non-empty text, compared as entered. Variants with the same task are compared with each other. A project saved in the database before the field became required opens without it: such a variant stays without a pair |
+| `calls` | yes | Transitions in order: `[kind, executor, instrument, scope]`, all four from the reference lists |
+| `params` | if `variant_params` exists | An executor for each parameter |
+| `entities` | no | List of the variant's entities. Without the field — the entities touched by the transitions |
+| `initial` | no | Deviations of the initial slice: `{"Entity": {"axis": "value"}}` |
+| `out_of_comparison` | no | The reason why the variant is counted but does not go into the comparison; non-empty text |
+| `steps` | no | The person's steps into which the transitions are split: `[{"text": …, "calls": …}, …]`. `text` — the step in the person's words, non-empty text; `calls` — how many transitions in a row from the variant's `calls` belong to it, an integer, 0 or more. `calls: 0` is allowed: a step without a transition. The sum of `calls` over the steps equals the number of the variant's transitions, otherwise the remark `steps cover N calls, the variant has M` |</td><td dir="auto" data-label="Translation">| Поле | Обязательно | Правило |
+|---|---|---|
+| `code` | да | Короткий код, не повторяется |
+| `title` | да | Название |
+| `side` | нет | `"own"` — свой, `"other"` — чужой; без поля — свой |
+| `task` | да | Задача варианта: непустой текст, сравнивается как введён. Варианты с одинаковой задачей сравниваются друг с другом. Проект, сохранённый в базе до того, как поле стало обязательным, открывается и без него: такой вариант остаётся без пары |
+| `calls` | да | Переходы по порядку: `[вид, исполнитель, инструмент, охват]`, все четыре — из справочника |
+| `params` | если есть `variant_params` | Исполнитель для каждого параметра |
+| `entities` | нет | Список сущностей варианта. Без поля — сущности, которых касаются переходы |
+| `initial` | нет | Отклонения начального среза: `{"Сущность": {"ось": "значение"}}` |
+| `out_of_comparison` | нет | Причина, по которой вариант считается, но в сравнение не идёт; непустой текст |
+| `steps` | нет | Шаги человека, на которые разложены переходы: `[{"text": …, "calls": …}, …]`. `text` — шаг его словами, непустой текст; `calls` — сколько переходов подряд из `calls` варианта к нему относятся, целое не меньше нуля. `calls: 0` разрешён: шаг без перехода. Сумма `calls` по шагам равна числу переходов варианта, иначе замечание «steps cover N calls, the variant has M» |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">32</td><td data-label="English">The run of a variant is the main rule. A variant is executed step by step from the initial slice:</td><td dir="auto" data-label="Translation">Прогон варианта — главное правило. Вариант исполняется по шагам от начального среза:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">33</td><td data-label="English">1. Initial slice: for each entity of the variant each axis is on its first value (taking `initial` into account); for an absent entity only the existence axis has a value.
+2. For each transition: the current value of the kind's axis must equal its `from`; all `requires` triples must hold. Then the axis gets `to`.
+3. The first step where this is not so is an error of the variant.</td><td dir="auto" data-label="Translation">1. Начальный срез: у каждой сущности варианта каждая ось на первом значении (с учётом `initial`); у отсутствующей сущности значение есть только у оси наличия.
+2. Для каждого перехода: текущее значение оси вида должно быть равно его `from`; все тройки `requires` должны быть выполнены. Тогда ось получает `to`.
+3. Первый шаг, где это не так, — ошибка варианта.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">34</td><td data-label="English">Before writing a variant, walk through it step by step yourself, keeping the slice in mind.</td><td dir="auto" data-label="Translation">Перед записью варианта пройди его по шагам сам, держа срез в уме.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">35</td><td data-label="English">### 3.7. Normalization: `normalization`</td><td dir="auto" data-label="Translation">### 3.7. Нормировка: `normalization`</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">36</td><td data-label="English">| Field | Required | Rule |
+|---|---|---|
+| `kind_costs` | yes | `{kind: cost}` — for each kind without `zero_weight` and without `waiting`. For a kind with `zero_weight` or `waiting` the cost may be omitted; if written, only `0`. The cost of a kind without `zero_weight` is greater than zero |
+| `executor_coefficients` | yes | `{executor: coefficient}` — for each executor. One whose labour is not counted (a program, a device) gets `0`. The coefficient is not less than zero |
+| `scope_coefficients` | yes | `{scope: coefficient}` — for each scope. The coefficient is not less than zero |
+| `axis_skip_prices` | yes | `{entity: {check axis: price}}` — for each check axis and only for them. The price is greater than zero |
+| `batch_size` | no | The size of the batch for which the scope coefficients are given; a reference number |
+| `labour_per_waiting_hour` | no | How much labour one hour of waiting is worth, in the cost unit. A number not less than zero; default `0`: waiting is shown but not added to labour. Above zero, the comparison adds "Labour + waiting" = labour + waiting hours × this number |
+| `uncounted_errors` | no | `{group: [text, …]}` — errors that have no axis of their own; shown as a list, not counted |</td><td dir="auto" data-label="Translation">| Поле | Обязательно | Правило |
+|---|---|---|
+| `kind_costs` | да | `{вид: стоимость}` — для каждого вида без `zero_weight` и без `waiting`. У вида с `zero_weight` или `waiting` стоимость можно не писать; если написана — только `0`. Стоимость вида без `zero_weight` больше нуля |
+| `executor_coefficients` | да | `{исполнитель: коэффициент}` — для каждого исполнителя. Тот, чей труд не считается (программа, устройство), получает `0`. Коэффициент не меньше нуля |
+| `scope_coefficients` | да | `{охват: коэффициент}` — для каждого охвата. Коэффициент не меньше нуля |
+| `axis_skip_prices` | да | `{сущность: {ось проверки: цена}}` — для каждой оси проверки и только для них. Цена больше нуля |
+| `batch_size` | нет | Размер пачки, для которой даны коэффициенты охвата; справочное число |
+| `labour_per_waiting_hour` | нет | Сколько трудоёмкости стоит час ожидания, в единице стоимости. Число не меньше нуля; по умолчанию `0`: ожидание показывается, но к трудоёмкости не прибавляется. Больше нуля — сравнение добавляет «Трудоёмкость + ожидание» = трудоёмкость + часы ожидания × это число |
+| `uncounted_errors` | нет | `{группа: [текст, …]}` — ошибки, у которых нет своей оси; показываются списком, в счёт не входят |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">37</td><td data-label="English">- There must be no extra names: only those that are in the reference lists.
+- The weight is counted per one unit. If a batch is 10 units, the usual pair of scope coefficients is: "each" — `1`, "per batch" — `0.1`.
+- The unit of cost is chosen by the person; it is one for the whole project.</td><td dir="auto" data-label="Translation">- Лишних названий быть не должно: только те, что есть в справочнике.
+- Вес считается на одну единицу. Если пачка — 10 единиц, обычная пара коэффициентов охвата: «на каждую» — `1`, «на пачку» — `0.1`.
+- Единицу стоимости выбирает человек; она одна на весь проект.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">38</td><td data-label="English">## 4. Work order</td><td dir="auto" data-label="Translation">## 4. Порядок работы</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">39</td><td data-label="English">1. Find out from the person the process and the variants they want to compare; which of them are their own and which are someone else's; what task each variant solves. Do not go further without a task for each variant: ask the person for it.
+2. Pick out entities and axes. Do not split too finely: an axis is needed if its value changes in at least one variant or stands in a condition.
+3. Write the transition kinds; mark the checks.
+4. Write the person's steps in their own words for each variant. Split each step into transitions and write `steps` next to `calls`. A step that gave no transition is not thrown away: write it with `calls: 0`.
+5. Write the variants and run each one step by step. Set `task` for each variant — without it the file will not load. Variants with the same task are compared with each other; a variant with a unique task stays without a pair.
+6. Agree the normalization numbers with the person.
+7. Before handing over the file, show the person the chains as text: for each path its task, the steps in the person's words, and under each step its transitions; mark a step without a transition "no transition". Hand over the file only after the person agrees with the breakdown.
+8. Check the file against the list in section 5.</td><td dir="auto" data-label="Translation">1. Выясни у человека процесс и варианты, которые он хочет сравнить; какие из них свои, какие чужие; какую задачу решает каждый вариант. Без задачи у каждого варианта дальше не иди: спроси её у человека.
+2. Выдели сущности и оси. Мелко не дроби: ось нужна, если её значение меняется хотя бы в одном варианте или стоит в условии.
+3. Запиши виды переходов; отметь проверки.
+4. Запиши шаги человека его словами по каждому варианту. Разложи каждый шаг на переходы и запиши `steps` рядом с `calls`. Шаг, который не дал перехода, не выбрасывай: запиши его с `calls: 0`.
+5. Запиши варианты и прогони каждый по шагам. Поставь `task` каждому варианту — без него файл не загрузится. Варианты с одинаковой задачей сравниваются друг с другом, вариант с единственной задачей остаётся без пары.
+6. Согласуй с человеком числа нормировки.
+7. Перед выдачей файла покажи человеку цепочки текстом: по каждому пути его задачу, шаги его словами, под каждым шагом его переходы; шаг без перехода пометь «нет перехода». Файл выдай только после того, как человек согласится с разбором.
+8. Сверь файл со списком в разделе 5.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">40</td><td data-label="English">## 5. Typical errors</td><td dir="auto" data-label="Translation">## 5. Типовые ошибки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">41</td><td data-label="English">The check gives its remarks in English; the names in them are as written in the file. The table retells the meaning of the remarks (the wording of the remarks is retold, except for those quoted in backticks). A file with incomplete normalization does not load.</td><td dir="auto" data-label="Translation">Замечания проверка выдаёт на английском; названия в них — как записаны в файле. В таблице смысл замечаний пересказан по-русски. Файл с неполной нормировкой не загружается.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">42</td><td data-label="English">| Error | What the check says | What to do |
+|---|---|---|
+| A name in a reference differs from the declared one | unknown entity, axis, value, kind, executor, instrument or scope — with the place | Bring to one spelling |
+| A name is repeated | duplicate — with the name | Rename or remove |
+| A kind has `from` equal to `to` | "from" equals "to" | This is not a transition; remove |
+| A kind's condition on its own axis | condition on the kind's own axis | The condition is already expressed in `from` |
+| Two kinds with one state change | the same quadruple | Keep one; the difference is in the executor and instrument of the transition |
+| A kind duplicates a chain of others | the kind decomposes — with the chain | Remove the short kind or the intermediate value |
+| A transition not from the current value | variant, transition number: the axis has one value, another was expected | A step is missed or swapped |
+| A condition is not met | variant, transition number: condition not met | Add the missing step earlier |
+| A transition on an axis of an entity that is not in the variant | the entity is not part of the variant | Add it to `entities` or remove the field |
+| The entity does not exist yet, and its axis is changed | the axis has no value, the "from" was expected | The appearance transition first |
+| The existence axis has no "does not exist" value | the existence axis lacks this value | Add the value |
+| `batch_scope` is not from the list of scopes | the "per batch" scope is not found | Name an existing scope |
+| A variant has no parameter set | variant parameter not set | Set `params` for every parameter |
+| A number is missing in normalization | kind without a cost; executor or scope without a coefficient; check axis without a price | Add the number |
+| An extra name in normalization | cost of an unknown kind; price of an axis that is not a check axis | Remove |
+| A kind has `zero_weight`, but the cost is not 0 | weight is 0 but a cost is given | Set `0` |
+| A kind without `zero_weight` costs 0 | a kind with labour costs 0 | Give the labour, or mark the kind `zero_weight` if it is waiting or work without labour |
+| `waiting` without `waiting_unit`, or the other way round; waiting not above 0; a unit other than hours or days | `kind X: waiting needs a number above 0 and the unit hours or days` | Write both fields: a number above 0 and `"hours"` or `"days"` |
+| A waiting kind is marked `check` | a waiting kind cannot be a check | Remove `check` or `waiting` |
+| A waiting kind has a cost other than 0 | the kind is a waiting kind, its cost must be 0 or absent | Remove the cost or set `0` |
+| A number written as a string | a number was expected | Remove the quotes |
+| A negative number; skip price 0 | number out of the allowed range | Costs and coefficients are not less than zero, the skip price is greater than zero |
+| No `task` | `variant X: task is required` | Write the variant's task |
+| `task` is empty or not text | `variant X: task must be a text` | Write the task as non-empty text |
+| `steps` is not a list | `variant X: steps must be a list` | Write a list of steps or remove the field |
+| A step's `text` is empty or not text | `variant X, step N: text must be a text` | Write the step as non-empty text |
+| A step's `calls` is not an integer or is less than zero | `variant X, step N: calls must be an integer, 0 or more` | Write an integer from 0; a step without a transition is `0` |
+| The sum of the steps' `calls` is not equal to the number of transitions | `variant X: steps cover N calls, the variant has M` | Compare the steps with the variant's `calls`: each transition in exactly one step |
+| A slice is named `final` | the name is taken | Rename |</td><td dir="auto" data-label="Translation">| Ошибка | Что скажет проверка | Что делать |
+|---|---|---|
+| Название в ссылке отличается от объявленного | неизвестная сущность, ось, значение, вид, исполнитель, инструмент или охват — с местом | Привести к одному написанию |
+| Название повторяется | повтор — с названием | Переименовать или убрать |
+| У вида `from` равно `to` | «из» равно «в» | Это не переход; убрать |
+| Условие вида на его же ось | условие на собственную ось | Условие уже выражено в `from` |
+| Два вида с одной сменой состояния | одинаковая четвёрка | Оставить один; различие — в исполнителе и инструменте перехода |
+| Вид повторяет цепочку других | вид раскладывается — с цепочкой | Убрать короткий вид или промежуточное значение |
+| Переход не из текущего значения | вариант, номер перехода: ось имеет одно значение, ожидалось другое | Пропущен или переставлен шаг |
+| Условие не выполнено | вариант, номер перехода: условие не выполнено | Добавить недостающий шаг раньше |
+| Переход по оси сущности, которой нет в варианте | сущность не входит в вариант | Добавить её в `entities` или убрать поле |
+| Сущности ещё нет, а её ось меняют | ось не имеет значения, ожидалось «из» | Сначала переход появления |
+| У оси наличия нет значения «не существует» | у оси наличия нет этого значения | Добавить значение |
+| `batch_scope` не из списка охватов | охват «на пачку» не найден | Назвать существующий охват |
+| У варианта не задан параметр | параметр варианта не задан | Задать `params` для каждого параметра |
+| Нет числа в нормировке | вид без стоимости; исполнитель или охват без коэффициента; ось проверки без цены | Добавить число |
+| Лишнее название в нормировке | стоимость неизвестного вида; цена оси, которая не ось проверки | Убрать |
+| У вида `zero_weight`, а стоимость не 0 | вес 0, но стоимость задана | Поставить `0` |
+| У вида без `zero_weight` стоимость 0 | вид с трудом стоит 0 | Указать труд или пометить вид `zero_weight`, если это ожидание или работа без труда |
+| `waiting` без `waiting_unit` или наоборот; ожидание не больше 0; единица не часы и не дни | `kind X: waiting needs a number above 0 and the unit hours or days` | Написать оба поля: число больше 0 и `"hours"` или `"days"` |
+| Вид-ожидание отмечен `check` | вид-ожидание не может быть проверкой | Убрать `check` или `waiting` |
+| У вида-ожидания стоимость не 0 | вид — ожидание, его стоимость должна быть 0 или не писаться | Убрать стоимость или поставить `0` |
+| Число записано строкой | ожидалось число | Убрать кавычки |
+| Отрицательное число; цена пропуска 0 | число вне допустимого | Стоимость и коэффициенты — не меньше нуля, цена пропуска — больше нуля |
+| Нет `task` | `variant X: task is required` | Записать задачу варианта |
+| `task` пустой или не текст | `variant X: task must be a text` | Записать задачу непустым текстом |
+| `steps` не список | `variant X: steps must be a list` | Записать список шагов или убрать поле |
+| У шага пустой или не текст `text` | `variant X, step N: text must be a text` | Записать шаг непустым текстом |
+| У шага `calls` не целое или меньше нуля | `variant X, step N: calls must be an integer, 0 or more` | Записать целое от 0; шаг без перехода — `0` |
+| Сумма `calls` шагов не равна числу переходов | `variant X: steps cover N calls, the variant has M` | Сверить шаги с `calls` варианта: каждый переход — ровно в одном шаге |
+| Срез назван `final` | название занято | Переименовать |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">43</td><td data-label="English">## 6. A full example</td><td dir="auto" data-label="Translation">## 6. Пример целиком</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">44</td><td data-label="English">The subject is washing one load of laundry, three variants. (Here the names are in English because this document is in English; in a real project all names, titles, tasks and step texts are written in the person's language.)</td><td dir="auto" data-label="Translation">Предмет — стирка одной загрузки белья, три варианта.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">45</td><td data-label="English">```json
+{
+  "format": 1,
+  "name": "Laundry washing",
+  "description": "Three ways to wash one load of laundry.",
+  "existence_axis": {"name": "presence", "absent": "absent"},
+  "entities": [
+    {"name": "Laundry", "axes": [
+      {"name": "state", "values": ["dirty", "washed", "hung", "dry", "put away"]},
+      {"name": "pockets", "values": ["not checked", "checked"]},
+      {"name": "colors", "values": ["not sorted", "sorted"]}
+    ]},
+    {"name": "Wash cycle", "axes": [
+      {"name": "presence", "values": ["absent", "present"]}
+    ]}
+  ],
+  "kinds": [
+    {"name": "Check pockets", "entity": "Laundry", "axis": "pockets",
+     "from": "not checked", "to": "checked", "check": true},
+    {"name": "Sort by colors", "entity": "Laundry", "axis": "colors",
+     "from": "not sorted", "to": "sorted", "check": true},
+    {"name": "Start the machine", "entity": "Wash cycle", "axis": "presence",
+     "from": "absent", "to": "present"},
+    {"name": "Wash", "entity": "Laundry", "axis": "state",
+     "from": "dirty", "to": "washed",
+     "requires": [["Wash cycle", "presence", "present"]]},
+    {"name": "Hang", "entity": "Laundry", "axis": "state",
+     "from": "washed", "to": "hung"},
+    {"name": "Wait for drying", "entity": "Laundry", "axis": "state",
+     "from": "hung", "to": "dry",
+     "zero_weight": true, "zero_weight_note": "waiting, no labour"},
+    {"name": "Put in the closet", "entity": "Laundry", "axis": "state",
+     "from": "dry", "to": "put away"}
+  ],
+  "executors": ["Person", "Machine"],
+  "instruments": ["hands", "washing machine", "drying rack"],
+  "scopes": ["each item", "whole load"],
+  "batch_scope": "whole load",
+  "named_slices": {
+    "washed": {"any": [{"states": [["Laundry", "state", "washed"]]}]}
+  },
+  "variants": [
+    {"code": "A", "title": "Careful wash", "side": "own", "task": "Wash the laundry", "calls": [
+      ["Check pockets", "Person", "hands", "each item"],
+      ["Sort by colors", "Person", "hands", "each item"],
+      ["Start the machine", "Person", "washing machine", "whole load"],
+      ["Wash", "Machine", "washing machine", "whole load"],
+      ["Hang", "Person", "drying rack", "each item"],
+      ["Wait for drying", "Person", "drying rack", "whole load"],
+      ["Put in the closet", "Person", "hands", "each item"]
+    ],
+    "steps": [
+      {"text": "Get the detergent out", "calls": 0},
+      {"text": "Check the pockets", "calls": 1},
+      {"text": "Sort by colors", "calls": 1},
+      {"text": "Load the laundry and start the machine", "calls": 2},
+      {"text": "Hang the laundry", "calls": 1},
+      {"text": "Wait until it is dry", "calls": 1},
+      {"text": "Put it in the closet", "calls": 1}
+    ]},
+    {"code": "B", "title": "Quick wash", "side": "other", "task": "Wash the laundry", "calls": [
+      ["Start the machine", "Person", "washing machine", "whole load"],
+      ["Wash", "Machine", "washing machine", "whole load"],
+      ["Hang", "Person", "drying rack", "each item"],
+      ["Wait for drying", "Person", "drying rack", "whole load"],
+      ["Put in the closet", "Person", "hands", "each item"]
+    ],
+    "steps": [
+      {"text": "Load the laundry and start the machine", "calls": 2},
+      {"text": "Hang the laundry", "calls": 1},
+      {"text": "Wait until it is dry", "calls": 1},
+      {"text": "Put it in the closet", "calls": 1}
+    ]},
+    {"code": "C", "title": "Wash with a pocket check", "side": "other", "task": "Wash the laundry", "calls": [
+      ["Check pockets", "Person", "hands", "each item"],
+      ["Start the machine", "Person", "washing machine", "whole load"],
+      ["Wash", "Machine", "washing machine", "whole load"],
+      ["Hang", "Person", "drying rack", "each item"],
+      ["Wait for drying", "Person", "drying rack", "whole load"],
+      ["Put in the closet", "Person", "hands", "each item"]
+    ],
+    "steps": [
+      {"text": "Check the pockets", "calls": 1},
+      {"text": "Load the laundry and start the machine", "calls": 2},
+      {"text": "Hang the laundry", "calls": 1},
+      {"text": "Wait until it is dry", "calls": 1},
+      {"text": "Put it in the closet", "calls": 1}
+    ]}
+  ],
+  "normalization": {
+    "batch_size": 10,
+    "kind_costs": {
+      "Check pockets": 2,
+      "Sort by colors": 3,
+      "Start the machine": 4,
+      "Wash": 1,
+      "Hang": 2,
+      "Wait for drying": 0,
+      "Put in the closet": 1
+    },
+    "executor_coefficients": {"Person": 1, "Machine": 0},
+    "scope_coefficients": {"each item": 1, "whole load": 0.1},
+    "axis_skip_prices": {"Laundry": {"pockets": 5, "colors": 3}},
+    "uncounted_errors": {"Outside the model": ["the detergent ran out"]}
+  }
+}
+```</td><td dir="auto" data-label="Translation">```json
+{
+  "format": 1,
+  "name": "Стирка белья",
+  "description": "Три способа постирать одну загрузку белья.",
+  "existence_axis": {"name": "наличие", "absent": "нет"},
+  "entities": [
+    {"name": "Бельё", "axes": [
+      {"name": "состояние", "values": ["грязное", "постирано", "развешано", "высохло", "убрано"]},
+      {"name": "карманы", "values": ["не проверены", "проверены"]},
+      {"name": "цвета", "values": ["не разобраны", "разобраны"]}
+    ]},
+    {"name": "Цикл стирки", "axes": [
+      {"name": "наличие", "values": ["нет", "есть"]}
+    ]}
+  ],
+  "kinds": [
+    {"name": "Проверить карманы", "entity": "Бельё", "axis": "карманы",
+     "from": "не проверены", "to": "проверены", "check": true},
+    {"name": "Разобрать по цветам", "entity": "Бельё", "axis": "цвета",
+     "from": "не разобраны", "to": "разобраны", "check": true},
+    {"name": "Запустить машину", "entity": "Цикл стирки", "axis": "наличие",
+     "from": "нет", "to": "есть"},
+    {"name": "Постирать", "entity": "Бельё", "axis": "состояние",
+     "from": "грязное", "to": "постирано",
+     "requires": [["Цикл стирки", "наличие", "есть"]]},
+    {"name": "Развесить", "entity": "Бельё", "axis": "состояние",
+     "from": "постирано", "to": "развешано"},
+    {"name": "Дождаться высыхания", "entity": "Бельё", "axis": "состояние",
+     "from": "развешано", "to": "высохло",
+     "zero_weight": true, "zero_weight_note": "ожидание, труда нет"},
+    {"name": "Убрать в шкаф", "entity": "Бельё", "axis": "состояние",
+     "from": "высохло", "to": "убрано"}
+  ],
+  "executors": ["Человек", "Машина"],
+  "instruments": ["руки", "стиральная машина", "сушилка"],
+  "scopes": ["каждая вещь", "вся загрузка"],
+  "batch_scope": "вся загрузка",
+  "named_slices": {
+    "постирано": {"any": [{"states": [["Бельё", "состояние", "постирано"]]}]}
+  },
+  "variants": [
+    {"code": "А", "title": "Аккуратная стирка", "side": "own", "task": "Постирать бельё", "calls": [
+      ["Проверить карманы", "Человек", "руки", "каждая вещь"],
+      ["Разобрать по цветам", "Человек", "руки", "каждая вещь"],
+      ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
+      ["Постирать", "Машина", "стиральная машина", "вся загрузка"],
+      ["Развесить", "Человек", "сушилка", "каждая вещь"],
+      ["Дождаться высыхания", "Человек", "сушилка", "вся загрузка"],
+      ["Убрать в шкаф", "Человек", "руки", "каждая вещь"]
+    ],
+    "steps": [
+      {"text": "Достать порошок", "calls": 0},
+      {"text": "Проверить карманы", "calls": 1},
+      {"text": "Разобрать по цветам", "calls": 1},
+      {"text": "Загрузить бельё и включить машину", "calls": 2},
+      {"text": "Развесить бельё", "calls": 1},
+      {"text": "Дождаться, пока высохнет", "calls": 1},
+      {"text": "Убрать в шкаф", "calls": 1}
+    ]},
+    {"code": "Б", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
+      ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
+      ["Постирать", "Машина", "стиральная машина", "вся загрузка"],
+      ["Развесить", "Человек", "сушилка", "каждая вещь"],
+      ["Дождаться высыхания", "Человек", "сушилка", "вся загрузка"],
+      ["Убрать в шкаф", "Человек", "руки", "каждая вещь"]
+    ],
+    "steps": [
+      {"text": "Загрузить бельё и включить машину", "calls": 2},
+      {"text": "Развесить бельё", "calls": 1},
+      {"text": "Дождаться, пока высохнет", "calls": 1},
+      {"text": "Убрать в шкаф", "calls": 1}
+    ]},
+    {"code": "В", "title": "Стирка с проверкой карманов", "side": "other", "task": "Постирать бельё", "calls": [
+      ["Проверить карманы", "Человек", "руки", "каждая вещь"],
+      ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
+      ["Постирать", "Машина", "стиральная машина", "вся загрузка"],
+      ["Развесить", "Человек", "сушилка", "каждая вещь"],
+      ["Дождаться высыхания", "Человек", "сушилка", "вся загрузка"],
+      ["Убрать в шкаф", "Человек", "руки", "каждая вещь"]
+    ],
+    "steps": [
+      {"text": "Проверить карманы", "calls": 1},
+      {"text": "Загрузить бельё и включить машину", "calls": 2},
+      {"text": "Развесить бельё", "calls": 1},
+      {"text": "Дождаться, пока высохнет", "calls": 1},
+      {"text": "Убрать в шкаф", "calls": 1}
+    ]}
+  ],
+  "normalization": {
+    "batch_size": 10,
+    "kind_costs": {
+      "Проверить карманы": 2,
+      "Разобрать по цветам": 3,
+      "Запустить машину": 4,
+      "Постирать": 1,
+      "Развесить": 2,
+      "Дождаться высыхания": 0,
+      "Убрать в шкаф": 1
+    },
+    "executor_coefficients": {"Человек": 1, "Машина": 0},
+    "scope_coefficients": {"каждая вещь": 1, "вся загрузка": 0.1},
+    "axis_skip_prices": {"Бельё": {"карманы": 5, "цвета": 3}},
+    "uncounted_errors": {"Вне модели": ["порошок закончился"]}
+  }
+}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">46</td><td data-label="English">What can be seen in the example:</td><td dir="auto" data-label="Translation">Что в примере видно:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">47</td><td data-label="English">- "Wash cycle" does not exist at the start: the first value of its existence axis is "absent". "Wash" requires it to be present.
+- "Wash" is done by the machine with coefficient 0: the step is in the path, but it has no weight.
+- "Wait for drying" — weight 0 with a reason; `kind_costs` has `0` (it could have been left out).
+- "Start the machine" — once per load: 4 × 0.1 × 1 = 0.4.</td><td dir="auto" data-label="Translation">- «Цикл стирки» в начале не существует: первое значение его оси наличия — «нет». «Постирать» требует, чтобы он был.
+- «Постирать» делает машина с коэффициентом 0: шаг в пути есть, веса нет.
+- «Дождаться высыхания» — вес 0 с причиной; в `kind_costs` стоит `0` (можно было не писать).
+- «Запустить машину» — один раз на загрузку: 4 × 0,1 × 1 = 0,4.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">48</td><td data-label="English">The result for this file:</td><td dir="auto" data-label="Translation">Результат по этому файлу:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">49</td><td data-label="English">| Variant | Weight | The "washed" slice occurs after step | Skips on it | Sum | Skips on the final | Sum |
+|---|---|---|---|---|---|---|
+| A Careful wash | 8.4 | 4 | none | 0 | none | 0 |
+| B Quick wash | 3.4 | 2 | pockets, colors | 8 | pockets, colors | 8 |
+| C Wash with a pocket check | 5.4 | 3 | colors | 3 | colors | 3 |</td><td dir="auto" data-label="Translation">| Вариант | Вес | Срез «постирано» наступает после шага | Пропуски на нём | Сумма | Пропуски на конечном | Сумма |
+|---|---|---|---|---|---|---|
+| А Аккуратная стирка | 8,4 | 4 | нет | 0 | нет | 0 |
+| Б Быстрая стирка | 3,4 | 2 | карманы, цвета | 8 | карманы, цвета | 8 |
+| В Стирка с проверкой карманов | 5,4 | 3 | цвета | 3 | цвета | 3 |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">50</td><td data-label="English">Variant "B" is the lightest and has the largest sum of skips: the weight and the skips are shown side by side and are not converted into each other.</td><td dir="auto" data-label="Translation">Вариант «Б» самый лёгкий и с самой большой суммой пропусков: вес и пропуски показываются рядом и друг в друга не пересчитываются.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>
