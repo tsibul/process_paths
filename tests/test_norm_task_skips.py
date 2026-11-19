@@ -17,13 +17,13 @@ D = Decimal
 def tap():
     """:return: the model and the normalization of the tap example, in the norm file format.
 
-    The skip prices go by axis name; a zero-weight kind without a cost costs 0, as in the app.
+    The skip prices go by axis name; a zero-weight or waiting kind without a cost costs 0, as in the app.
     """
     data = json.loads(TAP.read_text(encoding="utf-8"), parse_float=Decimal)
     n = data["normalization"]
     costs = dict(n["kind_costs"])
     for k in data["kinds"]:
-        if k.get("zero_weight") and k["name"] not in costs:
+        if (k.get("zero_weight") or k.get("waiting")) and k["name"] not in costs:
             costs[k["name"]] = 0
     prices = {a: p for axes in n["axis_skip_prices"].values() for a, p in axes.items()}
     nrm = norm.parse_normalization({**n, "kind_costs": costs, "axis_skip_prices": prices})

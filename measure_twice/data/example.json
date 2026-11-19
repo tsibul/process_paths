@@ -95,6 +95,13 @@
             "none",
             "booked"
           ]
+        },
+        {
+          "name": "arrival",
+          "values": [
+            "not here",
+            "here"
+          ]
         }
       ]
     }
@@ -236,6 +243,22 @@
       "axis": "booking",
       "from": "none",
       "to": "booked"
+    },
+    {
+      "name": "Wait for the plumber",
+      "entity": "Plumber visit",
+      "axis": "arrival",
+      "from": "not here",
+      "to": "here",
+      "waiting": 3,
+      "waiting_unit": "days",
+      "requires": [
+        [
+          "Plumber visit",
+          "booking",
+          "booked"
+        ]
+      ]
     },
     {
       "name": "Dry the floor",
@@ -501,6 +524,12 @@
           "whole job"
         ],
         [
+          "Wait for the plumber",
+          "Owner",
+          "hands",
+          "whole job"
+        ],
+        [
           "Shut off water",
           "Plumber",
           "hands",
@@ -540,6 +569,10 @@
       "steps": [
         {
           "text": "Call a plumber",
+          "calls": 1
+        },
+        {
+          "text": "Wait for the plumber to come (about 3 days)",
           "calls": 1
         },
         {

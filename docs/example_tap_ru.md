@@ -4,7 +4,8 @@
 
 ## Что в модели
 
-- Сущности: `Tap` (water, mount, nut, thread, leak test), `Washer` (state, inspection), `Floor` (state), `Plumber visit` (booking).
+- Сущности: `Tap` (water, mount, nut, thread, leak test), `Washer` (state, inspection), `Floor` (state), `Plumber visit` (booking, arrival).
+- Ожидание: вид `Wait for the plumber` (3 дня = 72 ч, только в T4) без труда; исполнитель и охват его не умножают.
 - Проверки (`check`): `Inspect the seal`, `Test for leaks`; цена пропуска: `leak test` 8, `inspection` 3.
 - Один охват `whole job` (он же «на пачку»), `batch_size` 1. Исполнители: `Owner` ×1, `Plumber` ×0.5. Срез `fixed`: шайба новая, или кран новый, или резьба обмотана.
 - Пути у всех одна задача `Fix a leaking tap`: T1 и T2 свои, T3 и T4 чужие; по 5–7 переходов, по 4–5 шагов.
@@ -16,7 +17,7 @@
 | T1 Replace the washer (ours) | 11 | 0 | 11.0 | 0 |
 | T2 Replace the whole tap (ours) | 18 | 0 | 18.0 | 0 |
 | T3 Tighten the nut and wrap tape (theirs) | 7 | 0 | 7.0 | 8 (тест на течь не сделан) |
-| T4 Call a plumber (theirs) | 4 | 4.5 | 8.5 | 0 |
+| T4 Call a plumber (theirs) | 4 | 4.5 | 8.5 (+ 72 ч ожидания) | 0 |
 
 Видимо разное: T3 самый дешёвый по труду, но пропускает проверку; T4 почти не требует труда от владельца; T2 самый долгий; T1 — середина без пропусков. В срезе `fixed` у всех пропущен тест на течь (8): он стоит после починки.
 

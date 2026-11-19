@@ -44,6 +44,8 @@ is really done.
 - If two ways reach the same result differently, say which part each step works on
   (replace the washer, tighten the nut, tape the thread), not just "fix it".
 - A way without a check gets no step for it, not even "no check is made".
+- Mark each step where the person only waits (for a plumber, for a delivery) and give a rough
+  duration.
 Show a numbered list per way. No file format yet.
 End with "Points to check": the 2-4 steps you are least sure of.
 ```
@@ -61,12 +63,14 @@ Go over the steps of all ways together.
 3. Two actions must never make the same change. Different ways to one result act on different
    parts: Washer, worn -> new; Nut, loose -> tight.
 4. An action with no change of its own gets a new attribute (Floor: wet -> dry). Never hang it
-   on another thing's change. Only waiting or work without labour is "no labour".
+   on another thing's change. Only work without labour is "no labour".
 5. Mark the checks: a check confirms the result after an action, and skipping it has a price.
    Diagnosis and finding the cause are ordinary actions. A check changes the thing it checks:
    "Test for leaks: Tap, leak not tested -> tested". A way without a check gets no step for
    it; the thing still has the check attribute, so the skip shows.
 6. Say what appears or disappears along the way (a bucket put under, a visit booked).
+7. Waiting for someone is its own kind of action: not a check, not labour. It still changes an
+   attribute of its own (Plumber visit: booked -> done).
 Then run each way: every action starts from the state the previous one left. Fix any that
 does not.
 Show a table: action | thing | attribute | from -> to | check. Then each way as action names.
@@ -84,8 +88,9 @@ Step 4. Who and how much.
    Coefficient 0 only for a machine or program that works by itself. Never 0 for a person,
    a hired one included. Put every coefficient 0 into "Points to check".
 3. Give each action a labour cost in one unit for the whole project (minutes or points).
-   Paying and waiting for someone are not labour: no action for them. Waiting that is a real
-   step of the path (water draining) costs 0.
+   Paying is not labour: no action for it. Waiting for someone is an action with a duration
+   in hours or days, not a cost or weight: ask me for each. A short wait with no duration
+   needed (water draining) costs 0.
 4. Say whether each action is done once for the whole job or for each unit; if per unit, how
    many units a batch has.
 5. For each check give the price of skipping it, more than 0. Never add it to labour.
@@ -122,8 +127,9 @@ kinds: {"name", "entity", "axis", "from", "to"} plus optional:
 requires [[entity, axis, value], ...] - must hold before; never the kind's own entity and
 axis: "from" already says it;
 check: true - confirms the result of an action; on an axis of the thing checked;
-zero_weight: true with zero_weight_note - a step with no labour (water draining).
-Paying and waiting for someone are not labour: no kind for them.
+zero_weight: true with zero_weight_note - a step with no labour (draining).
+waiting: number > 0 with waiting_unit "hours"|"days" - waiting for someone: no cost, no check.
+Paying is not labour: no kind for it.
 from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
 (a->b, b->c, so no a->c). An action with no axis of its own gets a new axis.
 
@@ -136,11 +142,11 @@ value the previous one left; all requires hold. A way without a check has no cal
 steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the
 sum equals the number of calls.
 
-normalization: kind_costs {kind: cost} for every kind (zero_weight: 0);
+normalization: kind_costs {kind: cost} for every kind (zero_weight, waiting: 0 or left out);
 executor_coefficients {executor: k} for every executor, 0 only for a machine or program;
 scope_coefficients {scope: k} for every scope (per unit 1, per batch 1/batch size);
 axis_skip_prices {entity: {check axis: price > 0}} for every check axis and only those, never
-added to labour; batch_size optional. No negative numbers. No extra names.
+added to labour; batch_size optional; leave out labour_per_waiting_hour: I set it. No negative numbers. No extra names.
 
 EXAMPLE
 {"format": 1, "name": "Unblock a sink",
@@ -149,14 +155,13 @@ EXAMPLE
   {"name": "Pipe", "axes": [{"name": "clog", "values": ["blocked", "cleared"]}]},
   {"name": "Trap", "axes": [{"name": "inside", "values": ["dirty", "clean"]}]},
   {"name": "Bucket", "axes": [{"name": "exists", "values": ["no", "yes"]}]},
-  {"name": "Sink", "axes": [{"name": "water", "values": ["standing", "gone"]},
-   {"name": "drain test", "values": ["not tested", "tested"]}]}],
+  {"name": "Visit", "axes": [{"name": "arrival", "values": ["not here", "here"]}]},
+  {"name": "Sink", "axes": [{"name": "drain test", "values": ["not tested", "tested"]}]}],
  "kinds": [
   {"name": "Plunge", "entity": "Pipe", "axis": "clog", "from": "blocked", "to": "cleared"},
-  {"name": "Wait for the water", "entity": "Sink", "axis": "water", "from": "standing",
-   "to": "gone", "requires": [["Pipe", "clog", "cleared"]],
-   "zero_weight": true, "zero_weight_note": "no labour"},
   {"name": "Put a bucket under", "entity": "Bucket", "axis": "exists", "from": "no", "to": "yes"},
+  {"name": "Wait for the plumber", "entity": "Visit", "axis": "arrival",
+   "from": "not here", "to": "here", "waiting": 2, "waiting_unit": "days"},
   {"name": "Clean the trap", "entity": "Trap", "axis": "inside", "from": "dirty",
    "to": "clean", "requires": [["Bucket", "exists", "yes"]]},
   {"name": "Test the drain", "entity": "Sink", "axis": "drain test", "from": "not tested",
@@ -167,20 +172,19 @@ EXAMPLE
  "variants": [
   {"code": "A", "title": "Plunger", "side": "own", "task": "Unblock the sink", "calls": [
     ["Plunge", "Owner", "plunger", "job"],
-    ["Wait for the water", "Owner", "hands", "job"],
     ["Test the drain", "Owner", "hands", "job"]],
-   "steps": [{"text": "Find the plunger", "calls": 0},
-    {"text": "Plunge and wait until the water goes", "calls": 2},
-    {"text": "Run the tap and watch the drain", "calls": 1}]},
-  {"code": "B", "title": "Plumber cleans the trap", "side": "other",
+   "steps": [{"text": "Plunge the sink", "calls": 1},
+    {"text": "Run the tap, watch the drain", "calls": 1}]},
+  {"code": "B", "title": "Plumber", "side": "other",
    "task": "Unblock the sink", "calls": [
+    ["Wait for the plumber", "Owner", "hands", "job"],
     ["Put a bucket under", "Owner", "bucket", "job"],
     ["Clean the trap", "Plumber", "wrench", "job"]],
-   "steps": [{"text": "Put a bucket under the sink", "calls": 1},
-    {"text": "The plumber takes off, cleans and refits the trap", "calls": 1}]}],
+   "steps": [{"text": "Wait for the plumber", "calls": 1},
+    {"text": "Put a bucket under", "calls": 1},
+    {"text": "The plumber cleans the trap", "calls": 1}]}],
  "normalization": {
-  "kind_costs": {"Plunge": 3, "Wait for the water": 0, "Put a bucket under": 1,
-   "Clean the trap": 8, "Test the drain": 1},
+  "kind_costs": {"Plunge": 3, "Put a bucket under": 1, "Clean the trap": 8, "Test the drain": 1},
   "executor_coefficients": {"Owner": 1, "Plumber": 0.8},
   "scope_coefficients": {"job": 1},
   "axis_skip_prices": {"Sink": {"drain test": 5}}}}

@@ -17,3 +17,15 @@ def test_example_final_skipped_checks():
         "T3": Decimal(11),
         "T4": Decimal(0),
     }
+
+
+def test_example_waiting_hours():
+    project, _ = load_file(EXAMPLE_FILE)
+    rows = compare(project).rows
+    hours = {r.code: r.waiting for r in rows}
+    assert hours == {
+        "T1": Decimal(0),
+        "T2": Decimal(0),
+        "T3": Decimal(0),
+        "T4": Decimal(72),
+    }
