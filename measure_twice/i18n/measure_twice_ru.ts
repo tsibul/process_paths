@@ -1902,7 +1902,8 @@
     <message>
         <location filename="../ui/line_charts.py" line="41"/>
         <source>Price of checks done</source>
-        <translation>Цена сделанных проверок</translation>
+        <translatorcomment>Подпись оси графика «Сделанные проверки по шагам»; «Цена сделанных проверок» и «Цена выполненных проверок» на оси обрезаются, «проверок» ясно из заголовка.</translatorcomment>
+        <translation>Цена сделанных</translation>
     </message>
     <message>
         <location filename="../ui/line_charts.py" line="169"/>
