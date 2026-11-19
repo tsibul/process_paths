@@ -22,6 +22,7 @@ SOURCE = "en"  # the language of ``EXAMPLE_FILE``
 # The name of the tap in the other languages, as in their files.
 NAMES = {
     "ru": "Починить подтекающий кран",
+    "el": "Επισκευή βρύσης που στάζει",
 }
 SEEDED = "example_seeded"  # QSettings key: the example has been offered already
 

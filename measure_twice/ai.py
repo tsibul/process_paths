@@ -25,6 +25,7 @@ REMARKS = "{remarks}"
 MORE = {
     "en": "and {n} more",
     "ru": "и ещё {n}",
+    "el": "και {n} ακόμη",
 }
 
 # A fenced block: an optional language word on the opening line, the content, the closing fence.
