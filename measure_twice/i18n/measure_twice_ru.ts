@@ -111,6 +111,7 @@
     <message numerus="yes">
         <location filename="../ui/ai_scenario.py" line="237"/>
         <source>%n character left</source>
+        <translatorcomment>Иначе: «символ» — так чаще в счётчиках.</translatorcomment>
         <translation>
             <numerusform>Остался %n знак</numerusform>
             <numerusform>Осталось %n знака</numerusform>
@@ -229,7 +230,7 @@
     <message>
         <location filename="../ui/chains.py" line="69"/>
         <source>Not allowed here</source>
-        <translatorcomment>О виде перехода в списке: здесь он невозможен.</translatorcomment>
+        <translatorcomment>О виде перехода в списке: здесь он невозможен. Иначе: «Здесь недопустим» — ближе к «not allowed».</translatorcomment>
         <translation>Здесь невозможен</translation>
     </message>
     <message>
@@ -305,6 +306,7 @@
     <message>
         <location filename="../ui/chains.py" line="831"/>
         <source>Copy</source>
+        <translatorcomment>Кнопка создаёт копию варианта, не в буфер. Иначе: «Копия» или «Создать копию».</translatorcomment>
         <translation>Копировать</translation>
     </message>
     <message>
@@ -404,6 +406,7 @@
     <message>
         <location filename="../ui/comparison.py" line="36"/>
         <source>Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left is counted separately. Click a row to see its steps.</source>
+        <translatorcomment>Иначе: «Сначала свои, затем чужие» — как в документах проекта.</translatorcomment>
         <translation>Строки сгруппированы по задачам. Сначала наши, затем чужие; меньше труда — дешевле, но остаточный риск считается отдельно. Щёлкните строку, чтобы увидеть её шаги.</translation>
     </message>
     <message>
@@ -453,6 +456,7 @@
         <location filename="../ui/comparison.py" line="73"/>
         <location filename="../ui/comparison.py" line="648"/>
         <source>Labour</source>
+        <translatorcomment>Иначе: «Трудозатраты» — привычнее, но длиннее.</translatorcomment>
         <translation>Труд</translation>
     </message>
     <message>
@@ -586,6 +590,7 @@
     <message>
         <location filename="../ui/pages.py" line="24"/>
         <source>Changes are saved at once. To keep the old numbers, copy the project.</source>
+        <translatorcomment>Повтор «сохраняются… сохранить». Иначе: «Чтобы не потерять прежние числа…».</translatorcomment>
         <translation>Изменения сохраняются сразу. Чтобы сохранить прежние числа, создайте копию проекта.</translation>
     </message>
     <message>
@@ -748,6 +753,7 @@
     <message>
         <location filename="../ui/pages.py" line="1205"/>
         <source>Inherits from</source>
+        <translatorcomment>Иначе: «Наследуется от» или «Берётся из».</translatorcomment>
         <translation>Наследует от</translation>
     </message>
     <message>
@@ -846,7 +852,7 @@
     <message>
         <location filename="../ui/pages.py" line="1250"/>
         <source>absent value:</source>
-        <translatorcomment>Значение оси существования, когда сущности нет.</translatorcomment>
+        <translatorcomment>Значение оси существования, когда сущности нет. Иначе: «значение отсутствия:» — чтобы не читалось как значение со словом «нет».</translatorcomment>
         <translation>значение «нет»:</translation>
     </message>
     <message>
@@ -1530,13 +1536,13 @@
     <message>
         <location filename="../export.py" line="103"/>
         <source>Ours</source>
-        <translatorcomment>Сторона пути; в документах — «мы». Пара: «Наши» / «Чужие».</translatorcomment>
+        <translatorcomment>Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</translatorcomment>
         <translation>Наши</translation>
     </message>
     <message>
         <location filename="../export.py" line="103"/>
         <source>Theirs</source>
-        <translatorcomment>Сторона пути; в документах — «они». Пара: «Наши» / «Чужие».</translatorcomment>
+        <translatorcomment>Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</translatorcomment>
         <translation>Чужие</translation>
     </message>
     <message>
@@ -1690,7 +1696,7 @@
     <message>
         <location filename="../ui/chains.py" line="404"/>
         <source>Add</source>
-        <translatorcomment>Кнопка в узкой колонке рядом с «Отмена»; «Добавить» не помещается.</translatorcomment>
+        <translatorcomment>Кнопка в узкой колонке рядом с «Отмена»; «Добавить» не помещается. ОК — кириллицей, как в русской Windows; если место есть — лучше «Добавить».</translatorcomment>
         <translation>ОК</translation>
     </message>
     <message>
@@ -1896,7 +1902,7 @@
     <message>
         <location filename="../ui/line_charts.py" line="41"/>
         <source>Price of checks done</source>
-        <translation>Цена проверок</translation>
+        <translation>Цена сделанных проверок</translation>
     </message>
     <message>
         <location filename="../ui/line_charts.py" line="169"/>
@@ -2451,9 +2457,9 @@
         <source>steps cover %n calls, the variant has {count}</source>
         <translatorcomment>steps и calls — поля файла, оставлены как есть: замечание читает и модель.</translatorcomment>
         <translation>
-            <numerusform>steps охватывают %n переход, а в варианте их {count}</numerusform>
-            <numerusform>steps охватывают %n перехода, а в варианте их {count}</numerusform>
-            <numerusform>steps охватывают %n переходов, а в варианте их {count}</numerusform>
+            <numerusform>steps включают %n переход, а в варианте их {count}</numerusform>
+            <numerusform>steps включают %n перехода, а в варианте их {count}</numerusform>
+            <numerusform>steps включают %n переходов, а в варианте их {count}</numerusform>
         </translation>
     </message>
     <message>
@@ -2930,13 +2936,13 @@
     <message>
         <location filename="../ui/style.py" line="43"/>
         <source>Ours</source>
-        <translatorcomment>Сторона пути; в документах — «мы». Пара: «Наши» / «Чужие».</translatorcomment>
+        <translatorcomment>Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</translatorcomment>
         <translation>Наши</translation>
     </message>
     <message>
         <location filename="../ui/style.py" line="45"/>
         <source>Theirs</source>
-        <translatorcomment>Сторона пути; в документах — «они». Пара: «Наши» / «Чужие».</translatorcomment>
+        <translatorcomment>Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</translatorcomment>
         <translation>Чужие</translation>
     </message>
     <message>
