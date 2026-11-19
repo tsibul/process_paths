@@ -4,8 +4,10 @@
 """PDF report of the comparison: answer, steps and assumptions pages, A4 landscape.
 
 The report is built in two passes. :func:`pages` lays every page out as plain data: positioned
-lines of text and rules, in points, already wrapped to their boxes. :func:`write` draws that list
-into a PDF file with ``QPdfWriter`` and ``QPainter``. Only Qt is used.
+lines of text and rules, in points, already wrapped to their boxes, and the boxes of the charts.
+:func:`write` draws that list into a PDF file with ``QPdfWriter`` and ``QPainter``. Only Qt is
+used. The charts are painted by the code of the window, in vectors, laid out as on a screen and
+scaled to their boxes.
 
 Fonts are sized in pixels and the writer runs at 72 dots per inch, so a pixel is a point both
 when the text is measured and when it is drawn.
@@ -13,17 +15,20 @@ when the text is measured and when it is drawn.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
 
-from PySide6.QtCore import QMarginsF, QRectF, Qt
+from PySide6.QtCore import QMarginsF, QRectF, QSizeF, Qt
 from PySide6.QtGui import QFont, QFontMetricsF, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen
 
-from measure_twice.calc import Comparison, Row, compare, fmt, groups, series
+from measure_twice.calc import Comparison, Point, Row, compare, fmt, groups, series
 from measure_twice.export import _group_name, _header, _row, number
 from measure_twice.project import Project
+from measure_twice.ui import line_charts
+from measure_twice.ui.labour_scale import LabourScale
 
 ANSWER = "answer"
 STEPS = "steps"
@@ -46,8 +51,11 @@ PAD = 3  # padding of a table cell, points
 GAP = 8  # space between blocks, points
 COLUMN_GAP = 24  # space between the two ways of a steps page, points
 RULE_WIDTH = 0.5
+CHART_WIDTH = 1000  # charts are laid out as on a screen this wide, pixels, then scaled
+SCALE = "scale"  # kind of chart: the labour scale
 
 SEP = " · "
+TASK = "Task: "
 SAME_UNIT = "Risk left is in the same unit as labour."
 REASON = "Reason: "
 EXECUTOR_COEFFICIENTS = "Executor coefficients"
@@ -88,17 +96,47 @@ class Rule:
 
 
 @dataclass
+class Chart:
+    """A chart of the ``Comparison`` tab in its box, points from the top left corner of the page.
+
+    :ivar x: left edge of the box.
+    :ivar y: top edge of the box.
+    :ivar width: width of the box.
+    :ivar height: height of the box; the chart keeps its proportions.
+    :ivar kind: a kind of line chart of :mod:`measure_twice.ui.line_charts`, or ``"scale"``.
+    :ivar task: the task of the group of ways.
+    :ivar rows: the ways drawn, in the order of the table.
+    :ivar points: points of each way: point 0, then the steps from :func:`series`.
+    :ivar size: width and height the chart is laid out at, screen pixels.
+    :ivar project: the project the chart is drawn from.
+    """
+
+    x: float
+    y: float
+    width: float
+    height: float
+    kind: str
+    task: str
+    rows: list[Row]
+    points: dict[str, list[Point]]
+    size: tuple[int, int]
+    project: Project = field(repr=False, compare=False)
+
+
+@dataclass
 class Page:
     """One page of the report.
 
     :ivar kind: ``"answer"``, ``"steps"`` or ``"assumptions"``.
     :ivar texts: lines of text.
     :ivar rules: thin lines.
+    :ivar charts: charts.
     """
 
     kind: str
     texts: list[Text] = field(default_factory=list)
     rules: list[Rule] = field(default_factory=list)
+    charts: list[Chart] = field(default_factory=list)
 
 
 def font(size: int, bold: bool = False) -> QFont:
@@ -200,6 +238,7 @@ class _Flow:
         self.y = MARGIN
         self.lines(self.heading, TITLE, True)
         self.y += GAP
+        self.top = self.y
 
     @property
     def page(self) -> Page:
@@ -299,7 +338,40 @@ def _answer(project: Project, cmp: Comparison, ways: set[str]) -> list[Page]:
             if g.kind == "out" and r.reason:
                 body.append((REASON + r.reason, False))
     flow.table(_header(cmp), body)
+    _charts(flow, project, cmp, ways)
     return flow.pages
+
+
+def _charts(flow: _Flow, project: Project, cmp: Comparison, ways: set[str]) -> None:
+    """Charts of each task group under the table, as on the tab: line charts, then the scale.
+
+    The task name stays on a page with the first chart. A chart that does not fit below goes on
+    the next page; one taller than a page is made smaller, keeping its proportions.
+    """
+    head = font(SECTION, True)
+    for g, rows in _chosen_groups(cmp, ways):
+        rows = line_charts.drawn(rows)
+        if g.kind != "task" or not rows:
+            continue
+        pts = line_charts.points(project, rows)
+        sizes = []
+        for kind in line_charts.kinds(project):
+            view = line_charts.chart(kind, project, rows, pts)
+            sizes.append((kind, math.ceil(line_charts.fit_height(view, CHART_WIDTH))))
+        scale = LabourScale(project, rows)
+        sizes.append((SCALE, scale.heightForWidth(CHART_WIDTH)))
+        title = TASK + g.task
+        title_h = len(wrap(title, head, CONTENT_WIDTH)) * line_height(head)
+        flow.gap()
+        for i, (kind, h) in enumerate(sizes):
+            k = min(CONTENT_WIDTH / CHART_WIDTH, (BOTTOM - flow.top - title_h) / h)
+            if not flow.room(h * k + (title_h if i == 0 else 0)):
+                flow.new_page()
+            if i == 0:
+                flow.lines(title, SECTION, True)
+            flow.page.charts.append(Chart(MARGIN, flow.y, CHART_WIDTH * k, h * k, kind, g.task,
+                                          rows, pts, (CHART_WIDTH, h), project))
+            flow.y += h * k + GAP
 
 
 def _way_lines(project: Project, r: Row) -> list[str]:
@@ -390,6 +462,24 @@ def _draw(painter: QPainter, page: Page) -> None:
         painter.setFont(font(t.size, t.bold))
         box = QRectF(t.x, t.y, t.width, t.height)
         painter.drawText(box, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, t.text)
+    for c in page.charts:
+        painter.save()
+        _draw_chart(painter, c)
+        painter.restore()
+
+
+def _draw_chart(painter: QPainter, c: Chart) -> None:
+    """A chart painted by the code of the window, scaled from its size to its box."""
+    w, h = c.size
+    if c.kind == SCALE:
+        scale = LabourScale(c.project, c.rows)
+        scale.resize(w, h)
+        painter.translate(c.x, c.y)
+        painter.scale(c.width / w, c.height / h)
+        scale.paint(painter)
+        return
+    view = line_charts.chart(c.kind, c.project, c.rows, c.points)
+    line_charts.render(view, painter, QRectF(c.x, c.y, c.width, c.height), QSizeF(w, h))
 
 
 def draw(laid: list[Page], path: Path, title: str = "") -> None:

@@ -247,13 +247,20 @@ class LabourScale(QWidget):
 
     def paintEvent(self, _e) -> None:  # noqa: N802 (Qt)
         p = QPainter(self)
+        self.paint(p)
+        p.end()
+
+    def paint(self, p: QPainter) -> None:
+        """Paint the scale onto any active painter, from its origin, at the size of the widget.
+
+        :param p: the painter; a PDF painter gets vectors.
+        """
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(style.BG))
         self._paint_axis(p)
         for i, r in enumerate(self._rows):
             self._paint_row(p, i, r)
         self._paint_legend(p)
-        p.end()
 
     def _paint_axis(self, p: QPainter) -> None:
         body = self._body_h()

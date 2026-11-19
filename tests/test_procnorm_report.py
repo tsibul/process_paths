@@ -95,14 +95,14 @@ def _all_text(page) -> str:
 
 def test_laundry_pages(app, laundry):
     pages = report.pages(laundry)
-    assert _kinds(pages) == ["answer", "steps", "steps", "assumptions"]
+    assert _kinds(pages) == ["answer", "answer", "steps", "steps", "assumptions"]  # charts: 2nd
     answer = _all_text(pages[0])
     for word in ("Code", "Risk left, end", "Аккуратная стирка", "Ours", "Theirs"):
         assert word in answer
-    steps = [t.text for t in pages[1].texts]
+    steps = [t.text for t in pages[2].texts]
     assert "1. Проверить карманы (2.00)" in steps
     assert "3. Запустить машину (5.40)" in steps
-    assumptions = _all_text(pages[3])
+    assumptions = _all_text(pages[4])
     assert report.SAME_UNIT in assumptions
     assert "minutes" not in assumptions
     for word in ("Человек", "Машина", "каждая вещь", "вся загрузка", "карманы", "цвета"):
@@ -125,8 +125,8 @@ def test_steps_pages_follow_chosen_ways(app, big):
 
 def test_chosen_pages_only(app, laundry):
     assert _kinds(report.pages(laundry, chosen=["assumptions"])) == ["assumptions"]
-    assert _kinds(report.pages(laundry, chosen=["steps", "answer"])) == ["answer", "steps",
-                                                                         "steps"]
+    assert _kinds(report.pages(laundry, chosen=["steps", "answer"])) == ["answer", "answer",
+                                                                         "steps", "steps"]
 
 
 def test_pages_are_landscape_a4():

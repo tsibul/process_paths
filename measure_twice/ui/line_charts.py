@@ -8,14 +8,95 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from PySide6.QtCharts import QChart, QChartView, QLegend, QLineSeries, QValueAxis
-from PySide6.QtCore import QMargins, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtCore import QMargins, QRectF, QSizeF, Qt
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from measure_twice.calc import Point, Row, series, start_point
 from measure_twice.export import SIDES
 from measure_twice.project import Project
 from measure_twice.ui import style
+
+HEIGHT = 260  # least height of a chart, pixels
+LEGEND_ITEM_MARGIN = 4  # Qt puts this margin above and below a legend entry, pixels
+LEGEND_PAD = 10  # room Qt leaves above the first legend entry and below the last, pixels
+
+LABOUR = "labour"
+LABOUR_WAITING = "labour_waiting"
+CHECKS = "checks"
+# kind of chart: title, title of the value axis, value of a point
+CHARTS: dict[str, tuple[str, str, Callable[[Point], object]]] = {
+    LABOUR: ("Labour by step", "Labour", lambda p: p.labour),
+    LABOUR_WAITING: ("Labour + waiting by step", "Labour + waiting", lambda p: p.labour_waiting),
+    CHECKS: ("Checks done by step", "Price of checks done", lambda p: p.done_total),
+}
+
+
+def drawn(rows: Sequence[Row]) -> list[Row]:
+    """The rows that have a line: a number set and no run error."""
+    return [r for r in rows if not (r.missing or r.error)]
+
+
+def points(project: Project, rows: Sequence[Row]) -> dict[str, list[Point]]:
+    """The points of each line: point 0 (the initial slice), then the steps of the path."""
+    return {r.code: [start_point(project, r.code)] + series(project, r.code) for r in rows}
+
+
+def kinds(project: Project) -> list[str]:
+    """The charts shown for a project, top to bottom."""
+    if project.norm.labour_per_waiting_hour > 0:
+        return [LABOUR, LABOUR_WAITING, CHECKS]
+    return [LABOUR, CHECKS]
+
+
+def chart(kind: str, project: Project, rows: Sequence[Row],
+          pts: dict[str, list[Point]]) -> QChartView:
+    """One chart as the window shows it, with the lines of ``rows``.
+
+    :param kind: :data:`LABOUR`, :data:`LABOUR_WAITING` or :data:`CHECKS`.
+    :param project: a checked project.
+    :param rows: rows to draw, all with a line.
+    :param pts: points of each row, as from :func:`points`.
+    :return: the chart in its view.
+    :rtype: QChartView
+    """
+    title, y_title, value = CHARTS[kind]
+    view = _view(title, y_title)
+    order = [v.code for v in project.model.variants]
+    LineCharts._fill(view, rows, pts, order, value)
+    return view
+
+
+def fit_height(view: QChartView, width: float) -> float:
+    """Height at which a chart shows every entry of its legend; at least :data:`HEIGHT`.
+
+    :param view: the chart, with its lines.
+    :param width: width the chart is laid out at, pixels.
+    :return: the height, pixels.
+    :rtype: float
+    """
+    c = view.chart()
+    c.resize(QSizeF(width, HEIGHT))
+    if c.layout() is not None:
+        c.layout().activate()
+    rest = HEIGHT - c.legend().geometry().height()
+    entry = QFontMetricsF(c.legend().font()).height() + 2 * LEGEND_ITEM_MARGIN
+    return max(HEIGHT, rest + len(c.series()) * entry + 2 * LEGEND_PAD)
+
+
+def render(view: QChartView, painter: QPainter, target: QRectF, size: QSizeF) -> None:
+    """Paint a chart onto any painter, in vectors when the device takes them.
+
+    :param view: the chart.
+    :param painter: an active painter.
+    :param target: where to paint, in the painter's coordinates.
+    :param size: size the chart is laid out at, as on screen; it is scaled to ``target``.
+    """
+    c = view.chart()
+    c.resize(size)
+    if c.layout() is not None:
+        c.layout().activate()
+    view.scene().render(painter, target, QRectF(c.pos(), size))
 
 
 def _view(title: str, y_title: str) -> QChartView:
@@ -44,7 +125,7 @@ def _view(title: str, y_title: str) -> QChartView:
         chart.addAxis(axis, align)
     view = QChartView(chart)
     view.setRenderHint(QPainter.Antialiasing)
-    view.setMinimumHeight(260)
+    view.setMinimumHeight(HEIGHT)
     return view
 
 
@@ -60,10 +141,10 @@ class LineCharts(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.labour = _view("Labour by step", "Labour")
-        self.labour_waiting = _view("Labour + waiting by step", "Labour + waiting")
+        self.labour = _view(*CHARTS[LABOUR][:2])
+        self.labour_waiting = _view(*CHARTS[LABOUR_WAITING][:2])
         self.labour_waiting.hide()
-        self.checks = _view("Checks done by step", "Price of checks done")
+        self.checks = _view(*CHARTS[CHECKS][:2])
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.labour)
@@ -76,15 +157,15 @@ class LineCharts(QWidget):
         :param project: a checked project; ``None`` clears the lines.
         :param rows: variants to draw; a variant with a number not set or a run error is not drawn.
         """
-        rows = [r for r in rows if not (r.missing or r.error)] if project is not None else []
+        rows = drawn(rows) if project is not None else []
         order = [v.code for v in project.model.variants] if project else []
-        pts = {r.code: [start_point(project, r.code)] + series(project, r.code) for r in rows}
-        self._fill(self.labour, rows, pts, order, lambda p: p.labour)
-        weighted = project is not None and project.norm.labour_per_waiting_hour > 0
+        pts = points(project, rows)
+        self._fill(self.labour, rows, pts, order, CHARTS[LABOUR][2])
+        weighted = project is not None and LABOUR_WAITING in kinds(project)
         self.labour_waiting.setVisible(weighted)
         self._fill(self.labour_waiting, rows if weighted else [], pts, order,
-                   lambda p: p.labour_waiting)
-        self._fill(self.checks, rows, pts, order, lambda p: p.done_total)
+                   CHARTS[LABOUR_WAITING][2])
+        self._fill(self.checks, rows, pts, order, CHARTS[CHECKS][2])
 
     @staticmethod
     def _fill(view: QChartView, rows: Sequence[Row], pts: dict[str, list[Point]],
