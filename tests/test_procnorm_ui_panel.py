@@ -112,9 +112,9 @@ def test_more_items_on_with_project(win):
         assert a.isEnabled()
 
 
-def test_paste_item_present_without_action(win):
+def test_paste_item_present_and_enabled(win):
     assert win.paste_action.text() == "Paste AI answer…"
-    assert not win.paste_action.isEnabled()
+    assert win.paste_action.isEnabled()
 
 
 def test_with_ai_opens_scenario(win, monkeypatch):

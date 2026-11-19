@@ -36,6 +36,7 @@ from measure_twice.ui.ai_scenario import AiScenarioDialog
 from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
 from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.pages import DictionaryPage, NormPage
+from measure_twice.ui.paste import PasteDialog
 from measure_twice.ui.remarks import RemarksPanel
 from measure_twice.ui.style import ACCENT, STYLE
 from measure_twice.ui.tables import NOTE_ROLE, NoteDelegate, label, project_note
@@ -237,9 +238,7 @@ class MainWindow(QMainWindow):
         """The `+ New ▾` menu (making a project) and the `More ▾` menu (the open one)."""
         self.new_menu = QMenu(self)
         self.ai_action = self._item(self.new_menu, "With AI…", self.on_ai)
-        # The window for a pasted answer comes later; the item is shown grey until then.
-        self.paste_action = self.new_menu.addAction("Paste AI answer…")
-        self.paste_action.setEnabled(False)
+        self.paste_action = self._item(self.new_menu, "Paste AI answer…", self.on_paste)
         self.load_action = self._item(self.new_menu, "From file…", self.on_load)
         self.new_action = self._item(self.new_menu, "Empty", self.on_new)
         self.example_action = self._item(self.new_menu, "Example", self.show_example)
@@ -790,6 +789,11 @@ class MainWindow(QMainWindow):
         dialog = self.ai_scenario()
         if dialog.exec() == AiScenarioDialog.DialogCode.Accepted:
             dialog.deleteLater()
+
+    def on_paste(self) -> None:
+        dialog = PasteDialog(self.load_text, self)
+        dialog.exec()
+        dialog.deleteLater()
 
     def on_load(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load project file", "", JSON_FILTER)
