@@ -106,12 +106,14 @@ class ProjectInfo:
     :ivar name: project name.
     :ivar description: project description.
     :ivar updated: time of the last write, ISO, UTC.
+    :ivar ways: number of ways (variants) in the project.
     """
 
     id: int
     name: str
     description: str
     updated: str
+    ways: int
 
 
 class Store:
@@ -131,31 +133,55 @@ class Store:
             self._db.execute("INSERT OR IGNORE INTO meta(key, value) VALUES('schema_version', ?)",
                              (SCHEMA_VERSION,))
 
+    def _free_name(self, name: str, own_id: int | None = None) -> str:
+        """The name itself when no other project has it, else ``"<name> (2)"``, ``(3)``, ...
+
+        :param name: wanted name.
+        :param own_id: id of the project being written, its own name is not taken.
+        :return: the first free name.
+        :rtype: str
+        """
+        taken = {row[0] for row in self._db.execute(
+            "SELECT name FROM project WHERE id IS NOT ?", (own_id,))}
+        free, number = name, 1
+        while free in taken:
+            number += 1
+            free = f"{name} ({number})"
+        return free
+
     def add(self, project: Project) -> int:
         """Add a project.
+
+        A name taken by another project gets the number ``" (2)"``, ``" (3)"``, ...
 
         :param project: a checked project.
         :return: its id.
         :rtype: int
         """
         now = _now()
+        name = self._free_name(project.name)
+        data = {**project.data, "name": name}
         with self._db:
             cur = self._db.execute(
                 "INSERT INTO project(name, description, created, updated, data) VALUES(?, ?, ?, ?, ?)",
-                (project.name, project.description, now, now, dumps(project.data)))
+                (name, project.description, now, now, dumps(data)))
         return int(cur.lastrowid)
 
     def replace(self, id: int, project: Project) -> None:
         """Load a project over a stored one: the id and the creation time stay.
 
+        A name taken by another project gets a number; its own name stays as it is.
+
         :param id: project id.
         :param project: a checked project.
         :raises KeyError: no such id.
         """
+        name = self._free_name(project.name, id)
+        data = {**project.data, "name": name}
         with self._db:
             cur = self._db.execute(
                 "UPDATE project SET name = ?, description = ?, updated = ?, data = ? WHERE id = ?",
-                (project.name, project.description, _now(), dumps(project.data), id))
+                (name, project.description, _now(), dumps(data), id))
         if cur.rowcount == 0:
             raise KeyError(id)
 
@@ -183,8 +209,9 @@ class Store:
         :rtype: list[ProjectInfo]
         """
         rows = self._db.execute(
-            "SELECT id, name, description, updated FROM project ORDER BY name, id").fetchall()
-        return [ProjectInfo(*r) for r in rows]
+            "SELECT id, name, description, updated, data FROM project ORDER BY name, id").fetchall()
+        return [ProjectInfo(r[0], r[1], r[2], r[3], len(json.loads(r[4])["variants"]))
+                for r in rows]
 
     def _data_text(self, id: int) -> str:
         row = self._db.execute("SELECT data FROM project WHERE id = ?", (id,)).fetchone()
@@ -218,7 +245,7 @@ class Store:
         return dumps(json.loads(self._data_text(id), parse_float=Decimal))
 
     def copy(self, id: int) -> int:
-        """Copy a project under the name ``"<name> (copy)"``.
+        """Copy a project under the first free name ``"<name> (2)"``, ``(3)``, ...
 
         :param id: project id.
         :return: id of the copy.
@@ -226,7 +253,7 @@ class Store:
         :raises KeyError: no such id.
         """
         data = json.loads(self._data_text(id), parse_float=Decimal)
-        data["name"] = f"{data['name']} (copy)"
+        data["name"] = self._free_name(data["name"])
         now = _now()
         desc = data.get("description", "")
         with self._db:

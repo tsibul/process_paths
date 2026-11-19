@@ -50,7 +50,7 @@ def test_add_list_get():
         i = st.add(_project())
         info = st.list()
         assert info == [ProjectInfo(i, "Стирка белья", "Три способа постирать одну загрузку белья.",
-                                    info[0].updated)]
+                                    info[0].updated, 3)]
         assert st.get(i).name == "Стирка белья"
         with pytest.raises(KeyError):
             st.get(i + 100)
@@ -78,13 +78,57 @@ def test_copy_and_delete_and_order():
         i = st.add(_project())
         j = st.copy(i)
         assert j != i
-        assert st.get(j).name == "Стирка белья (copy)"
-        assert json.loads(st.text(j))["name"] == "Стирка белья (copy)"
+        assert st.get(j).name == "Стирка белья (2)"
+        assert json.loads(st.text(j))["name"] == "Стирка белья (2)"
         assert [x.id for x in st.list()] == [i, j]
         st.delete(i)
         assert [x.id for x in st.list()] == [j]
         with pytest.raises(KeyError):
             st.copy(i)
+
+
+def _named(name):
+    project = _project()
+    project.name = name
+    project.data["name"] = name
+    return project
+
+
+def test_add_numbers_taken_names():
+    with Store(":memory:") as st:
+        ids = [st.add(_project()) for _ in range(3)]
+        assert [x.name for x in st.list()] == ["Стирка белья", "Стирка белья (2)",
+                                               "Стирка белья (3)"]
+        assert json.loads(st.text(ids[2]))["name"] == "Стирка белья (3)"
+        assert st.get(ids[1]).name == "Стирка белья (2)"
+
+
+def test_copy_takes_first_free_number():
+    with Store(":memory:") as st:
+        first = st.add(_project())
+        st.add(_project())
+        third = st.copy(first)
+        assert st.get(third).name == "Стирка белья (3)"
+        assert st.get(st.copy(first)).name == "Стирка белья (4)"
+
+
+def test_replace_numbers_name_of_another_only():
+    with Store(":memory:") as st:
+        first = st.add(_project())
+        second = st.add(_named("Другая"))
+        st.replace(first, _project())
+        assert st.get(first).name == "Стирка белья"
+        st.replace(second, _project())
+        assert st.get(second).name == "Стирка белья (2)"
+        assert json.loads(st.text(second))["name"] == "Стирка белья (2)"
+        st.replace(second, _project())
+        assert st.get(second).name == "Стирка белья (2)"
+
+
+def test_list_counts_ways():
+    with Store(":memory:") as st:
+        i = st.add(_project())
+        assert st.list()[0].ways == len(st.get(i).data["variants"]) == 3
 
 
 def test_file_store_survives_reopen(tmp_path):
