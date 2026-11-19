@@ -5,11 +5,12 @@
 
 from __future__ import annotations
 
+import html
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QRect, QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics
+from PySide6.QtCore import QEvent, QMimeData, QRect, QSize, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
                                QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
@@ -487,6 +488,8 @@ def _sort_keys(cmp: Comparison) -> list[Callable[[Row], object]]:
 class ComparisonPage(Page):
     """The comparison of the variants of the current project."""
 
+    copied = Signal(str)  # a table or a chart was copied; the status text
+
     def __init__(self) -> None:
         super().__init__()
         self._project: Project | None = None
@@ -532,6 +535,9 @@ class ComparisonPage(Page):
         self.export_csv = QPushButton("Export table (CSV)")
         buttons.addWidget(self.export_md)
         buttons.addWidget(self.export_csv)
+        self.copy_table_button = QPushButton("Copy table")
+        self.copy_table_button.clicked.connect(self.copy_table)
+        buttons.addWidget(self.copy_table_button)
         self.report_button = QPushButton("Report (PDF)…")
         buttons.addWidget(self.report_button)
         buttons.addStretch(1)
@@ -633,6 +639,7 @@ class ComparisonPage(Page):
         t = self.tree
         t.clear()
         self._items = {}
+        self.copy_table_button.setEnabled(any(self._shown_rows(g) for g in self._groups))
         self._render_charts()
         if self._cmp is None:
             t.fit()
@@ -681,6 +688,7 @@ class ComparisonPage(Page):
             pair = ChartPair(self._project, g, rows)
             self.charts_lay.addWidget(pair)
             self._pairs.append(pair)
+            pair.charts.copied.connect(self.copied)
 
     def _variant_item(self, parent: QTreeWidgetItem, r: Row, grey: bool, least: bool) -> QTreeWidgetItem:
         cmp = self._cmp
@@ -848,6 +856,22 @@ class ComparisonPage(Page):
         return self.notes.text()
 
     # --- export
+
+    def copy_table(self) -> None:
+        """Put the shown table on the clipboard as HTML and as tab-separated text."""
+        if self._cmp is None:
+            return
+        shown = [(g, self._shown_rows(g)) for g in self._groups]
+        lines = export.shown_table(self._cmp, [(g, rows) for g, rows in shown if rows])
+        text = "\n".join("\t".join(cells) for cells in lines)
+        head = "".join(f"<th>{html.escape(c)}</th>" for c in lines[0])
+        body = "".join("<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in cells) + "</tr>"
+                       for cells in lines[1:])
+        data = QMimeData()
+        data.setHtml(f"<table border=\"1\"><tr>{head}</tr>{body}</table>")
+        data.setText(text)
+        QGuiApplication.clipboard().setMimeData(data)
+        self.copied.emit("Copied table")
 
     def export_path(self, path: Path) -> None:
         """Write the comparison to a .md or .csv file."""

@@ -8,9 +8,9 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from PySide6.QtCharts import QChart, QChartView, QLegend, QLineSeries, QValueAxis
-from PySide6.QtCore import QMargins, QRectF, QSizeF, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtCore import QMargins, QRectF, QSizeF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QGuiApplication, QPainter, QPen
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from measure_twice.calc import Point, Row, series, start_point
 from measure_twice.export import SIDES
@@ -99,7 +99,41 @@ def render(view: QChartView, painter: QPainter, target: QRectF, size: QSizeF) ->
     view.scene().render(painter, target, QRectF(c.pos(), size))
 
 
-def _view(title: str, y_title: str) -> QChartView:
+class ChartView(QChartView):
+    """A chart with a small ``Copy chart`` button in its top-right corner."""
+
+    copied = Signal(str)  # the status text after the chart is copied
+    CORNER = 4  # gap between the button and the corner of the view, pixels
+
+    def __init__(self, chart: QChart) -> None:
+        super().__init__(chart)
+        self.copy_button = QPushButton("Copy chart", self)
+        self.copy_button.setObjectName("copyChart")
+        self.copy_button.setStyleSheet("padding: 1px 6px; font-size: 11px;")
+        self.copy_button.adjustSize()
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self.copy_chart)
+        self._place()
+
+    def copy_chart(self) -> None:
+        """Put the chart on the clipboard as an image, without the button."""
+        self.copy_button.hide()
+        image = self.grab().toImage()
+        self.copy_button.show()
+        QGuiApplication.clipboard().setImage(image)
+        self.copied.emit("Copied chart")
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().resizeEvent(event)
+        self._place()
+
+    def _place(self) -> None:
+        b = self.copy_button
+        b.move(self.width() - b.width() - self.CORNER, self.CORNER)
+        b.raise_()
+
+
+def _view(title: str, y_title: str) -> ChartView:
     """An empty chart with integer step axis and a value axis."""
     chart = QChart()
     chart.setTitle(title)
@@ -123,7 +157,7 @@ def _view(title: str, y_title: str) -> QChartView:
         axis.setLinePenColor(QColor(style.BORDER))
         axis.setRange(0, 1)
         chart.addAxis(axis, align)
-    view = QChartView(chart)
+    view = ChartView(chart)
     view.setRenderHint(QPainter.Antialiasing)
     view.setMinimumHeight(HEIGHT)
     return view
@@ -139,6 +173,8 @@ class LineCharts(QWidget):
     variant in the project; a line is named by the variant code and side, as ``T1 · Ours``.
     """
 
+    copied = Signal(str)  # a chart was copied; the status text
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.labour = _view(*CHARTS[LABOUR][:2])
@@ -150,6 +186,8 @@ class LineCharts(QWidget):
         lay.addWidget(self.labour)
         lay.addWidget(self.labour_waiting)
         lay.addWidget(self.checks)
+        for view in (self.labour, self.labour_waiting, self.checks):
+            view.copied.connect(self.copied)
 
     def set_rows(self, project: Project | None, rows: Sequence[Row]) -> None:
         """Replace the lines by those of ``rows``, in their order.
@@ -170,6 +208,7 @@ class LineCharts(QWidget):
     @staticmethod
     def _fill(view: QChartView, rows: Sequence[Row], pts: dict[str, list[Point]],
               order: list[str], value: Callable[[Point], object]) -> None:
+        view.copy_button.setEnabled(bool(rows))
         chart = view.chart()
         chart.removeAllSeries()
         x_axis = chart.axes(Qt.Horizontal)[0]

@@ -116,6 +116,20 @@ def _grid(cmp: Comparison) -> list[list[str]]:
     return out
 
 
+def shown_table(cmp: Comparison, shown: list[tuple[Group, list[Row]]]) -> list[list[str]]:
+    """The comparison table as the window shows it: a header line and a line per shown row.
+
+    :param cmp: the table.
+    :param shown: groups with the rows of each that the window shows, in its order.
+    :return: lines of cells; the first cell is the group name, then the columns of the window.
+    :rtype: list[list[str]]
+    """
+    out = [["Group"] + _header(cmp)]
+    for g, rows in shown:
+        out += [[_group_name(g)] + _row(cmp, r) for r in rows]
+    return out
+
+
 def _change(c: tuple[str, str, str | None, str | None]) -> str:
     e, a, before, after = c
     return f"{e}/{a}: {before if before is not None else DASH} {ARROW} {after if after is not None else DASH}"

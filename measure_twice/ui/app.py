@@ -163,6 +163,7 @@ class MainWindow(QMainWindow):
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
         self.comparison.report_button.clicked.connect(self.on_report)
+        self.comparison.copied.connect(self.statusBar().showMessage)
 
         last = settings.value(LAST) if settings is not None else None
         self.refresh(int(last) if last is not None else None)
