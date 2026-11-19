@@ -27,13 +27,15 @@ SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
 SIDE_TEXT = style.SIDE_TEXT
 NOT_REACHED = " (not reached)"
 END = "end"
+RISK = "Risk left"
+RISK_TIP = "Price you gave to each check this way does not do."
 NO_PAIR = "No comparable variant"
 NO_PAIR_NOTE = "Not compared: no other variant has the same task"
 OUT = "Out of comparison"
-HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but skipped "
-        "checks are counted separately. Click a row to see its steps.")
+HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left "
+        "is counted separately. Click a row to see its steps.")
 STEP_HEADERS = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope ×", "Executor ×", "Labour",
-                "Skips left", "Changes"]
+                "Risk left", "Changes"]
 STEP_NUMERIC = {0, 5, 6, 7, 8, 9}
 PAD_X = 8  # horizontal item padding of the table stylesheet, px
 PAD_Y = 6  # vertical item padding and border of the table stylesheet, px
@@ -219,7 +221,7 @@ class WrapTable(Table):
 
 
 class StepsPanel(QFrame):
-    """Steps of one variant under its row, then its skipped checks by slice."""
+    """Steps of one variant under its row, then its unchecked axes by slice."""
 
     def __init__(self, project: Project, row: Row) -> None:
         super().__init__()
@@ -242,7 +244,9 @@ class StepsPanel(QFrame):
         for s in row.slices:
             if s.skips:
                 what = ", ".join(f"{e}/{a} ({export.number(p, fmt)})" for e, a, p in s.skips)
-                w = label(f"Skipped checks, {_slice_label(s.name)}{NOT_REACHED if not s.reached else ''}: {what}")
+                name = f", {_slice_label(s.name)}" if len(row.slices) > 1 else ""
+                reached = NOT_REACHED if not s.reached else ""
+                w = label(f"Not checked{name}{reached}: {what}")
                 w.setObjectName("skipped")
                 self.skipped.append(w)
                 box.addWidget(w)
@@ -256,7 +260,7 @@ class StepsPanel(QFrame):
 
 
 class StepCell(QFrame):
-    """One step of one variant in the Compare steps view: kind, running labour, skips left."""
+    """One step of one variant in the Compare steps view: kind, running labour, risk left."""
 
     def __init__(self, point: Point, last: bool, own: bool) -> None:
         super().__init__()
@@ -277,7 +281,7 @@ class StepCell(QFrame):
         top.addWidget(self.marker, 0, Qt.AlignmentFlag.AlignTop)
         box.addLayout(top)
         self.labour = QLabel(export.number(point.labour))
-        self.skips = QLabel(f"Skips left: {point.skips_count}")
+        self.skips = QLabel(f"Risk left: {point.skips_count}")
         self.skips.setStyleSheet(f"color: {style.ERR if point.skips_count else style.OK};")
         for w in (self.labour, self.skips):
             f = mono()
@@ -286,7 +290,7 @@ class StepCell(QFrame):
             box.addWidget(w)
 
     def lines(self) -> list[str]:
-        """Kind, running labour, ``Skips left: N``."""
+        """Kind, running labour, ``Risk left: N``."""
         return [self.kind.text(), self.labour.text(), self.skips.text()]
 
     def marker_text(self) -> str:
@@ -577,7 +581,7 @@ class ComparisonPage(Page):
         names = [_slice_label(n) for n in cmp.slice_names] if cmp else []
         labour = [("Labour", x) for x in execs] + [("Labour", "total")] if cmp else []
         waiting = export.waiting_headers(cmp) if cmp else []
-        skips = [("Skipped checks", n) for n in names]
+        skips = [(RISK, n) for n in names]
         fm = QFontMetrics(_head_font())
 
         def two_lines(a: str, b: str) -> str:
@@ -597,7 +601,7 @@ class ComparisonPage(Page):
         t.setHeaderLabels(shown)
         h = t.headerItem()
         for c, key in enumerate(self._keys):
-            h.setToolTip(c, key)
+            h.setToolTip(c, RISK_TIP if key.startswith(f"{RISK}, ") else key)
             if c >= 3:
                 h.setTextAlignment(c, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         t.header().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
@@ -789,7 +793,7 @@ class ComparisonPage(Page):
     # --- reading, for tests
 
     def headers(self) -> list[str]:
-        """Column names in one line: ``Labour · <executor>``, ``Skipped checks, <slice>``."""
+        """Column names in one line: ``Labour · <executor>``, ``Risk left, <slice>``."""
         return list(self._keys)
 
     def header_text(self, header: str) -> str:

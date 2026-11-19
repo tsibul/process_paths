@@ -109,7 +109,7 @@ def test_missing_cells_not_set(win):
     c = win.comparison
     assert c.cell("А", "Labour · Человек") == NOT_SET
     assert c.cell("А", "Labour · total") == NOT_SET
-    assert c.cell("А", "Skipped checks, end") == "0.00"  # prices are all set
+    assert c.cell("А", "Risk left, end") == "0.00"  # prices are all set
     assert c.cell("А", "Title").endswith(f"\nReason: {REASON_A}")
     assert not c.is_bold("А", "Labour · total") and not c.is_bold("Е", "Labour · total")
 
@@ -132,13 +132,13 @@ def test_missing_price_sum_not_set(price_win):
     c = price_win.comparison
     assert c.codes() == ["А", "Б", "В"]
     assert c.cell("Б", "Labour · total") == "3.40"
-    assert c.cell("Б", "Skipped checks, end") == NOT_SET
-    assert c.cell("А", "Skipped checks, end") == "0.00"
+    assert c.cell("Б", "Risk left, end") == NOT_SET
+    assert c.cell("А", "Risk left, end") == "0.00"
     assert c.cell("Б", "Title").endswith("\nReason: Not set: skip price of Бельё/цвета")
     c.toggle("Б")
     assert [w.text() for w in c.skipped_labels("Б")] == [
-        "Skipped checks, постирано: Бельё/карманы (5), Бельё/цвета (not set)",
-        "Skipped checks, end: Бельё/карманы (5), Бельё/цвета (not set)"]
+        "Not checked, постирано: Бельё/карманы (5), Бельё/цвета (not set)",
+        "Not checked, end: Бельё/карманы (5), Бельё/цвета (not set)"]
 
 
 def test_sort_with_numbers_not_set(win):

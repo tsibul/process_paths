@@ -30,7 +30,7 @@ SEG_TOP, SEG_H = 26, 20
 STRIP_TOP, STRIP_H = 50, 6
 LEGEND_GAP = 16
 LEGEND_LINE = 22
-END_NOTE = "Right of bar: Labour · total · Skipped checks, end"
+END_NOTE = "Right of bar: Labour · total · Risk left, end"
 
 
 @dataclass
@@ -84,7 +84,7 @@ class ScaleRow:
     strip: list[Piece] = field(default_factory=list)
 
     def end_text(self) -> tuple[str, str]:
-        """Right of the bar: total labour and the skipped checks at the end."""
+        """Right of the bar: total labour and the risk left at the end."""
         return money(self.total), money(self.skips_total)
 
 
@@ -145,7 +145,7 @@ class LabourScale(QWidget):
             [("swatch", f"{e} step", colors[e][0]) for e in names if e in used]
             + [("zero", "zero-labour step", None), ("check", "check step", None)]
             + [("slice", f"slice “{n}”", None) for n in slice_names or ["named"]]
-            + [("swatch", "skipped checks still open", style.SCALE_OPEN),
+            + [("swatch", "risk left still open", style.SCALE_OPEN),
                ("swatch", "all checked", style.SCALE_DONE)])
         self.setMouseTracking(True)
         sp = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)

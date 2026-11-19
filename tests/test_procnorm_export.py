@@ -60,12 +60,12 @@ def test_csv_rows(project):
     head = rows[0]
     assert head[:5] == ["Group", "Code", "Title", "Side", "Steps"]
     assert "Labour · Человек" in head and "Labour · total" in head
-    assert head[-3:] == ["Skipped checks, постирано", "Skipped checks, end", "Reason"]
+    assert head[-3:] == ["Risk left, постирано", "Risk left, end", "Reason"]
     by = {r[1]: dict(zip(head, r)) for r in rows[1:]}
     assert by["А"]["Labour · total"] == "8.40"
-    assert by["А"]["Skipped checks, end"] == "0.00"
-    assert by["Б"]["Skipped checks, end"] == "8.00"
-    assert by["В"]["Skipped checks, end"] == "3.00"
+    assert by["А"]["Risk left, end"] == "0.00"
+    assert by["Б"]["Risk left, end"] == "8.00"
+    assert by["В"]["Risk left, end"] == "3.00"
     assert by["А"]["Side"] == "Ours" and by["Б"]["Side"] == "Theirs" and by["А"]["Steps"] == "7"
     assert all(r[0] == "Task: Постирать бельё" and r[-1] == "" for r in rows[1:])
 
@@ -90,7 +90,7 @@ def test_markdown(project):
     assert "| А | Аккуратная стирка | Ours | 7 |" in md
     assert "| 8.40 |" in md
     assert "| Б | Быстрая стирка | Theirs | 5 |" in md
-    assert "| Code | Title | Side | Steps | Labour · Человек | Labour · total | Waiting | Skipped checks, постирано | Skipped checks, end |" in md
+    assert "| Code | Title | Side | Steps | Labour · Человек | Labour · total | Waiting | Risk left, постирано | Risk left, end |" in md
     assert "## Task: Постирать бельё" in md and "\n3 variants\n" in md
     assert "## No comparable variant" not in md
     assert "## Uncounted errors" in md and "### Вне модели" in md and "- порошок закончился" in md

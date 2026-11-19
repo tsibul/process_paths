@@ -96,7 +96,7 @@ OUT = "Out of comparison"
 def _header(cmp: Comparison) -> list[str]:
     return (["Code", "Title", "Side", "Steps"] + [f"Labour · {x}" for x in cmp.executors]
             + ["Labour · total"] + waiting_headers(cmp)
-            + [f"Skipped checks, {'end' if n == FINAL else n}" for n in cmp.slice_names])
+            + [f"Risk left, {'end' if n == FINAL else n}" for n in cmp.slice_names])
 
 
 def _row(cmp: Comparison, r: Row) -> list[str]:

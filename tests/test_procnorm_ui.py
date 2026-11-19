@@ -63,8 +63,8 @@ def test_comparison_rows_and_totals(loaded):
     assert c.codes() == ["А", "Б", "В"]
     assert [c.cell(code, "Labour · total") for code in c.codes()] == ["8.40", "3.40", "5.40"]
     assert c.cell("А", "Labour · Человек") == "8.40"
-    assert c.cell("Б", "Skipped checks, постирано") == "8.00"
-    assert c.cell("А", "Skipped checks, end") == "0.00"
+    assert c.cell("Б", "Risk left, постирано") == "8.00"
+    assert c.cell("А", "Risk left, end") == "0.00"
     assert c.headers()[:4] == ["Code", "Title", "Side", "Steps"]
 
 
@@ -223,8 +223,8 @@ def test_export_buttons_named_as_table_exports(loaded):
 # --- comparison tree: groups by task (piece 5)
 
 LONG = "Очень длинное имя исполнителя для проверки обрезки"
-HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but skipped "
-        "checks are counted separately. Click a row to see its steps.")
+HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left "
+        "is counted separately. Click a row to see its steps.")
 T_FAST, T_WASH, T_SORT = "Быстро постирать", "Постирать загрузку", "Разобрать бельё"
 
 
@@ -285,9 +285,9 @@ def test_groups_headers_and_marketing_texts(twelve):
     assert c.cell("Б", "Side") == "○ Theirs"
     assert c.headers() == ["Code", "Title", "Side", "Steps", "Labour · Человек", f"Labour · {LONG}",
                            "Labour · total", "Waiting",
-                           "Skipped checks, постирано", "Skipped checks, end"]
+                           "Risk left, постирано", "Risk left, end"]
     assert c.header_text("Labour · total") == "Labour\ntotal"
-    assert c.header_text("Skipped checks, end") == "Skipped checks\nend"
+    assert c.header_text("Risk left, end") == "Risk left\nend"
 
 
 def test_default_order(twelve):
@@ -341,7 +341,7 @@ def test_two_open_at_once_steps_and_skips_left(twelve):
         t = c.steps(code)
         assert t.rowCount() == len(details(project, code))
         heads = [t.horizontalHeaderItem(i).text() for i in range(t.columnCount())]
-        col = heads.index("Skips left")
+        col = heads.index("Risk left")
         assert [t.item(r, col).text() for r in range(t.rowCount())] == \
             [str(p.skips_count) for p in series(project, code)]
     c.toggle("А")
@@ -369,8 +369,8 @@ def test_skipped_lines_under_steps(twelve):
     c.toggle("Б")
     lines = c.skipped_labels("Б")
     assert [x.text() for x in lines] == [
-        "Skipped checks, постирано: Бельё/карманы (5), Бельё/цвета (3)",
-        "Skipped checks, end: Бельё/карманы (5), Бельё/цвета (3)",
+        "Not checked, постирано: Бельё/карманы (5), Бельё/цвета (3)",
+        "Not checked, end: Бельё/карманы (5), Бельё/цвета (3)",
     ]
     assert all(x.objectName() != "err" for x in lines)
     c.toggle("А")
@@ -455,7 +455,7 @@ def test_compare_steps_cells_equal_series(twelve):
         for p in points:
             cell = v.cell(p.number, code)
             from measure_twice.calc import money
-            assert cell.lines() == [p.kind, money(p.labour), f"Skips left: {p.skips_count}"]
+            assert cell.lines() == [p.kind, money(p.labour), f"Risk left: {p.skips_count}"]
             assert cell.marker_text() == " ".join(f"{n} ✓" for n in p.slices)
     assert v.cell(4, "А").marker_text() == "постирано ✓"  # Постирать is step 4 of А
     assert v.cell(2, "Б").marker_text() == "постирано ✓"
@@ -473,7 +473,7 @@ def test_compare_steps_last_cell_bold_equals_table(twelve):
         last = v.cell(n, code).lines()
         assert last[1] == c.cell(code, "Labour · total")
         ends = {"А": 0, "Г": 2, "Б": 2, "В": 1}  # skipped checks at the end
-        assert last[2] == f"Skips left: {ends[code]}"
+        assert last[2] == f"Risk left: {ends[code]}"
 
 
 def test_compare_steps_follows_filter_and_sort(twelve):
@@ -714,3 +714,10 @@ def test_scale_in_compare_steps_with_view_columns(twelve):
     v = c.steps_view
     assert [r.code for r in v.scale.rows()] == v.codes()
     assert v.scale.parent() is v and not v.scale.isHidden()
+
+
+def test_risk_left_tooltip_and_scale_words(twelve):
+    from measure_twice.ui import labour_scale
+    c = twelve.comparison
+    assert c.header_tooltip("Risk left, end") == "Price you gave to each check this way does not do."
+    assert labour_scale.END_NOTE == "Right of bar: Labour · total · Risk left, end"
