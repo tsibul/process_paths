@@ -269,3 +269,19 @@ def test_markdown_out_table_and_details(win):
         for r, ln in enumerate(lines):
             cells = [x.strip() for x in ln.strip("|").split(" | ")]
             assert cells[5:9] == [t.item(r, i).text() for i in (5, 6, 7, 8)], (code, r)
+
+
+def test_not_checked_line_with_one_slice(app, store):
+    """Invented data: laundry.json without named slices keeps only the final one."""
+    d = json.loads(LAUNDRY.read_text(encoding="utf-8"), parse_float=Decimal)
+    d["named_slices"] = {}
+    w = _window(store, d)
+    try:
+        c = w.comparison
+        assert c.headers()[-1] == "Risk left, end"
+        assert not any(h.startswith("Risk left") for h in c.headers()[:-1])
+        c.toggle("Б")
+        assert [x.text() for x in c.skipped_labels("Б")] == [
+            "Not checked: Бельё/карманы (5), Бельё/цвета (3)"]
+    finally:
+        w.close()
