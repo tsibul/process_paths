@@ -25,7 +25,7 @@ from measure_twice.ui.pages import Page
 from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label, mono, plural, translate
 
 SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
-END = "end"
+END = QT_TRANSLATE_NOOP("ComparisonPage", "end")
 RISK = "Risk left"
 RISK_TIP = QT_TRANSLATE_NOOP("ComparisonPage", "Price you gave to each check this way does not do.")
 NO_PAIR = QT_TRANSLATE_NOOP("ComparisonPage", "No comparable variant")
