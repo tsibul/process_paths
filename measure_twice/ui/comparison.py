@@ -22,7 +22,8 @@ from measure_twice.ui import style
 from measure_twice.ui.labour_scale import LabourScale
 from measure_twice.ui.line_charts import LineCharts
 from measure_twice.ui.pages import Page
-from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label, mono, plural, translate
+from measure_twice.ui.tables import (ARROW, CHECK, DASH, CheckButton, Table, label, mono, plural,
+                                     translate)
 
 SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
 END = QT_TRANSLATE_NOOP("ComparisonPage", "end")
@@ -158,7 +159,7 @@ class GroupHeader(QFrame):
         self.actions.addWidget(self.count)
         self.compare = None
         if compare:
-            self.compare = QPushButton(self.tr("Compare steps"))
+            self.compare = CheckButton(self.tr("Compare steps"))
             self.compare.setObjectName("small")
             self.actions.addWidget(self.compare)
         box.addLayout(top)
@@ -365,6 +366,7 @@ class StepsView(QFrame):
         head.setObjectName("viewHead")
         head.compare.setCheckable(True)
         head.compare.setChecked(True)
+        head.compare.updateGeometry()  # wider now that it is checkable
         head.compare.clicked.connect(lambda: head.compare.setChecked(True))
         self.back = QPushButton(self.tr("Back to table"))
         self.back.setObjectName("small")
@@ -554,7 +556,7 @@ class ComparisonPage(Page):
         bar.addWidget(label(self.tr("Side:"), "note"))
         self.side_buttons = QButtonGroup(self)
         for key, _ in SIDES:
-            b = QPushButton(self.tr("All") if key == "all" else style.side_name(key))
+            b = CheckButton(self.tr("All") if key == "all" else style.side_name(key))
             b.setCheckable(True)
             b.setChecked(key == "all")
             b.clicked.connect(lambda _=False, k=key: self.set_side(k))

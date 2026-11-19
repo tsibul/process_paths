@@ -9,7 +9,7 @@ import html
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QSettings, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSettings, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
 from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout,
                                QInputDialog, QLabel, QMainWindow, QMenu, QMessageBox,
@@ -73,6 +73,11 @@ def _dot_icon() -> QIcon:
     return QIcon(pix)
 
 
+# Events after which QTabWidget puts its pages back under the tab bar.
+RELAYOUT = (QEvent.Type.LayoutRequest, QEvent.Type.StyleChange, QEvent.Type.FontChange,
+            QEvent.Type.Resize, QEvent.Type.Show)
+
+
 class OfferTabs(QTabWidget):
     """Tabs with a full-width strip between the tab bar and the pages."""
 
@@ -92,13 +97,13 @@ class OfferTabs(QTabWidget):
         stack.setGeometry(0, bar_h + h, self.width(), max(0, self.height() - bar_h - h))
         self.strip.raise_()
 
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        self.place()
-
-    def showEvent(self, event) -> None:
-        super().showEvent(event)
-        self.place()
+    def event(self, event) -> bool:
+        # The tab widget lays its pages out again on its own (a tab icon or text changed, the
+        # style, the font): the pages then start right under the tab bar, under the strip.
+        done = super().event(event)
+        if event.type() in RELAYOUT:
+            self.place()
+        return done
 
 
 class MainWindow(QMainWindow):

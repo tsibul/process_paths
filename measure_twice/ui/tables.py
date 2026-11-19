@@ -10,7 +10,7 @@ from datetime import datetime
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QModelIndex, QPersistentModelIndex,
                             QSize, Qt, QTime)
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontMetrics, QPainter
-from PySide6.QtWidgets import (QAbstractItemView, QLabel, QStyle, QStyledItemDelegate,
+from PySide6.QtWidgets import (QAbstractItemView, QLabel, QPushButton, QStyle, QStyledItemDelegate,
                                QStyleOptionViewItem, QTableWidget, QTableWidgetItem, QWidget)
 
 from measure_twice import i18n
@@ -23,6 +23,29 @@ NOTE_ROLE = Qt.ItemDataRole.UserRole + 1  # the grey column of a list row
 NOTE_GAP = 24  # pixels between the name and the grey column
 
 translate = QCoreApplication.translate
+
+
+class CheckButton(QPushButton):
+    """A button wide enough for its text in bold when it is checkable.
+
+    The style sheet draws a checked button in bold (``QPushButton:checked``), while the size of
+    a button is reckoned from its normal font: the bold text would be cut at the sides.
+    """
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        return self._wider(super().sizeHint())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        return self._wider(super().minimumSizeHint())
+
+    def _wider(self, size: QSize) -> QSize:
+        if not self.isCheckable():
+            return size
+        bold = QFont(self.font())
+        bold.setWeight(QFont.Weight.DemiBold)
+        extra = (QFontMetrics(bold).horizontalAdvance(self.text())
+                 - self.fontMetrics().horizontalAdvance(self.text()))
+        return QSize(size.width() + max(0, extra), size.height())
 
 
 def plural(text: str, one: str, many: str, n: int) -> str:
