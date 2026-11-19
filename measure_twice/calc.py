@@ -55,7 +55,7 @@ class Row:
         for a compared variant.
     :ivar missing: normalization numbers this variant needs and the project lacks, e.g.
         ``cost of Wash``, ``coefficient of executor X``, ``coefficient of scope Y``,
-        ``skip price of E/a``.
+        ``check price of E/a``.
     :ivar error: ``(call number, reason)`` of the run error, ``None`` when the run passes.
     :ivar waiting: hours of waiting over the calls.
     :ivar labour_waiting: total labour plus waiting hours × ``labour_per_waiting_hour``; ``None``
@@ -295,7 +295,7 @@ def _missing(project: Project, v: Variant) -> list[str]:
             if x.name in executors and x.name not in n.executor_coefficients]
     out += [f"coefficient of scope {x}" for x in m.scopes
             if x in scopes and x not in n.scope_coefficients]
-    out += [f"skip price of {e}/{a}" for e, a in check_axes(m)
+    out += [f"check price of {e}/{a}" for e, a in check_axes(m)
             if e in entities and (e, a) not in n.skip_prices]
     return out
 

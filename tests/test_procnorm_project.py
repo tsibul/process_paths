@@ -297,7 +297,7 @@ NORMALIZATION = [
     (_norm("scope_coefficients", "вся загрузка", -1), "scope вся загрузка: coefficient below zero",
      "scope_coefficients"),
     (lambda d: d["normalization"]["axis_skip_prices"]["Бельё"].pop("цвета"),
-     "check axis without skip price: Бельё/цвета", "axis_skip_prices"),
+     "check axis without check price: Бельё/цвета", "axis_skip_prices"),
     (lambda d: d["normalization"]["axis_skip_prices"]["Бельё"].update({"состояние": 1}),
      "Бельё/состояние is not a check axis", "axis_skip_prices"),
     (lambda d: d["normalization"]["axis_skip_prices"]["Бельё"].update({"цвета": 0}),

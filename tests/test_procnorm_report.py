@@ -178,3 +178,23 @@ def test_file(app, laundry, big, which, tmp_path):
     data = path.read_bytes()
     assert data.startswith(b"%PDF")
     assert _pdf_pages(data) == len(report.pages(project))
+
+
+
+def test_step_heading_above_its_actions(app, laundry):
+    page = report.pages(laundry, chosen=["steps"])[0]
+    texts = {t.text: t for t in page.texts}
+    head = texts["Загрузить бельё и включить машину"]
+    assert head.grey
+    first = next(t for t in page.texts if t.text.startswith("4. "))
+    assert head.y < first.y
+    assert not first.grey
+    second = next(t for t in page.texts if t.text.startswith("5. "))
+    assert head.y < first.y < second.y
+    assert texts["Достать порошок"].grey  # a step with 0 calls: a grey line alone
+    assert "1. Проверить карманы (2.00)" in texts
+
+
+def test_no_headings_without_steps(app, big):
+    for page in report.pages(big, chosen=["steps"]):
+        assert not [t for t in page.texts if t.grey]

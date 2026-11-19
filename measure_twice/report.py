@@ -60,7 +60,8 @@ SAME_UNIT = "Risk left is in the same unit as labour."
 REASON = "Reason: "
 EXECUTOR_COEFFICIENTS = "Executor coefficients"
 SCOPE_COEFFICIENTS = "Scope coefficients"
-SKIP_PRICES = "Skip prices"
+CHECK_PRICES = "Check prices"
+CHECK_PRICE_NOTE = "Check price is added to Risk left when a way does not do the check."
 WAITING_WEIGHT = "Labour per hour of waiting"
 
 
@@ -75,6 +76,7 @@ class Text:
     :ivar text: the line.
     :ivar size: font size.
     :ivar bold: bold font.
+    :ivar grey: grey colour, for a step heading.
     """
 
     x: float
@@ -84,6 +86,7 @@ class Text:
     text: str
     size: int = BODY
     bold: bool = False
+    grey: bool = False
 
 
 @dataclass
@@ -259,41 +262,44 @@ class _Flow:
             self.y += h
 
     def table(self, header: list[str], body: list[list[str] | tuple[str, bool]],
-              widths: list[float] | None = None, rules: bool = True) -> None:
+              widths: list[float] | None = None, rules: bool = True,
+              grey: list[set[int]] | None = None) -> None:
         """A table; the header is repeated on every page it takes.
 
         :param header: column names, bold.
         :param body: rows: a list of cells, or ``(text, bold)`` for a line over all columns.
         :param widths: column widths; by default they follow the texts.
         :param rules: thin lines under the header and between rows.
+        :param grey: for each body row, the columns written in grey.
         """
         if widths is None:
             widths = _widths(header, [r for r in body if isinstance(r, list)])
         self._row(header, widths, True, rules)
-        for r in body:
+        for n, r in enumerate(body):
             cells = r if isinstance(r, list) else [r[0]]
             bold = False if isinstance(r, list) else r[1]
             row_widths = widths if isinstance(r, list) else [sum(widths)]
             if not self.room(self._height(cells, row_widths, bold)):
                 self.new_page()
                 self._row(header, widths, True, rules)
-            self._row(cells, row_widths, bold, rules)
+            self._row(cells, row_widths, bold, rules, grey[n] if grey else set())
 
     def _height(self, cells: list[str], widths: list[float], bold: bool) -> float:
         f = font(BODY, bold)
         count = max(len(wrap(c, f, w - 2 * PAD)) for c, w in zip(cells, widths))
         return count * line_height(f) + 2 * PAD
 
-    def _row(self, cells: list[str], widths: list[float], bold: bool, rules: bool) -> None:
+    def _row(self, cells: list[str], widths: list[float], bold: bool, rules: bool,
+             grey: set[int] = frozenset()) -> None:
         f = font(BODY, bold)
         h = line_height(f)
         x = MARGIN
-        for c, w in zip(cells, widths):
+        for k, (c, w) in enumerate(zip(cells, widths)):
             for i, line in enumerate(wrap(c, f, w - 2 * PAD)):
                 if not line:
                     continue
                 self.page.texts.append(Text(x + PAD, self.y + PAD + i * h, w - 2 * PAD, h, line,
-                                            BODY, bold))
+                                            BODY, bold, k in grey))
             x += w
         self.y += self._height(cells, widths, bold)
         if rules:
@@ -374,11 +380,21 @@ def _charts(flow: _Flow, project: Project, cmp: Comparison, ways: set[str]) -> N
             flow.y += h * k + GAP
 
 
-def _way_lines(project: Project, r: Row) -> list[str]:
-    """Steps of one way: number, kind and the labour so far in brackets."""
+def _way_lines(project: Project, r: Row) -> list[tuple[str, bool]]:
+    """Lines of one way: number, kind and the labour so far in brackets; a grey step text
+    above the actions of the step when the way has ``steps``."""
     if r.error is not None:
-        return [r.reason or ""]
-    return [f"{p.number}. {p.kind} ({number(p.labour)})" for p in series(project, r.code)]
+        return [(r.reason or "", False)]
+    points = [f"{p.number}. {p.kind} ({number(p.labour)})" for p in series(project, r.code)]
+    steps = project.steps.get(r.code)
+    if steps is None:
+        return [(t, False) for t in points]
+    out, pos = [], 0
+    for text, n in steps:
+        out.append((text, True))
+        out += [(t, False) for t in points[pos:pos + n]]
+        pos += n
+    return out
 
 
 def _steps(project: Project, rows: list[Row]) -> list[Page]:
@@ -390,9 +406,11 @@ def _steps(project: Project, rows: list[Row]) -> list[Page]:
         header = [f"{r.code}: {r.title}" for r in pair] + [""] * (2 - len(pair))
         columns = [_way_lines(project, r) for r in pair] + [[]] * (2 - len(pair))
         count = max(len(c) for c in columns)
-        body = [[c[n] if n < len(c) else "" for c in columns] for n in range(count)]
+        body = [[c[n][0] if n < len(c) else "" for c in columns] for n in range(count)]
+        grey = [{k for k, c in enumerate(columns) if n < len(c) and c[n][1]}
+                for n in range(count)]
         flow = _Flow(STEPS, _heading(project, STEPS))
-        flow.table(header, body, widths, rules=False)
+        flow.table(header, body, widths, rules=False, grey=grey)
         out += flow.pages
     return out
 
@@ -418,9 +436,10 @@ def _assumptions(project: Project, rows: list[Row]) -> list[Page]:
     flow.table(["Scope", "Coefficient"],
                _numbers((s, k) for s, k in norm.scope_coefficients.items() if s in scopes))
     flow.gap()
-    flow.lines(SKIP_PRICES, SECTION, True)
-    flow.table(["Entity", "Check axis", "Skip price"],
+    flow.lines(CHECK_PRICES, SECTION, True)
+    flow.table(["Entity", "Check axis", "Check price"],
                [[e, a, fmt(p)] for (e, a), p in norm.skip_prices.items()])
+    flow.lines(CHECK_PRICE_NOTE)
     flow.gap()
     flow.lines(f"{WAITING_WEIGHT}: {fmt(norm.labour_per_waiting_hour)}")
     return flow.pages
@@ -457,8 +476,8 @@ def _draw(painter: QPainter, page: Page) -> None:
     painter.setPen(pen)
     for r in page.rules:
         painter.drawLine(r.x1, r.y, r.x2, r.y)
-    painter.setPen(Qt.GlobalColor.black)
     for t in page.texts:
+        painter.setPen(Qt.GlobalColor.gray if t.grey else Qt.GlobalColor.black)
         painter.setFont(font(t.size, t.bold))
         box = QRectF(t.x, t.y, t.width, t.height)
         painter.drawText(box, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, t.text)

@@ -662,7 +662,7 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
     axes = check_axes(_sound(model, broken))
     for e, a in axes:
         if strict and (e, a) not in prices:
-            r.add(f"{w}, axis_skip_prices", f"check axis without skip price: {e}/{a}")
+            r.add(f"{w}, axis_skip_prices", f"check axis without check price: {e}/{a}")
     broken_checks = [k for k in model.kinds if k.check and k.name in broken.kinds]
     unsure = {k.entity for k in broken_checks}
     unsure_everywhere = any(model.entity(k.entity) is None for k in broken_checks)

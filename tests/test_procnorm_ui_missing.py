@@ -134,7 +134,7 @@ def test_missing_price_sum_not_set(price_win):
     assert c.cell("Б", "Labour · total") == "3.40"
     assert c.cell("Б", "Risk left, end") == NOT_SET
     assert c.cell("А", "Risk left, end") == "0.00"
-    assert c.cell("Б", "Title").endswith("\nReason: Not set: skip price of Бельё/цвета")
+    assert c.cell("Б", "Title").endswith("\nReason: Not set: check price of Бельё/цвета")
     c.toggle("Б")
     assert [w.text() for w in c.skipped_labels("Б")] == [
         "Not checked, постирано: Бельё/карманы (5), Бельё/цвета (not set)",

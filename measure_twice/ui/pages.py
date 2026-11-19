@@ -102,7 +102,7 @@ WAITING_UNITS = ("hours", "days")
 WAITING_WEIGHT_LABEL = "Labour per hour of waiting (in your cost unit)"
 WAITING_WEIGHT_HINT = "0 = waiting is shown but not added to labour"
 WAITING_WEIGHT = "labour_per_waiting_hour"  # the name of the setting, as edit.set_number takes it
-CHECK_NOTE = "a check changes the axis it checks; a skipped one is priced"
+CHECK_NOTE = "a check changes the axis it checks; a check not done is priced"
 ROW_NOTE = "A row is either a state (entity, axis, value) or a parameter (parameter, executor)."
 GROUP_HINT = "all rows must hold"
 ROW_SORT = Qt.ItemDataRole.UserRole + 4  # STATE or PARAM of an item of a slice row's first list
@@ -1700,8 +1700,8 @@ class NormPage(Page):
         left, right = self.columns()
         left.addWidget(label("TRANSITION KINDS — COST", "h3"))
         self.costs = self._numbers(left, "kind_costs", ["Kind", "Cost"])
-        left.addWidget(label("SKIP PRICES", "h3"))
-        self.prices = self._numbers(left, "axis_skip_prices", ["Entity", "Check axis", "Skip price"])
+        left.addWidget(label("CHECK PRICES", "h3"))
+        self.prices = self._numbers(left, "axis_skip_prices", ["Entity", "Check axis", "Check price"])
         _end(left)
         right.addWidget(label("EXECUTOR COEFFICIENTS", "h3"))
         self.exec_coef = self._numbers(right, "executor_coefficients", ["Executor", "×"])

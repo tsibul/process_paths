@@ -138,8 +138,8 @@ def no_colour_price():
 def test_missing_price_labour_present_sum_not_set_list_present():
     cmp = calc.compare(lenient(no_colour_price()))
     b = row(cmp, "Б")
-    assert b.missing == ["skip price of Бельё/цвета"]
-    assert b.reason == "Not set: skip price of Бельё/цвета"
+    assert b.missing == ["check price of Бельё/цвета"]
+    assert b.reason == "Not set: check price of Бельё/цвета"
     assert b.total == D("3.4") and b.labour == {"Человек": D("3.4")}
     fin = b.slices[-1]
     assert fin.skips == [("Бельё", "карманы", D(5)), ("Бельё", "цвета", None)]
