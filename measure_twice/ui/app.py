@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QWidgetAction)
 
 from measure_twice.calc import empty_steps, project_empty_steps
-from measure_twice import edit, report
+from measure_twice import edit, i18n, report
 from measure_twice.ai import extract_json
 from measure_twice.example import EXAMPLE_NAME, add_example, first_run
 from measure_twice.edit import (
@@ -128,7 +128,10 @@ class MainWindow(QMainWindow):
         self.projects.currentIndexChanged.connect(self._project_chosen)
         bar.addWidget(self.projects, 1)
         self._build_menus(bar)
+        self._build_language(bar)
+        self.panel_bar = bar
         head.addLayout(bar)
+        head.addWidget(self._build_restart())
         self.remarks_panel = RemarksPanel()
         head.addWidget(self.remarks_panel)
         lay.addLayout(head)
@@ -262,6 +265,45 @@ class MainWindow(QMainWindow):
                                            self.on_load_over)
         self.delete_action = self._item(self.more_menu, "Delete…", self.delete_project)
         self.more_menu_button = self._menu_button(bar, "More ▾", self.more_menu)
+
+    def _build_language(self, bar: QHBoxLayout) -> None:
+        """The language switch at the end of the panel row: the code on view, names in the list."""
+        self.running_language = i18n.current()
+        chosen = i18n.read_language(self.settings) if self.settings is not None else None
+        self.language_menu = QMenu(self)
+        for code, name in i18n.LANGUAGES.items():
+            action = self.language_menu.addAction(f"{code.upper()} {name}")
+            action.setCheckable(True)
+            action.setData(code)
+            action.triggered.connect(lambda _=False, c=code: self.choose_language(c))
+        self.language_button = self._menu_button(bar, "", self.language_menu)
+        self._show_language(chosen or self.running_language)
+
+    def _build_restart(self) -> QFrame:
+        """The line shown after a language is chosen: it applies from the next start."""
+        self.restart_row = QFrame()
+        row = QHBoxLayout(self.restart_row)
+        row.setContentsMargins(0, 8, 0, 0)
+        row.setSpacing(8)
+        self.restart_note = label(self.tr("The language changes at the next start."), "note")
+        row.addWidget(self.restart_note, 1)
+        self.restart_button = QPushButton(self.tr("Restart now"))
+        self.restart_button.clicked.connect(lambda: i18n.restart())
+        row.addWidget(self.restart_button)
+        self.restart_row.hide()
+        return self.restart_row
+
+    def _show_language(self, code: str) -> None:
+        self.language_button.setText(f"{code.upper()} ▾")
+        for action in self.language_menu.actions():
+            action.setChecked(action.data() == code)
+
+    def choose_language(self, code: str) -> None:
+        """Keep the chosen language; the window keeps its language until the next start."""
+        if self.settings is not None:
+            i18n.write_language(self.settings, code)
+        self._show_language(code)
+        self.restart_row.setVisible(code != self.running_language)
 
     @staticmethod
     def _item(menu: QMenu, text: str, slot) -> QAction:
@@ -894,6 +936,10 @@ def main() -> int:
     store = Store(default_path())
     settings = QSettings("measure_twice", "measure_twice")
     carry_settings(settings, QSettings("procnorm", "procnorm"))
+    lang = i18n.read_language(settings)
+    i18n.write_language(settings, lang)  # the first start keeps the language it chose
+    i18n.build_qm()
+    i18n.apply_language(app, lang)
     window = build_window(store, settings, first_run(store, settings))
     window.show()
     try:

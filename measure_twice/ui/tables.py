@@ -7,18 +7,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPersistentModelIndex, QSize, Qt, QTime
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontMetrics, QPainter
 from PySide6.QtWidgets import (QAbstractItemView, QLabel, QStyle, QStyledItemDelegate,
                                QStyleOptionViewItem, QTableWidget, QTableWidgetItem, QWidget)
 
+from measure_twice import i18n
 from measure_twice.ui.style import TEXT2
 
 DASH = "—"
 ARROW = "→"
 CHECK = "✓"
 NOTE_ROLE = Qt.ItemDataRole.UserRole + 1  # the grey column of a list row
-MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 NOTE_GAP = 24  # pixels between the name and the grey column
 
 
@@ -44,8 +44,10 @@ def project_note(ways: int, updated: str, now: datetime | None = None) -> str:
     if now is None:
         now = datetime.now().astimezone()
     local = datetime.fromisoformat(updated).astimezone(now.tzinfo)
-    day = f"{local.day} {MONTHS[local.month - 1]}"
-    when = f"{day} {local:%H:%M}" if local.year == now.year else f"{day} {local.year}"
+    # The month name and the order come from the locale of the window language.
+    stamp = QDateTime(QDate(local.year, local.month, local.day), QTime(local.hour, local.minute))
+    shape = "d MMM HH:mm" if local.year == now.year else "d MMM yyyy"
+    when = i18n.locale().toString(stamp, shape)
     count = f"{ways} {'way' if ways == 1 else 'ways'}"
     return f"{count} · {when}"
 

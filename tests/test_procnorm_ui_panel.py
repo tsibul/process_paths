@@ -62,11 +62,12 @@ def _bar(win) -> QHBoxLayout:
                 if lay.indexOf(win.projects) >= 0)
 
 
-def test_row_has_exactly_three_elements(win):
+def test_row_has_exactly_four_elements(win):
     bar = _bar(win)
     widgets = [bar.itemAt(i).widget() for i in range(bar.count())]
     controls = [w for w in widgets if isinstance(w, (QComboBox, QPushButton))]
-    assert controls == [win.projects, win.new_menu_button, win.more_menu_button]
+    assert controls == [win.projects, win.new_menu_button, win.more_menu_button,
+                        win.language_button]
     assert win.new_menu_button.text() == "+ New ▾"
     assert win.more_menu_button.text() == "More ▾"
     assert win.new_menu_button.menu() is win.new_menu
