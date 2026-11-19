@@ -13,7 +13,8 @@ import html
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, Decimal
 
-from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import (QT_TRANSLATE_NOOP, QCoreApplication, QEvent, QPoint, QPointF, QRectF,
+                            QSize, Qt)
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen, QStaticText
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget
 
@@ -30,7 +31,7 @@ SEG_TOP, SEG_H = 26, 20
 STRIP_TOP, STRIP_H = 50, 6
 LEGEND_GAP = 16
 LEGEND_LINE = 22
-END_NOTE = "Right of bar: Labour · total · Risk left, end"
+END_NOTE = QT_TRANSLATE_NOOP("LabourScale", "Right of bar: Labour · total · Risk left, end")
 
 
 @dataclass
@@ -102,7 +103,7 @@ def _ticks(end: Decimal) -> list[Decimal]:
 def _row(project: Project, r: Row, colors: dict[str, tuple[str, str]]) -> ScaleRow:
     pts: list[Point] = [start_point(project, r.code)] + series(project, r.code)
     last = pts[-1]
-    out = ScaleRow(r.code, r.title, style.SIDE_TEXT.get(r.side, r.side), r.side == "own", last.labour,
+    out = ScaleRow(r.code, r.title, style.side_text(r.side), r.side == "own", last.labour,
                    last.skips_total, style.OK if last.skips_total == 0 else style.ERR)
     for a, b in zip(pts, pts[1:]):
         step = b.labour - a.labour
@@ -142,11 +143,13 @@ class LabourScale(QWidget):
         used = {s.executor for r in self._rows for s in r.segments}
         slice_names = list(dict.fromkeys(m.name for r in self._rows for m in r.slices))
         self._legend: list[tuple[str, str, str | None]] = (
-            [("swatch", f"{e} step", colors[e][0]) for e in names if e in used]
-            + [("zero", "zero-labour step", None), ("check", "check step", None)]
-            + [("slice", f"slice “{n}”", None) for n in slice_names or ["named"]]
-            + [("swatch", "risk left still open", style.SCALE_OPEN),
-               ("swatch", "all checked", style.SCALE_DONE)])
+            [("swatch", self.tr("{executor} step").format(executor=e), colors[e][0])
+             for e in names if e in used]
+            + [("zero", self.tr("zero-labour step"), None), ("check", self.tr("check step"), None)]
+            + [("slice", self.tr("slice “{name}”").format(name=n), None)
+               for n in slice_names or [self.tr("named")]]
+            + [("swatch", self.tr("risk left still open"), style.SCALE_OPEN),
+               ("swatch", self.tr("all checked"), style.SCALE_DONE)])
         self.setMouseTracking(True)
         sp = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sp.setHeightForWidth(True)
@@ -363,7 +366,8 @@ class LabourScale(QWidget):
             bx, by = x0 + x, y0 + y
             if k < 0:
                 p.setPen(QColor(style.TEXT2))
-                p.drawText(QRectF(bx, by, self.width(), LEGEND_LINE), Qt.AlignmentFlag.AlignVCenter, END_NOTE)
+                p.drawText(QRectF(bx, by, self.width(), LEGEND_LINE), Qt.AlignmentFlag.AlignVCenter,
+                           QCoreApplication.translate("LabourScale", END_NOTE))
                 continue
             kind, text, color = self._legend[k]
             mid = by + LEGEND_LINE / 2

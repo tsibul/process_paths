@@ -7,15 +7,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import QT_TRANSLATE_NOOP
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPlainTextEdit, QPushButton, QVBoxLayout
 
 from measure_twice.project import Remark
-from measure_twice.ui.tables import label
+from measure_twice.ui.tables import label, translate
 
 
-FILE_NOTE = "Nothing was stored. Fix the file and load it again."
-NAME_NOTE = "Nothing was stored. Enter a name and try again."
+FILE_NOTE = QT_TRANSLATE_NOOP("RemarksPanel", "Nothing was stored. Fix the file and load it again.")
+NAME_NOTE = QT_TRANSLATE_NOOP("RemarksPanel", "Nothing was stored. Enter a name and try again.")
 
 
 class RemarksPanel(QFrame):
@@ -29,10 +30,10 @@ class RemarksPanel(QFrame):
         top = QHBoxLayout()
         self.count_label = label("", "err")
         top.addWidget(self.count_label, 1)
-        self.copy_button = QPushButton("Copy remarks")
+        self.copy_button = QPushButton(self.tr("Copy remarks"))
         self.copy_button.setProperty("primary", True)
         self.copy_button.clicked.connect(self.copy)
-        close = QPushButton("Close")
+        close = QPushButton(self.tr("Close"))
         close.clicked.connect(self.hide)
         top.addWidget(self.copy_button)
         top.addWidget(close)
@@ -42,25 +43,33 @@ class RemarksPanel(QFrame):
         self.text.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
         self.text.setMaximumHeight(220)
         lay.addWidget(self.text)
-        self.note = label(FILE_NOTE, "note")
+        self.note = label(translate("RemarksPanel", FILE_NOTE), "note")
         lay.addWidget(self.note)
         self.hide()
 
     def show_remarks(self, path: Path, remarks: list[Remark]) -> None:
         """Show the remarks of one file."""
         self._lines = [str(r) for r in remarks]
-        self.count_label.setText(f"{len(self._lines)} remark(s) — {Path(path).name} was not loaded")
+        count = self._count()
+        text = self.tr("{count} — {name} was not loaded")
+        self.count_label.setText(text.format(count=count, name=Path(path).name))
         self.text.setPlainText("\n".join(self._lines))
-        self.note.setText(FILE_NOTE)
+        self.note.setText(translate("RemarksPanel", FILE_NOTE))
         self.show()
 
     def show_name_remarks(self, remarks: list[Remark]) -> None:
         """Show why a new project was not created."""
         self._lines = [str(r) for r in remarks]
-        self.count_label.setText(f"{len(self._lines)} remark(s) — the project was not created")
+        text = self.tr("{count} — the project was not created")
+        self.count_label.setText(text.format(count=self._count()))
         self.text.setPlainText("\n".join(self._lines))
-        self.note.setText(NAME_NOTE)
+        self.note.setText(translate("RemarksPanel", NAME_NOTE))
         self.show()
+
+    def _count(self) -> str:
+        """``N remark(s)`` in the language of the window."""
+        n = len(self._lines)
+        return translate("RemarksPanel", "%n remark(s)", "", n)
 
     def lines(self) -> list[str]:
         """The shown remarks."""

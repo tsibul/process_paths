@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from html import escape
 
-from PySide6.QtCore import QRect, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QRect, Qt, Signal
 from PySide6.QtGui import (QColor, QFont, QFontMetrics, QPainter, QPen, QStandardItem,
                            QStandardItemModel)
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
@@ -36,9 +36,9 @@ from measure_twice.calc import (
 )
 from measure_twice.project import Project
 from measure_twice.ui import style
-from measure_twice.ui.comparison import NO_PAIR, OUT, PAD_X, SIDE_TEXT, GroupHeader
+from measure_twice.ui.comparison import NO_PAIR, OUT, PAD_X, GroupHeader
 from measure_twice.ui.pages import Page
-from measure_twice.ui.tables import Table, item, label, mono
+from measure_twice.ui.tables import Table, item, label, mono, plural, translate
 
 LIST_WIDTH = 300  # px, as the mockup's path list
 STEP_COL = 32  # step number column, px
@@ -47,22 +47,26 @@ SLICE_ROW = 26  # height of a slice marker row, px
 INPUT_ROW = 42  # height of the input row of a new transition, px
 SLACK = 4  # rounding room so a measured text does not wrap, px
 ROW_PAD = 14  # vertical padding and border of a row, px
-HEADERS = ["", "#", "Kind", "Executor", "Instrument", "Scope", ""]
-NO_TRANSITIONS = "No transitions"
-STEPS_NOT_GIVEN = "Steps not given"
+NO_TRANSITIONS = QT_TRANSLATE_NOOP("ChainsPage", "No transitions")
+STEPS_NOT_GIVEN = QT_TRANSLATE_NOOP("ChainsPage", "Steps not given")
 SEP = " · "
 UP, DOWN, REMOVE, ADD = "↑", "↓", "✕", "+"
-TIPS = {UP: "Move up", DOWN: "Move down", REMOVE: "Remove", ADD: "Add transition below"}
+TIPS = {
+    UP: QT_TRANSLATE_NOOP("ChainsPage", "Move up"),
+    DOWN: QT_TRANSLATE_NOOP("ChainsPage", "Move down"),
+    REMOVE: QT_TRANSLATE_NOOP("ChainsPage", "Remove"),
+    ADD: QT_TRANSLATE_NOOP("ChainsPage", "Add transition below"),
+}
 FIELDS = ("kind", "executor", "instrument", "scope")
-TASK_HINT = "variants with the same task are compared"
+TASK_HINT = QT_TRANSLATE_NOOP("ChainsPage", "variants with the same task are compared")
 SIDES = ("own", "other")
-FOLD_TITLE = "Entities and initial state"
-FOLD_NOTE = "no box ticked = entities of the transitions"
+FOLD_TITLE = QT_TRANSLATE_NOOP("ChainsPage", "Entities and initial state")
+FOLD_NOTE = QT_TRANSLATE_NOOP("ChainsPage", "no box ticked = entities of the transitions")
 FOLD_OPEN = "▾"
 FOLD_SHUT = "▸"
-AS_DICTIONARY = "as in dictionary: {}"
-NOT_ALLOWED = "Not allowed here"
-STATE_HERE = "State here:"
+AS_DICTIONARY = QT_TRANSLATE_NOOP("ChainsPage", "as in dictionary: {}")
+NOT_ALLOWED = QT_TRANSLATE_NOOP("ChainsPage", "Not allowed here")
+STATE_HERE = QT_TRANSLATE_NOOP("ChainsPage", "State here:")
 NO_VALUE = "—"  # an axis of an entity that does not exist, or an empty slice
 STATE_GAP = "   "  # between the axes of State here; it wraps only there
 KIND_POPUP = 440  # least width of the open list Kind, px, as the mockup
@@ -70,13 +74,14 @@ REASON_ROLE = Qt.ItemDataRole.UserRole + 1  # the reason of a kind not allowed h
 SEPARATOR_ROLE = Qt.ItemDataRole.UserRole + 2  # the line Not allowed here
 
 
-NO_EXECUTOR_HINT = (
+NO_EXECUTOR_HINT = QT_TRANSLATE_NOOP(
+    "ChainsPage",
     "Add an executor on the Dictionary tab first: "
-    "every new path needs one for each variant parameter."
+    "every new path needs one for each variant parameter.",
 )
 
 
-CLEARED_NOTE = "Initial-state changes of {} were cleared."
+CLEARED_NOTE = QT_TRANSLATE_NOOP("ChainsPage", "Initial-state changes of {} were cleared.")
 
 
 def new_is_off(p: Project | None) -> bool:
@@ -87,12 +92,29 @@ def new_is_off(p: Project | None) -> bool:
     return bool(m.variant_params) and not m.executors
 
 
-def _count(n: int, one: str) -> str:
-    return f"{n} {one if n == 1 else one + 's'}"
+def _headers() -> list[str]:
+    return [
+        "",
+        "#",
+        translate("ChainsPage", "Kind"),
+        translate("ChainsPage", "Executor"),
+        translate("ChainsPage", "Instrument"),
+        translate("ChainsPage", "Scope"),
+        "",
+    ]
+
+
+def _transitions(n: int) -> str:
+    text = translate("ChainsPage", "%n transition", "", n)
+    return plural(text, "%n transition", "%n transitions", n)
+
+
+def _steps(n: int) -> str:
+    return plural(translate("ChainsPage", "%n step", "", n), "%n step", "%n steps", n)
 
 
 def _slice_text(name: str) -> str:
-    return f"slice “{name}” reached"
+    return translate("ChainsPage", "slice “{name}” reached").format(name=name)
 
 
 def _title_html(code: str, title: str) -> str:
@@ -158,20 +180,27 @@ class PathItem(QFrame):
         self.title.setObjectName("pathTitle")
         self.title.setWordWrap(True)
         box.addWidget(self.title)
-        self.meta = QLabel(f"{SIDE_TEXT.get(row.side, row.side)}{SEP}{_count(row.steps, 'transition')}")
+        self.meta = QLabel(f"{style.side_text(row.side)}{SEP}{_transitions(row.steps)}")
         self.meta.setObjectName("groupNote")
         under = QHBoxLayout()
         under.setContentsMargins(0, 0, 0, 0)
         under.addWidget(self.meta, 1)
         self.mark = None
         if row.error:
-            self.mark = QLabel("error")
+            self.mark = QLabel(self.tr("error"))
             self.mark.setObjectName("err")
             under.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignRight)
         box.addLayout(under)
         self.warn = None
         if empty:
-            self.warn = QLabel(f"{_count(empty, 'step')} without transitions")
+            self.warn = QLabel(
+                plural(
+                    self.tr("%n step without transitions", "", empty),
+                    "%n step without transitions",
+                    "%n steps without transitions",
+                    empty,
+                )
+            )
             self.warn.setObjectName("warn")
             box.addWidget(self.warn)
 
@@ -252,7 +281,7 @@ class CallButtons(QWidget):
         for icon in (UP, DOWN, REMOVE, ADD) if full else (ADD,):
             b = QPushButton(icon)
             b.setObjectName("icon")
-            b.setToolTip(TIPS[icon])
+            b.setToolTip(translate("ChainsPage", TIPS[icon]))
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             row.addWidget(b)
             self._all.append(b)
@@ -324,7 +353,7 @@ class StateHere(QWidget):
         row = QHBoxLayout(frame)
         row.setContentsMargins(12, 6, 12, 6)
         row.setSpacing(10)
-        head = QLabel(STATE_HERE)
+        head = QLabel(translate("ChainsPage", STATE_HERE))
         head.setObjectName("stateHead")
         row.addWidget(head, 0, Qt.AlignmentFlag.AlignTop)
         parts = []
@@ -364,22 +393,30 @@ class InputRow(QWidget):
                     names.append(value)
                 box.addItems(names)
                 box.setCurrentText(value)
-            box.setToolTip(field_.capitalize())
+            box.setToolTip(self._field_names()[field_])
             row.addWidget(box, 2 if field_ == "kind" else 1)
             self.lists[field_] = box
         self.actions = QWidget()
         buttons = QHBoxLayout(self.actions)
         buttons.setContentsMargins(6, 0, 6, 0)
         buttons.setSpacing(4)
-        self.add_button = QPushButton("Add")
+        self.add_button = QPushButton(self.tr("Add"))
         self.add_button.setObjectName("small")
         self.add_button.setProperty("primary", True)
-        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button = QPushButton(self.tr("Cancel"))
         self.cancel_button.setObjectName("small")
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.cancel_button)
         buttons.addStretch(1)
         self.add_button.setEnabled(bool(self.values()[0]))
+
+    def _field_names(self) -> dict[str, str]:
+        return {
+            "kind": self.tr("Kind"),
+            "executor": self.tr("Executor"),
+            "instrument": self.tr("Instrument"),
+            "scope": self.tr("Scope"),
+        }
 
     def _fill_kinds(self, box: QComboBox, allowed: dict[str, str | None], value: str) -> None:
         """The allowed kinds, then ``Not allowed here`` and the others greyed with their reason.
@@ -394,7 +431,7 @@ class InputRow(QWidget):
             else:
                 self._reasons[name] = reason
         if self._reasons:
-            line = QStandardItem(NOT_ALLOWED)
+            line = QStandardItem(translate("ChainsPage", NOT_ALLOWED))
             line.setFlags(Qt.ItemFlag.NoItemFlags)
             line.setData(True, SEPARATOR_ROLE)
             model.appendRow(line)
@@ -465,7 +502,7 @@ class ChainTable(Table):
     edit = Signal(str, tuple)
 
     def __init__(self) -> None:
-        super().__init__(HEADERS, {1})
+        super().__init__(_headers(), {1})
         self.kinds: list[str] = []
         self.failed: list[int] = []
         self.input: InputRow | None = None
@@ -541,7 +578,7 @@ class ChainTable(Table):
                 txt.setFont(f)
                 self.setSpan(r, 1, 1, 5)
             elif kind == "none":
-                it = item(NO_TRANSITIONS)
+                it = item(translate("ChainsPage", NO_TRANSITIONS))
                 it.setForeground(QColor(style.TEXT2))
                 f = it.font()
                 f.setItalic(True)
@@ -648,7 +685,7 @@ class ChainTable(Table):
         hm, fm, nm, bm = QFontMetrics(head), self.fontMetrics(), QFontMetrics(mono()), QFontMetrics(bold)
         pad = 2 * self._pad() + SLACK
         for c in range(1, 6):
-            width = hm.horizontalAdvance(HEADERS[c]) + pad
+            width = hm.horizontalAdvance(_headers()[c]) + pad
             for r, kind in enumerate(self.kinds):
                 it = self.item(r, c)
                 if kind == "call" and it is not None:
@@ -724,7 +761,8 @@ class ChainTable(Table):
             elif kind == "input":
                 out.append(("input",) + tuple(self.input.values()))
             elif kind == "state":
-                out.append(("state", STATE_HERE) + tuple(self.cellWidget(r, 1).lines))
+                head = translate("ChainsPage", STATE_HERE)
+                out.append(("state", head) + tuple(self.cellWidget(r, 1).lines))
             else:
                 out.append(("slice", self.cellWidget(r, 0).text))
         return out
@@ -781,18 +819,18 @@ class ChainsPage(Page):
         head.setSpacing(6)
         self.code_edit = QLineEdit()
         self.code_edit.setObjectName("chainCode")
-        self.code_edit.setToolTip("Code")
+        self.code_edit.setToolTip(self.tr("Code"))
         self.title_edit = QLineEdit()
         self.title_edit.setObjectName("chainTitle")
-        self.title_edit.setToolTip("Title")
+        self.title_edit.setToolTip(self.tr("Title"))
         for e in (self.code_edit, self.title_edit):
             e.editingFinished.connect(self._renamed)
         head.addWidget(self.code_edit, 0)
         head.addWidget(self.title_edit, 1)
-        self.copy_button = QPushButton("Copy")
+        self.copy_button = QPushButton(self.tr("Copy"))
         self.copy_button.setObjectName("small")
         self.copy_button.clicked.connect(lambda: self._edit("copy", ()))
-        self.delete_button = QPushButton("Delete")
+        self.delete_button = QPushButton(self.tr("Delete"))
         self.delete_button.setObjectName("small")
         self.delete_button.clicked.connect(lambda: self._edit("delete", ()))
         head.addWidget(self.copy_button, 0)
@@ -822,15 +860,15 @@ class ChainsPage(Page):
         column.setContentsMargins(10, 8, 10, 8)
         column.setSpacing(6)
         line = QHBoxLayout()
-        self.new_button = QPushButton("New")
+        self.new_button = QPushButton(self.tr("New"))
         self.new_button.setObjectName("small")
         self.new_button.setProperty("primary", True)
-        self.new_button.setToolTip("Add a variant")
+        self.new_button.setToolTip(self.tr("Add a variant"))
         self.new_button.clicked.connect(lambda: self.edit_requested.emit("new", ()))
         line.addWidget(self.new_button)
         line.addStretch(1)
         column.addLayout(line)
-        self.new_hint = label(NO_EXECUTOR_HINT, "note")
+        self.new_hint = label(translate("ChainsPage", NO_EXECUTOR_HINT), "note")
         self.new_hint.hide()
         column.addWidget(self.new_hint)
         return row
@@ -851,9 +889,9 @@ class ChainsPage(Page):
 
         first = QHBoxLayout()
         first.setSpacing(8)
-        first.addWidget(self._field_label("Side"))
-        self.ours_radio = QRadioButton(SIDE_TEXT["own"][2:])
-        self.theirs_radio = QRadioButton(SIDE_TEXT["other"][2:])
+        first.addWidget(self._field_label(self.tr("Side")))
+        self.ours_radio = QRadioButton(style.side_name("own"))
+        self.theirs_radio = QRadioButton(style.side_name("other"))
         self.side_group = QButtonGroup(self)
         self.side_group.addButton(self.ours_radio, 0)
         self.side_group.addButton(self.theirs_radio, 1)
@@ -861,13 +899,13 @@ class ChainsPage(Page):
         first.addWidget(self.ours_radio)
         first.addWidget(self.theirs_radio)
         first.addSpacing(10)
-        first.addWidget(self._field_label("Task"))
+        first.addWidget(self._field_label(self.tr("Task")))
         self.task_edit = QLineEdit()
-        self.task_edit.setPlaceholderText("task")
+        self.task_edit.setPlaceholderText(self.tr("task"))
         self.task_edit.setMinimumWidth(220)
         self.task_edit.editingFinished.connect(self._task_left)
         first.addWidget(self.task_edit)
-        self.task_hint = QLabel(TASK_HINT)
+        self.task_hint = QLabel(translate("ChainsPage", TASK_HINT))
         self.task_hint.setObjectName("note")
         first.addWidget(self.task_hint)
         first.addStretch(1)
@@ -875,11 +913,11 @@ class ChainsPage(Page):
 
         second = QHBoxLayout()
         second.setSpacing(8)
-        self.out_check = QCheckBox("Out of comparison")
+        self.out_check = QCheckBox(self.tr("Out of comparison"))
         self.out_check.clicked.connect(self._out_clicked)
         second.addWidget(self.out_check)
         self.reason_edit = QLineEdit()
-        self.reason_edit.setPlaceholderText("reason")
+        self.reason_edit.setPlaceholderText(self.tr("reason"))
         self.reason_edit.setMinimumWidth(220)
         self.reason_edit.editingFinished.connect(self._reason_left)
         second.addWidget(self.reason_edit)
@@ -910,7 +948,7 @@ class ChainsPage(Page):
         self.fold_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.fold_button.clicked.connect(self._fold_clicked)
         head.addWidget(self.fold_button)
-        self.fold_note = QLabel(FOLD_NOTE)
+        self.fold_note = QLabel(translate("ChainsPage", FOLD_NOTE))
         self.fold_note.setObjectName("note")
         head.addWidget(self.fold_note)
         head.addStretch(1)
@@ -940,7 +978,7 @@ class ChainsPage(Page):
 
     def _show_fold(self) -> None:
         mark = FOLD_OPEN if self._fold_open else FOLD_SHUT
-        self.fold_button.setText(f"{mark} {FOLD_TITLE}")
+        self.fold_button.setText(f"{mark} {translate("ChainsPage", FOLD_TITLE)}")
         self.entities_body.setVisible(self._fold_open)
 
     def _fold_clicked(self) -> None:
@@ -979,14 +1017,17 @@ class ChainsPage(Page):
         self.list.setVisible(p is not None)
         self._show_new_state()
         if p is not None:
-            head = QLabel("Paths")
+            head = QLabel(self.tr("Paths"))
             head.setObjectName("listHead")
             self.list_box.addWidget(head)
             for g in groups(compare(p)):
                 if g.kind == "task":
-                    title, grey = f"Task: {g.task}", False
+                    title = translate("ChainsPage", "Task: {task}").format(task=g.task)
+                    grey = False
                 else:
-                    title, grey = (NO_PAIR if g.kind == "no-pair" else OUT), True
+                    name = NO_PAIR if g.kind == "no-pair" else OUT
+                    title = translate("ComparisonPage", name)
+                    grey = True
                 self.list_box.addWidget(GroupHeader(title, "", None, grey))
                 for r in g.rows:
                     self._rows[r.code] = r
@@ -1017,11 +1058,14 @@ class ChainsPage(Page):
             return
         r = self._rows[code]
         steps = self._project.steps.get(code)
-        parts = [SIDE_TEXT.get(r.side, r.side)]
+        parts = [style.side_text(r.side)]
         if r.task is not None:
-            parts.append(f"Task: {r.task}")
-        parts.append(STEPS_NOT_GIVEN if steps is None else _count(len(steps), "step"))
-        parts.append(_count(r.steps, "transition"))
+            parts.append(translate("ChainsPage", "Task: {task}").format(task=r.task))
+        if steps is None:
+            parts.append(translate("ChainsPage", STEPS_NOT_GIVEN))
+        else:
+            parts.append(_steps(len(steps)))
+        parts.append(_transitions(r.steps))
         self._set_head(r.code, r.title)
         self.meta.setText(SEP.join(parts))
         project = self._project
@@ -1144,7 +1188,7 @@ class ChainsPage(Page):
                 self.axes_grid.addWidget(lab, row, 0)
                 box = QComboBox()
                 box.setObjectName("pick")
-                box.addItem(AS_DICTIONARY.format(ax.values[0]))
+                box.addItem(translate("ChainsPage", AS_DICTIONARY).format(ax.values[0]))
                 box.addItems(list(ax.values))
                 value = initial.get(name, {}).get(ax.name)
                 index = box.findText(value) if value is not None else 0
@@ -1180,7 +1224,8 @@ class ChainsPage(Page):
                 initial[name] = axes
         cleared = [name for name in unticked if name in stored]
         if cleared:
-            self._cleared = (self._current, CLEARED_NOTE.format(", ".join(cleared)))
+            note = translate("ChainsPage", CLEARED_NOTE).format(", ".join(cleared))
+            self._cleared = (self._current, note)
             self.edit_requested.emit(
                 "variant", (self._current, {"entities": names, "initial": initial}))
         else:

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from PySide6.QtCore import QModelIndex, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QModelIndex, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
@@ -18,10 +18,13 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFrame, 
 from measure_twice.calc import fmt
 from measure_twice.project import Project, check_axes
 from measure_twice.ui import style
-from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label
+from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label, plural, translate
 
-NOT_SET = "not set"
-SAVED_NOTE = "Changes are saved at once. To keep the old numbers, copy the project."
+NOT_SET = QT_TRANSLATE_NOOP("DictionaryPage", "not set")
+SAVED_NOTE = QT_TRANSLATE_NOOP(
+    "DictionaryPage",
+    "Changes are saved at once. To keep the old numbers, copy the project.",
+)
 RAW = Qt.ItemDataRole.UserRole  # the number as typed into the editor; "" when not set
 KEY = Qt.ItemDataRole.UserRole + 1  # name, or (entity, axis) for a skip price
 
@@ -64,47 +67,61 @@ def _end(col: QVBoxLayout) -> None:
 
 REMOVE = "✕"
 UP, DOWN = "↑", "↓"
-BATCH_TAG = "batch scope"
+BATCH_TAG = QT_TRANSLATE_NOOP("DictionaryPage", "batch scope")
 PLACES_SHOWN = 10  # places of a refused deletion listed; the rest are counted
 WORD = Qt.ItemDataRole.UserRole + 2  # (what, old) of a dictionary word's cell
-HINT = "Double-click a name to rename it."
+HINT = QT_TRANSLATE_NOOP("DictionaryPage", "Double-click a name to rename it.")
 OPEN, SHUT = "▾", "▸"  # an expanded and a collapsed entity
 ARROW_WIDTH = 28  # px of an entity cell that count as the arrow
 ADD = Qt.ItemDataRole.UserRole + 3  # (what, owner) of an add row's cell
 ADD_TEXTS = {
-    "kind": "+ Add kind",
-    "named_slice": "+ Add slice",
-    "entity": "+ Add entity",
-    "axis": "+ Add axis",
-    "value": "+ Add value",
-    "executor": "+ Add executor",
-    "instrument": "+ Add instrument",
-    "scope": "+ Add scope",
-    "variant_param": "+ Add parameter",
+    "kind": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add kind"),
+    "named_slice": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add slice"),
+    "entity": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add entity"),
+    "axis": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add axis"),
+    "value": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add value"),
+    "executor": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add executor"),
+    "instrument": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add instrument"),
+    "scope": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add scope"),
+    "variant_param": QT_TRANSLATE_NOOP("DictionaryPage", "+ Add parameter"),
 }
 NAME_HINTS = {
-    "entity": "entity name",
-    "axis": "axis name",
-    "value": "value",
-    "executor": "executor name",
-    "instrument": "instrument name",
-    "scope": "scope name",
-    "variant_param": "parameter name",
+    "entity": QT_TRANSLATE_NOOP("DictionaryPage", "entity name"),
+    "axis": QT_TRANSLATE_NOOP("DictionaryPage", "axis name"),
+    "value": QT_TRANSLATE_NOOP("DictionaryPage", "value"),
+    "executor": QT_TRANSLATE_NOOP("DictionaryPage", "executor name"),
+    "instrument": QT_TRANSLATE_NOOP("DictionaryPage", "instrument name"),
+    "scope": QT_TRANSLATE_NOOP("DictionaryPage", "scope name"),
+    "variant_param": QT_TRANSLATE_NOOP("DictionaryPage", "parameter name"),
 }
 SPECIAL = "special"  # refusal key of the row with the existence axis and the batch scope
 FORM_WORDS = ("kind", "named_slice")  # words added and changed in a form under their row
 EDIT = "✎"
-START_HINT = ("Start with entities, their axes and values. Then add kinds, executors, instruments "
-              "and scopes. Add variants on the Step chains tab.")
-ZERO_NOTE = "Zero weight clears the cost of this kind."
-WAITING_NOTE = "Waiting kinds have no labour cost and are not checks"
+START_HINT = QT_TRANSLATE_NOOP(
+    "DictionaryPage",
+    "Start with entities, their axes and values. Then add kinds, executors, instruments "
+    "and scopes. Add variants on the Step chains tab.",
+)
+ZERO_NOTE = QT_TRANSLATE_NOOP("DictionaryPage", "Zero weight clears the cost of this kind.")
+WAITING_NOTE = QT_TRANSLATE_NOOP(
+    "DictionaryPage", "Waiting kinds have no labour cost and are not checks"
+)
 WAITING_UNITS = ("hours", "days")
-WAITING_WEIGHT_LABEL = "Labour per hour of waiting (in your cost unit)"
-WAITING_WEIGHT_HINT = "0 = waiting is shown but not added to labour"
+WAITING_WEIGHT_LABEL = QT_TRANSLATE_NOOP(
+    "DictionaryPage", "Labour per hour of waiting (in your cost unit)"
+)
+WAITING_WEIGHT_HINT = QT_TRANSLATE_NOOP(
+    "DictionaryPage", "0 = waiting is shown but not added to labour"
+)
 WAITING_WEIGHT = "labour_per_waiting_hour"  # the name of the setting, as edit.set_number takes it
-CHECK_NOTE = "a check changes the axis it checks; a check not done is priced"
-ROW_NOTE = "A row is either a state (entity, axis, value) or a parameter (parameter, executor)."
-GROUP_HINT = "all rows must hold"
+CHECK_NOTE = QT_TRANSLATE_NOOP(
+    "DictionaryPage", "a check changes the axis it checks; a check not done is priced"
+)
+ROW_NOTE = QT_TRANSLATE_NOOP(
+    "DictionaryPage",
+    "A row is either a state (entity, axis, value) or a parameter (parameter, executor).",
+)
+GROUP_HINT = QT_TRANSLATE_NOOP("DictionaryPage", "all rows must hold")
 ROW_SORT = Qt.ItemDataRole.UserRole + 4  # STATE or PARAM of an item of a slice row's first list
 STATE, PARAM = "state", "param"
 
@@ -181,31 +198,31 @@ class AddEditor(QWidget):
         lay.setSpacing(8)
         self.name = QLineEdit()
         self.name.setObjectName("addField")
-        self.name.setPlaceholderText(NAME_HINTS[what])
+        self.name.setPlaceholderText(translate("DictionaryPage", NAME_HINTS[what]))
         self.name.returnPressed.connect(self.submitted)
         lay.addWidget(self.name)
         self.first: QLineEdit | None = None
         if what == "axis":
             self.first = QLineEdit()
             self.first.setObjectName("addField")
-            self.first.setPlaceholderText("first value")
+            self.first.setPlaceholderText(self.tr("first value"))
             self.first.returnPressed.connect(self.submitted)
             lay.addWidget(self.first)
         self.executor: QComboBox | None = None
         if executors is not None:
             self.executor = QComboBox()
             self.executor.setObjectName("pick")
-            self.executor.setToolTip("Every variant takes this executor for the parameter")
+            self.executor.setToolTip(self.tr("Every variant takes this executor for the parameter"))
             self.executor.addItems(executors)
             lay.addWidget(self.executor)
-        self.add_button = QPushButton("Add")
+        self.add_button = QPushButton(self.tr("Add"))
         self.add_button.setObjectName("small")
         self.add_button.setProperty("primary", True)
         self.add_button.clicked.connect(self.submitted)
         lay.addWidget(self.add_button)
-        self.esc_button = QPushButton("Esc")
+        self.esc_button = QPushButton(self.tr("Esc"))
         self.esc_button.setObjectName("small")
-        self.esc_button.setToolTip("Cancel")
+        self.esc_button.setToolTip(self.tr("Cancel"))
         self.esc_button.clicked.connect(self.cancelled)
         lay.addWidget(self.esc_button)
         lay.addStretch(1)
@@ -300,7 +317,7 @@ class ConditionRow(QWidget):
         self.value = _pick(110)
         for combo in (self.entity, self.axis, self.value):
             lay.addWidget(combo)
-        self.remove_button = _icon(REMOVE, "Remove the condition")
+        self.remove_button = _icon(REMOVE, self.tr("Remove the condition"))
         self.remove_button.clicked.connect(self.removed)
         lay.addWidget(self.remove_button)
         lay.addStretch(1)
@@ -357,66 +374,67 @@ class KindForm(QFrame):
 
         self.name = QLineEdit()
         self.name.setObjectName("addField")
-        self.name.setPlaceholderText("kind name")
+        self.name.setPlaceholderText(self.tr("kind name"))
         self.name.setMinimumWidth(150)
         self.name.returnPressed.connect(self.submitted)
-        grid.addWidget(_form_label("Name"), 0, 0)
+        grid.addWidget(_form_label(self.tr("Name")), 0, 0)
         grid.addLayout(self._line([self.name]), 0, 1)
 
         self.entity = _pick(150)
         self.axis = _pick(150)
-        grid.addWidget(_form_label("Entity"), 1, 0)
-        grid.addLayout(self._line([self.entity, _form_label("Axis"), self.axis]), 1, 1)
+        grid.addWidget(_form_label(self.tr("Entity")), 1, 0)
+        grid.addLayout(self._line([self.entity, _form_label(self.tr("Axis")), self.axis]), 1, 1)
 
         self.source = _pick(150)
         self.target = _pick(150)
-        grid.addWidget(_form_label("From"), 2, 0)
-        grid.addLayout(self._line([self.source, _form_label("To"), self.target]), 2, 1)
+        grid.addWidget(_form_label(self.tr("From")), 2, 0)
+        grid.addLayout(self._line([self.source, _form_label(self.tr("To")), self.target]), 2, 1)
 
         self.condition_box = QVBoxLayout()
         self.condition_box.setContentsMargins(0, 0, 0, 0)
         self.condition_box.setSpacing(5)
-        self.add_condition = QPushButton("+ Add condition")
+        self.add_condition = QPushButton(self.tr("+ Add condition"))
         self.add_condition.setObjectName("addLink")
         self.add_condition.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_condition.clicked.connect(lambda: self._add_row(None))
         self.condition_box.addWidget(self.add_condition, 0, Qt.AlignmentFlag.AlignLeft)
-        condition = _form_label("Condition")
+        condition = _form_label(self.tr("Condition"))
         grid.addWidget(condition, 3, 0, Qt.AlignmentFlag.AlignTop)
         grid.addLayout(self.condition_box, 3, 1)
 
-        self.check = QCheckBox("Check")
-        self.check_note = _form_label(CHECK_NOTE)
+        self.check = QCheckBox(self.tr("Check"))
+        self.check_note = _form_label(translate("DictionaryPage", CHECK_NOTE))
         grid.addLayout(self._line([self.check, self.check_note]), 4, 1)
 
-        self.zero_weight = QCheckBox("Zero weight")
+        self.zero_weight = QCheckBox(self.tr("Zero weight"))
         self.note = QLineEdit()
         self.note.setObjectName("addField")
-        self.note.setPlaceholderText("note")
+        self.note.setPlaceholderText(self.tr("note"))
         self.note.setMinimumWidth(240)
         self.note.setEnabled(False)
         self.zero_weight.toggled.connect(self.note.setEnabled)
         grid.addLayout(self._line([self.zero_weight, self.note]), 5, 1)
-        self.zero_line = label(ZERO_NOTE, "note")
+        self.zero_line = label(translate("DictionaryPage", ZERO_NOTE), "note")
         grid.addWidget(self.zero_line, 6, 1)
 
         self.waiting = QLineEdit()
         self.waiting.setObjectName("addField")
-        self.waiting.setPlaceholderText("none")
+        self.waiting.setPlaceholderText(self.tr("none"))
         self.waiting.setMaximumWidth(90)
         self.waiting_unit = _pick(90)
-        self.waiting_unit.addItems(list(WAITING_UNITS))
-        grid.addWidget(_form_label("Waiting"), 7, 0)
+        for unit in WAITING_UNITS:
+            self.waiting_unit.addItem(self._unit_names()[unit], unit)
+        grid.addWidget(_form_label(self.tr("Waiting")), 7, 0)
         grid.addLayout(self._line([self.waiting, self.waiting_unit]), 7, 1)
-        self.waiting_note = label(WAITING_NOTE, "note")
+        self.waiting_note = label(translate("DictionaryPage", WAITING_NOTE), "note")
         grid.addWidget(self.waiting_note, 8, 1)
         self.waiting.textChanged.connect(self._waiting_changed)
 
-        self.submit_button = QPushButton("Add" if self.adding else "Apply")
+        self.submit_button = QPushButton(self.tr("Add") if self.adding else self.tr("Apply"))
         self.submit_button.setObjectName("small")
         self.submit_button.setProperty("primary", True)
         self.submit_button.clicked.connect(self.submitted)
-        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button = QPushButton(self.tr("Cancel"))
         self.cancel_button.setObjectName("small")
         self.cancel_button.clicked.connect(self.cancelled)
         grid.addLayout(self._line([self.submit_button, self.cancel_button]), 9, 0, 1, 2)
@@ -429,8 +447,11 @@ class KindForm(QFrame):
             self._fill(kind)
         if waiting is not None:
             self.waiting.setText(fmt(waiting[0]))
-            _choose(self.waiting_unit, waiting[1])
+            self.waiting_unit.setCurrentIndex(max(self.waiting_unit.findData(waiting[1]), 0))
         self._waiting_changed()
+
+    def _unit_names(self) -> dict[str, str]:
+        return {"hours": self.tr("hours"), "days": self.tr("days")}
 
     @staticmethod
     def _line(widgets: list[QWidget]) -> QHBoxLayout:
@@ -447,7 +468,7 @@ class KindForm(QFrame):
         """Show a kind of the dictionary; its name cannot be changed here."""
         self.name.setText(kind.name)
         self.name.setReadOnly(True)
-        self.name.setToolTip("To rename the kind, double-click its name in the table")
+        self.name.setToolTip(self.tr("To rename the kind, double-click its name in the table"))
         _choose(self.entity, kind.entity)
         _choose(self.axis, kind.axis)
         _choose(self.source, kind.source)
@@ -528,7 +549,7 @@ class KindForm(QFrame):
             structure["zero_weight_note"] = self.note.text()
         if waiting:
             structure["waiting"] = self.waiting.text().strip()
-            structure["waiting_unit"] = self.waiting_unit.currentText()
+            structure["waiting_unit"] = self.waiting_unit.currentData()
         return structure
 
 
@@ -565,7 +586,7 @@ class SliceRow(QWidget):
         lay.addWidget(self.axis)
         lay.addWidget(_form_label("="))
         lay.addWidget(self.value)
-        self.remove_button = _icon(REMOVE, "Remove the row")
+        self.remove_button = _icon(REMOVE, self.tr("Remove the row"))
         self.remove_button.clicked.connect(self.removed)
         lay.addWidget(self.remove_button)
         lay.addStretch(1)
@@ -642,7 +663,7 @@ class SliceGroupBox(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(4)
-        self.or_line = QLabel("or")
+        self.or_line = QLabel(self.tr("or"))
         self.or_line.setObjectName("orLine")
         outer.addWidget(self.or_line)
 
@@ -658,10 +679,10 @@ class SliceGroupBox(QWidget):
         self.title = QLabel("")
         self.title.setObjectName("groupTitle")
         head.addWidget(self.title)
-        self.hint = _form_label(GROUP_HINT)
+        self.hint = _form_label(translate("DictionaryPage", GROUP_HINT))
         head.addWidget(self.hint)
         head.addStretch(1)
-        self.remove_button = _icon(REMOVE, "Remove the group")
+        self.remove_button = _icon(REMOVE, self.tr("Remove the group"))
         self.remove_button.clicked.connect(self.removed)
         head.addWidget(self.remove_button)
         box.addLayout(head)
@@ -670,7 +691,7 @@ class SliceGroupBox(QWidget):
         self.row_box.setContentsMargins(0, 0, 0, 0)
         self.row_box.setSpacing(5)
         box.addLayout(self.row_box)
-        self.add_row = QPushButton("+ Add row")
+        self.add_row = QPushButton(self.tr("+ Add row"))
         self.add_row.setObjectName("addLink")
         self.add_row.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_row.clicked.connect(lambda: self._add_row(None))
@@ -680,7 +701,7 @@ class SliceGroupBox(QWidget):
 
     def set_place(self, index: int) -> None:
         """Title ``Group N`` by the place of the group; ``or`` above all but the first."""
-        self.title.setText(f"Group {index + 1}")
+        self.title.setText(self.tr("Group {number}").format(number=index + 1))
         self.or_line.setVisible(index > 0)
 
     def _add_row(self, cells: tuple[str, ...] | None) -> None:
@@ -731,29 +752,29 @@ class SliceForm(QFrame):
 
         self.name = QLineEdit()
         self.name.setObjectName("addField")
-        self.name.setPlaceholderText("slice name")
+        self.name.setPlaceholderText(self.tr("slice name"))
         self.name.setMinimumWidth(150)
         self.name.returnPressed.connect(self.submitted)
-        grid.addWidget(_form_label("Name"), 0, 0)
+        grid.addWidget(_form_label(self.tr("Name")), 0, 0)
         grid.addLayout(KindForm._line([self.name]), 0, 1)
 
         self.group_box = QVBoxLayout()
         self.group_box.setContentsMargins(0, 0, 0, 0)
         self.group_box.setSpacing(6)
         grid.addLayout(self.group_box, 1, 0, 1, 2)
-        self.add_group = QPushButton("+ Add group")
+        self.add_group = QPushButton(self.tr("+ Add group"))
         self.add_group.setObjectName("addLink")
         self.add_group.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_group.clicked.connect(lambda: self._add_group([None]))
         grid.addWidget(self.add_group, 2, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
-        self.row_note = label(ROW_NOTE, "note")
+        self.row_note = label(translate("DictionaryPage", ROW_NOTE), "note")
         grid.addWidget(self.row_note, 3, 0, 1, 2)
 
-        self.submit_button = QPushButton("Add" if self.adding else "Apply")
+        self.submit_button = QPushButton(self.tr("Add") if self.adding else self.tr("Apply"))
         self.submit_button.setObjectName("small")
         self.submit_button.setProperty("primary", True)
         self.submit_button.clicked.connect(self.submitted)
-        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button = QPushButton(self.tr("Cancel"))
         self.cancel_button.setObjectName("small")
         self.cancel_button.clicked.connect(self.cancelled)
         buttons = KindForm._line([self.submit_button, self.cancel_button])
@@ -768,7 +789,7 @@ class SliceForm(QFrame):
         """Show a named slice of the dictionary; its name cannot be changed here."""
         self.name.setText(named.name)
         self.name.setReadOnly(True)
-        self.name.setToolTip("To rename the slice, double-click its name in the table")
+        self.name.setToolTip(self.tr("To rename the slice, double-click its name in the table"))
         for group in named.groups:
             rows = [tuple(s) for s in group.states] + [tuple(p) for p in group.params]
             self._add_group(rows)
@@ -888,7 +909,7 @@ class WordTable(Table):
         if isinstance(row, WordRow):
             return row.cells + [""]
         cells = [""] * self.columnCount()
-        cells[row.col] = ADD_TEXTS[row.what]
+        cells[row.col] = translate("DictionaryPage", ADD_TEXTS[row.what])
         return cells
 
     def set_words(self, rows: list[WordRow | AddRow]) -> None:
@@ -929,19 +950,23 @@ class WordTable(Table):
         it = self.item(r, row.col)
         it.setData(WORD, (what, old))
         it.setFlags(it.flags() | Qt.ItemFlag.ItemIsEditable)
-        it.setToolTip("Double-click to rename")
+        it.setToolTip(self.tr("Double-click to rename"))
         box = QWidget()
         lay = QHBoxLayout(box)
         lay.setContentsMargins(6, 0, 6, 0)
         lay.setSpacing(2)
         if row.form:
-            pencil = _icon(EDIT, "Edit")
+            pencil = _icon(EDIT, self.tr("Edit"))
             pencil.clicked.connect(
                 lambda _=False, w=what, o=old: self.form_requested.emit(w, o)
             )
             lay.addWidget(pencil)
             self._edits[(what, old)] = pencil
-        for delta, text, tip, on in ((-1, UP, "Move up", row.up), (1, DOWN, "Move down", row.down)):
+        moves = (
+            (-1, UP, self.tr("Move up"), row.up),
+            (1, DOWN, self.tr("Move down"), row.down),
+        )
+        for delta, text, tip, on in moves:
             arrow = _icon(text, tip)
             arrow.setEnabled(on)
             arrow.clicked.connect(
@@ -950,7 +975,7 @@ class WordTable(Table):
             lay.addWidget(arrow)
             self._arrows[(what, old, delta)] = arrow
         if row.removable:
-            b = _icon(REMOVE, "Delete")
+            b = _icon(REMOVE, self.tr("Delete"))
             b.clicked.connect(lambda _=False, w=what, o=old: self.removed.emit(w, o))
             lay.addWidget(b)
             self._buttons[(what, old)] = b
@@ -1161,7 +1186,7 @@ class DictionaryPage(Page):
         self._batch_now: str | None = None
         self._model = None
         self._waiting: dict[str, tuple[Decimal, str]] = {}
-        self.box.addWidget(label("Dictionary", "h2"))
+        self.box.addWidget(label(self.tr("Dictionary"), "h2"))
         self._special_row()
         self.amber = label("")
         self.amber.setObjectName("amber")
@@ -1171,28 +1196,41 @@ class DictionaryPage(Page):
         self.start_hint = label("", "note")
         self.start_hint.hide()
         self.box.addWidget(self.start_hint)
-        self.hint = label(HINT, "note")
+        self.hint = label(translate("DictionaryPage", HINT), "note")
         self.box.addWidget(self.hint)
         self._collapsed: set[str] = set()  # entities folded in this session
-        self.box.addWidget(label("ENTITY → AXES → VALUES", "h3"))
-        self.entities = self._words(self.box, ["Entity", "Axis", "Value", "Inherits from"], EntityTable)
+        self.box.addWidget(label(self.tr("ENTITY → AXES → VALUES"), "h3"))
+        self.entities = self._words(
+            self.box,
+            [self.tr("Entity"), self.tr("Axis"), self.tr("Value"), self.tr("Inherits from")],
+            EntityTable,
+        )
         self.entities.toggled.connect(self.toggle_entity)
-        self.box.addWidget(label("TRANSITION KINDS", "h3"))
-        self.kinds = self._words(self.box, ["Kind", "Entity", "Axis: from → to", "Condition", "Check",
-                                            "Zero weight"])
+        self.box.addWidget(label(self.tr("TRANSITION KINDS"), "h3"))
+        self.kinds = self._words(
+            self.box,
+            [
+                self.tr("Kind"),
+                self.tr("Entity"),
+                self.tr("Axis: from → to"),
+                self.tr("Condition"),
+                self.tr("Check"),
+                self.tr("Zero weight"),
+            ],
+        )
         left, right = self.columns()
-        left.addWidget(label("EXECUTORS", "h3"))
-        self.executors = self._words(left, ["Executor"])
-        left.addWidget(label("INSTRUMENTS", "h3"))
-        self.instruments = self._words(left, ["Instrument"])
+        left.addWidget(label(self.tr("EXECUTORS"), "h3"))
+        self.executors = self._words(left, [self.tr("Executor")])
+        left.addWidget(label(self.tr("INSTRUMENTS"), "h3"))
+        self.instruments = self._words(left, [self.tr("Instrument")])
         _end(left)
-        right.addWidget(label("SCOPES", "h3"))
-        self.scopes = self._words(right, ["Scope"])
-        right.addWidget(label("VARIANT PARAMETERS", "h3"))
-        self.params = self._words(right, ["Parameter"])
+        right.addWidget(label(self.tr("SCOPES"), "h3"))
+        self.scopes = self._words(right, [self.tr("Scope")])
+        right.addWidget(label(self.tr("VARIANT PARAMETERS"), "h3"))
+        self.params = self._words(right, [self.tr("Parameter")])
         _end(right)
-        self.box.addWidget(label("NAMED SLICES", "h3"))
-        self.slices = self._words(self.box, ["Slice", "Reached when"])
+        self.box.addWidget(label(self.tr("NAMED SLICES"), "h3"))
+        self.slices = self._words(self.box, [self.tr("Slice"), self.tr("Reached when")])
         self.box.addStretch(1)
 
     def _special_row(self) -> None:
@@ -1203,20 +1241,20 @@ class DictionaryPage(Page):
         lay = QHBoxLayout(self.special)
         lay.setContentsMargins(10, 6, 10, 6)
         lay.setSpacing(8)
-        lay.addWidget(self._bold("Existence axis:"))
+        lay.addWidget(self._bold(self.tr("Existence axis:")))
         self.existence_name = QLineEdit()
         self.existence_name.setObjectName("specialField")
         self.existence_name.setMinimumWidth(150)
         self.existence_name.editingFinished.connect(self._existence_entered)
         lay.addWidget(self.existence_name)
-        lay.addWidget(self._bold("absent value:"))
+        lay.addWidget(self._bold(self.tr("absent value:")))
         self.absent_value = QLineEdit()
         self.absent_value.setObjectName("specialField")
         self.absent_value.setMinimumWidth(80)
         self.absent_value.editingFinished.connect(self._existence_entered)
         lay.addWidget(self.absent_value)
         lay.addSpacing(24)
-        lay.addWidget(self._bold("Batch scope:"))
+        lay.addWidget(self._bold(self.tr("Batch scope:")))
         self.batch_box = QComboBox()
         self.batch_box.setObjectName("pick")
         self.batch_box.setMinimumWidth(100)
@@ -1394,12 +1432,18 @@ class DictionaryPage(Page):
             self.amber.setText("")
             self.amber.hide()
             return
-        if len(codes) == 1:
-            count = "1 path has"
-        else:
-            count = f"{len(codes)} paths have"
-        text = (f"{count} errors after this change: {', '.join(codes)}. "
-                "Fix them on the Step chains tab.")
+        n = len(codes)
+        text = plural(
+            self.tr(
+                "%n path has errors after this change: {codes}. Fix them on the Step chains tab.",
+                "",
+                n,
+            ),
+            "%n path has errors after this change: {codes}. Fix them on the Step chains tab.",
+            "%n paths have errors after this change: {codes}. Fix them on the Step chains tab.",
+            n,
+        )
+        text = text.format(codes=", ".join(codes))
         self.amber.setText(text)
         self.amber.show()
 
@@ -1448,7 +1492,7 @@ class DictionaryPage(Page):
         if places:
             shown = list(places[:PLACES_SHOWN])
             if len(places) > PLACES_SHOWN:
-                shown.append(f"and {len(places) - PLACES_SHOWN} more")
+                shown.append(self.tr("and {count} more").format(count=len(places) - PLACES_SHOWN))
             rest.setText("\n".join(shown))
             rest.show()
         self._shown = t
@@ -1520,8 +1564,10 @@ class DictionaryPage(Page):
         if m.variants:
             choices = executors
         self.params.set_words(self._list_rows("variant_param", list(m.variant_params), choices))
-        slices = [WordRow("named_slice", ns.name, 0, [ns.name, " or ".join(
-            " and ".join([f"{e}/{a} = {v}" for e, a, v in g.states] + [f"{q} = {x}" for q, x in g.params])
+        either = " " + self.tr("or") + " "
+        both = " " + self.tr("and") + " "
+        slices = [WordRow("named_slice", ns.name, 0, [ns.name, either.join(
+            both.join([f"{e}/{a} = {v}" for e, a, v in g.states] + [f"{q} = {x}" for q, x in g.params])
             for g in ns.groups)], form=True, **_edges(i, len(m.named_slices)))
             for i, ns in enumerate(m.named_slices)]
         slices.append(AddRow("named_slice", (), 0))
@@ -1533,7 +1579,7 @@ class DictionaryPage(Page):
     def _show_start_hint(self, shown: bool) -> None:
         """Show or hide the grey line on where to start in a project without variants."""
         if shown:
-            self.start_hint.setText(START_HINT)
+            self.start_hint.setText(translate("DictionaryPage", START_HINT))
             self.start_hint.show()
         else:
             self.start_hint.setText("")
@@ -1596,7 +1642,7 @@ class DictionaryPage(Page):
             batch = s == m.batch_scope
             tag = ""
             if batch:
-                tag = BATCH_TAG
+                tag = translate("DictionaryPage", BATCH_TAG)
             rows.append(WordRow("scope", s, 0, [s], removable=not batch, tag=tag,
                                 **_edges(i, len(scopes))))
         rows.append(AddRow("scope", (), 0))
@@ -1656,7 +1702,8 @@ class NumberTable(Table):
 
         :param rows: ``(key, name cells, number or None, editable)``; ``None`` is a number not set.
         """
-        self.set_rows([names + [NOT_SET if x is None else fmt(x)] for _, names, x, _ in rows])
+        not_set = translate("DictionaryPage", NOT_SET)
+        self.set_rows([names + [not_set if x is None else fmt(x)] for _, names, x, _ in rows])
         self.clearSelection()  # the selection tint would hide the mark of a number not set
         col = self.columnCount() - 1
         for r, (key, _, x, editable) in enumerate(rows):
@@ -1687,8 +1734,8 @@ class NormPage(Page):
     def __init__(self) -> None:
         super().__init__()
         self._project: Project | None = None
-        self.box.addWidget(label("Normalization (numbers only)", "h2"))
-        self.saved_note = label(SAVED_NOTE, "note")
+        self.box.addWidget(label(self.tr("Normalization (numbers only)"), "h2"))
+        self.saved_note = label(translate("DictionaryPage", SAVED_NOTE), "note")
         self.box.addWidget(self.saved_note)
         self.batch = label("", "note")
         self.box.addWidget(self.batch)
@@ -1698,27 +1745,49 @@ class NormPage(Page):
         self.missing_label.hide()
         self.box.addWidget(self.missing_label)
         left, right = self.columns()
-        left.addWidget(label("TRANSITION KINDS — COST", "h3"))
-        self.costs = self._numbers(left, "kind_costs", ["Kind", "Cost"])
-        left.addWidget(label("CHECK PRICES", "h3"))
-        self.prices = self._numbers(left, "axis_skip_prices", ["Entity", "Check axis", "Check price"])
+        left.addWidget(label(self.tr("TRANSITION KINDS — COST"), "h3"))
+        self.costs = self._numbers(left, "kind_costs", [self.tr("Kind"), self.tr("Cost")])
+        left.addWidget(label(self.tr("CHECK PRICES"), "h3"))
+        self.prices = self._numbers(
+            left,
+            "axis_skip_prices",
+            [self.tr("Entity"), self.tr("Check axis"), self.tr("Check price")],
+        )
         _end(left)
-        right.addWidget(label("EXECUTOR COEFFICIENTS", "h3"))
-        self.exec_coef = self._numbers(right, "executor_coefficients", ["Executor", "×"])
-        right.addWidget(label("SCOPE COEFFICIENTS", "h3"))
-        self.scope_coef = self._numbers(right, "scope_coefficients", ["Scope", "×"])
-        right.addWidget(label("UNCOUNTED ERRORS", "h3"))
-        self.errors = Table(["Group", "Error"])
+        right.addWidget(label(self.tr("EXECUTOR COEFFICIENTS"), "h3"))
+        self.exec_coef = self._numbers(right, "executor_coefficients", [self.tr("Executor"), "×"])
+        right.addWidget(label(self.tr("SCOPE COEFFICIENTS"), "h3"))
+        self.scope_coef = self._numbers(right, "scope_coefficients", [self.tr("Scope"), "×"])
+        right.addWidget(label(self.tr("UNCOUNTED ERRORS"), "h3"))
+        self.errors = Table([self.tr("Group"), self.tr("Error")])
         right.addWidget(self.errors)
         _end(right)
-        self.box.addWidget(label("Variants", "h2"))
-        self.variants = Table(["Code", "Title", "Side", "Calls", "Out of comparison"], {3})
+        self.box.addWidget(label(self.tr("Variants"), "h2"))
+        self.variants = Table(
+            [
+                self.tr("Code"),
+                self.tr("Title"),
+                self.tr("Side"),
+                self.tr("Calls"),
+                self.tr("Out of comparison"),
+            ],
+            {3},
+        )
         self.variants.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.variants.itemSelectionChanged.connect(self._variant_selected)
         self.box.addWidget(self.variants)
         self.calls_title = label("", "h3")
         self.box.addWidget(self.calls_title)
-        self.calls = Table(["#", "Kind", "Executor", "Instrument", "Scope"], {0})
+        self.calls = Table(
+            [
+                "#",
+                self.tr("Kind"),
+                self.tr("Executor"),
+                self.tr("Instrument"),
+                self.tr("Scope"),
+            ],
+            {0},
+        )
         self.box.addWidget(self.calls)
         self.box.addStretch(1)
 
@@ -1732,9 +1801,9 @@ class NormPage(Page):
         self.waiting_weight.editingFinished.connect(self._waiting_weight_edited)
         row = QHBoxLayout()
         row.setSpacing(8)
-        row.addWidget(_form_label(WAITING_WEIGHT_LABEL))
+        row.addWidget(_form_label(translate("DictionaryPage", WAITING_WEIGHT_LABEL)))
         row.addWidget(self.waiting_weight)
-        row.addWidget(label(WAITING_WEIGHT_HINT, "note"))
+        row.addWidget(label(translate("DictionaryPage", WAITING_WEIGHT_HINT), "note"))
         row.addStretch(1)
         self.box.addLayout(row)
         line = label("", "err")
@@ -1777,7 +1846,10 @@ class NormPage(Page):
             self._variant_selected()
             return
         n, m = p.norm, p.model
-        self.batch.setText("" if n.batch_size is None else f"Batch size: {fmt(n.batch_size)}")
+        batch = ""
+        if n.batch_size is not None:
+            batch = self.tr("Batch size: {size}").format(size=fmt(n.batch_size))
+        self.batch.setText(batch)
         weight = n.labour_per_waiting_hour
         self._show_waiting_weight(fmt(weight) if WAITING_WEIGHT in p.data["normalization"] else "")
         no_labour = {k.name for k in m.kinds if k.zero_weight or k.name in p.waiting}
@@ -1794,7 +1866,13 @@ class NormPage(Page):
         self.scope_coef.set_numbers([(s, [s], n.scope_coefficients.get(s), True) for s in m.scopes])
         missing = sum(t.item(r, t.columnCount() - 1).data(RAW) == ""
                       for t in self.number_tables() for r in range(t.rowCount()))
-        self.missing_label.setText(f"{missing} {'number' if missing == 1 else 'numbers'} not set")
+        text = plural(
+            self.tr("%n number not set", "", missing),
+            "%n number not set",
+            "%n numbers not set",
+            missing,
+        )
+        self.missing_label.setText(text)
         self.missing_label.setVisible(missing > 0)
         self.errors.set_rows([[g, t] for g, texts in n.uncounted_errors.items() for t in texts] or [[DASH, ""]])
         self.variants.set_rows([[v.code, v.title, p.sides[v.code], str(len(v.calls)), v.out_of_comparison or ""]
@@ -1867,7 +1945,8 @@ class NormPage(Page):
             self.calls.set_rows([])
             return
         v = self._project.model.variants[rows[0].row()]
-        self.calls_title.setText(f"{v.code} · {v.title} — calls")
+        title = self.tr("{code} · {title} — calls").format(code=v.code, title=v.title)
+        self.calls_title.setText(title)
         self.calls.set_rows([[str(i), c.kind, c.executor, c.instrument, c.scope]
                              for i, c in enumerate(v.calls, 1)])
 

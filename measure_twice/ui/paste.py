@@ -12,9 +12,8 @@ from PySide6.QtWidgets import (QDialog, QHBoxLayout, QPlainTextEdit, QPushButton
                                QWidget)
 
 from measure_twice.ui.ai_scenario import ANSWER_CAPTION, Loader
-from measure_twice.ui.tables import label
+from measure_twice.ui.tables import label, translate
 
-TITLE = "Paste AI answer"
 
 
 class PasteDialog(QDialog):
@@ -28,11 +27,11 @@ class PasteDialog(QDialog):
         super().__init__(parent)
         self._load = load
         self.setObjectName("pasteAnswer")
-        self.setWindowTitle(TITLE)
+        self.setWindowTitle(self.tr("Paste AI answer"))
         self.setModal(True)
         self.resize(640, 420)
         lay = QVBoxLayout(self)
-        lay.addWidget(label(ANSWER_CAPTION, "aiCaption"))
+        lay.addWidget(label(translate("AiScenarioDialog", ANSWER_CAPTION), "aiCaption"))
         self.answer = QPlainTextEdit()
         self.answer.setObjectName("aiAnswer")
         lay.addWidget(self.answer, 1)
@@ -43,8 +42,8 @@ class PasteDialog(QDialog):
 
         row = QHBoxLayout()
         row.addStretch(1)
-        self.cancel_button = QPushButton("Cancel")
-        self.load_button = QPushButton("Load")
+        self.cancel_button = QPushButton(self.tr("Cancel"))
+        self.load_button = QPushButton(self.tr("Load"))
         self.load_button.setProperty("primary", True)
         row.addWidget(self.cancel_button)
         row.addWidget(self.load_button)

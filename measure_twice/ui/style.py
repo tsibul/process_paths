@@ -3,6 +3,8 @@
 
 """The light indigo palette of the mockup as a Qt stylesheet."""
 
+from PySide6.QtCore import QCoreApplication
+
 BG = "#FFFFFF"
 SUB = "#FAFAFB"
 PANEL = "#F4F4F6"
@@ -32,7 +34,22 @@ SCALE_DONE = "#BBE5C8"
 SCALE_GRID = "#F0F0F4"
 # Line colours of the variants: neutral, without the green and red that mean good and bad elsewhere.
 SERIES = ("#4F46E5", "#0284C7", "#9333EA", "#D97706", "#475569", "#0891B2", "#C026D3")
-SIDE_TEXT = {"own": "● Ours", "other": "○ Theirs"}
+SIDE_MARK = {"own": "●", "other": "○"}
+
+
+def side_name(side: str) -> str:
+    """``Ours`` or ``Theirs`` in the language of the window; an unknown side as it is."""
+    if side == "own":
+        return QCoreApplication.translate("Side", "Ours")
+    if side == "other":
+        return QCoreApplication.translate("Side", "Theirs")
+    return side
+
+
+def side_text(side: str) -> str:
+    """The side with its mark: ``● Ours`` or ``○ Theirs``."""
+    return f"{SIDE_MARK[side]} {side_name(side)}" if side in SIDE_MARK else side
+
 
 STYLE = f"""
 QWidget {{ background: {BG}; color: {TEXT}; font-size: 15px; }}

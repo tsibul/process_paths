@@ -9,7 +9,7 @@ import html
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QSettings, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
 from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout,
                                QInputDialog, QLabel, QMainWindow, QMenu, QMessageBox,
@@ -40,14 +40,24 @@ from measure_twice.ui.paste import PasteDialog
 from measure_twice.ui.remarks import RemarksPanel
 from measure_twice.ui.report_dialog import ReportDialog
 from measure_twice.ui.style import ACCENT, STYLE
-from measure_twice.ui.tables import NOTE_ROLE, NoteDelegate, label, project_note
+from measure_twice.ui.tables import (
+    NOTE_ROLE,
+    NoteDelegate,
+    label,
+    plural,
+    project_note,
+    translate,
+)
 
 LAST = "last_project"
 NEW_NAME = "New project"
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
-JSON_FILTER = "Project files (*.json);;All files (*)"
-NO_JSON = "No JSON object found in the text."
-EXPORT_HINT = "The program keeps your projects by itself. This makes a file to send or archive."
+JSON_FILTER = QT_TRANSLATE_NOOP("MainWindow", "Project files (*.json);;All files (*)")
+NO_JSON = QT_TRANSLATE_NOOP("MainWindow", "No JSON object found in the text.")
+EXPORT_HINT = QT_TRANSLATE_NOOP(
+    "MainWindow",
+    "The program keeps your projects by itself. This makes a file to send or archive.",
+)
 
 
 def _dot_icon() -> QIcon:
@@ -61,10 +71,6 @@ def _dot_icon() -> QIcon:
     painter.drawEllipse(1, 1, 8, 8)
     painter.end()
     return QIcon(pix)
-
-
-def _plural(n: int, one: str, many: str) -> str:
-    return f"{n} {one if n == 1 else many}"
 
 
 class OfferTabs(QTabWidget):
@@ -122,7 +128,7 @@ class MainWindow(QMainWindow):
         head.addWidget(label("Measure Twice", "title"))
         bar = QHBoxLayout()
         bar.setSpacing(8)
-        bar.addWidget(label("<b>Comparing:</b>"))
+        bar.addWidget(label(self.tr("<b>Comparing:</b>")))
         self.projects = QComboBox()
         self.projects.setItemDelegate(NoteDelegate(self.projects))
         self.projects.currentIndexChanged.connect(self._project_chosen)
@@ -141,11 +147,11 @@ class MainWindow(QMainWindow):
         self.dictionary = DictionaryPage()
         self.norm = NormPage()
         self.comparison = ComparisonPage()
-        self.tabs.addTab(self.dictionary, "Dictionary")
-        self.tabs.addTab(self.norm, "Normalization && variants")
-        self.tabs.addTab(self.comparison, "Comparison")
+        self.tabs.addTab(self.dictionary, self.tr("Dictionary"))
+        self.tabs.addTab(self.norm, self.tr("Normalization && variants"))
+        self.tabs.addTab(self.comparison, self.tr("Comparison"))
         self.chains = ChainsPage()
-        self.tabs.addTab(self.chains, "Step chains")
+        self.tabs.addTab(self.chains, self.tr("Step chains"))
         self.tabs.setCurrentWidget(self.comparison)
         self._build_offer()
         self.tabs.currentChanged.connect(self._tab_changed)
@@ -183,9 +189,9 @@ class MainWindow(QMainWindow):
         self._offer_label.setWordWrap(True)
         self._offer_label.setTextFormat(Qt.TextFormat.RichText)
         row.addWidget(self._offer_label, 1)
-        self.offer_show_button = QPushButton("Show step chains")
+        self.offer_show_button = QPushButton(self.tr("Show step chains"))
         self.offer_show_button.setProperty("primary", True)
-        self.offer_later_button = QPushButton("Not now")
+        self.offer_later_button = QPushButton(self.tr("Not now"))
         self.offer_show_button.clicked.connect(self._offer_show)
         self.offer_later_button.clicked.connect(lambda: self._set_offer(False))
         row.addWidget(self.offer_show_button)
@@ -230,11 +236,27 @@ class MainWindow(QMainWindow):
     def _offer(self, project: Project) -> None:
         n = len(project.model.variants)
         k = project_empty_steps(project)
-        text = (f"<b>{html.escape(self.projects.currentText())} loaded: {_plural(n, 'path', 'paths')}.</b> "
-                "Check how your steps were split into transitions before you compare.")
+        text = plural(
+            self.tr(
+                "<b>{name} loaded: %n path.</b> "
+                "Check how your steps were split into transitions before you compare.",
+                "",
+                n,
+            ),
+            "<b>{name} loaded: %n path.</b> "
+            "Check how your steps were split into transitions before you compare.",
+            "<b>{name} loaded: %n paths.</b> "
+            "Check how your steps were split into transitions before you compare.",
+            n,
+        )
+        text = text.format(name=html.escape(self.projects.currentText()))
         if k:
-            verb = "has" if k == 1 else "have"
-            text += f" {_plural(k, 'step', 'steps')} {verb} no transitions."
+            text += " " + plural(
+                self.tr("%n step has no transitions.", "", k),
+                "%n step has no transitions.",
+                "%n steps have no transitions.",
+                k,
+            )
         self._offer_label.setText(text)
         self._set_offer(True)
         if self.tabs.currentIndex() != 3:
@@ -243,28 +265,30 @@ class MainWindow(QMainWindow):
     def _build_menus(self, bar: QHBoxLayout) -> None:
         """The `+ New ▾` menu (making a project) and the `More ▾` menu (the open one)."""
         self.new_menu = QMenu(self)
-        self.ai_action = self._item(self.new_menu, "With AI…", self.on_ai)
-        self.paste_action = self._item(self.new_menu, "Paste AI answer…", self.on_paste)
-        self.load_action = self._item(self.new_menu, "From file…", self.on_load)
-        self.new_action = self._item(self.new_menu, "Empty", self.on_new)
-        self.example_action = self._item(self.new_menu, "Example", self.show_example)
-        self.example_action.setToolTip(f"Add the {EXAMPLE_NAME} example")
-        self.new_menu_button = self._menu_button(bar, "+ New ▾", self.new_menu)
+        self.ai_action = self._item(self.new_menu, self.tr("With AI…"), self.on_ai)
+        self.paste_action = self._item(self.new_menu, self.tr("Paste AI answer…"), self.on_paste)
+        self.load_action = self._item(self.new_menu, self.tr("From file…"), self.on_load)
+        self.new_action = self._item(self.new_menu, self.tr("Empty"), self.on_new)
+        self.example_action = self._item(self.new_menu, self.tr("Example"), self.show_example)
+        tip = self.tr("Add the {name} example").format(name=EXAMPLE_NAME)
+        self.example_action.setToolTip(tip)
+        self.new_menu_button = self._menu_button(bar, self.tr("+ New ▾"), self.new_menu)
         self.new_menu_button.setProperty("primary", True)
 
         self.more_menu = QMenu(self)
-        self.save_action = self._item(self.more_menu, "Export to file…", self.on_save)
-        hint = QLabel(EXPORT_HINT)
+        self.save_action = self._item(self.more_menu, self.tr("Export to file…"), self.on_save)
+        hint = QLabel(translate("MainWindow", EXPORT_HINT))
         hint.setObjectName("menuHint")
         self.export_hint = QWidgetAction(self.more_menu)
         self.export_hint.setDefaultWidget(hint)
         self.export_hint.setEnabled(False)
         self.more_menu.addAction(self.export_hint)
-        self.copy_action = self._item(self.more_menu, "Duplicate", self.copy_project)
-        self.load_over_action = self._item(self.more_menu, "Replace from file…",
-                                           self.on_load_over)
-        self.delete_action = self._item(self.more_menu, "Delete…", self.delete_project)
-        self.more_menu_button = self._menu_button(bar, "More ▾", self.more_menu)
+        self.copy_action = self._item(self.more_menu, self.tr("Duplicate"), self.copy_project)
+        self.load_over_action = self._item(
+            self.more_menu, self.tr("Replace from file…"), self.on_load_over
+        )
+        self.delete_action = self._item(self.more_menu, self.tr("Delete…"), self.delete_project)
+        self.more_menu_button = self._menu_button(bar, self.tr("More ▾"), self.more_menu)
 
     def _build_language(self, bar: QHBoxLayout) -> None:
         """The language switch at the end of the panel row: the code on view, names in the list."""
@@ -446,7 +470,7 @@ class MainWindow(QMainWindow):
     def _new_variant(self) -> bool:
         """Add the variant ``New N`` with the first free ``N`` and choose it."""
         if new_is_off(self.store.get(self.current_id)):
-            self.chains.show_refusal(NO_EXECUTOR_HINT)
+            self.chains.show_refusal(translate("ChainsPage", NO_EXECUTOR_HINT))
             return False
         data = self.store.get(self.current_id).data
         taken = set()
@@ -705,7 +729,7 @@ class MainWindow(QMainWindow):
         self.remarks_panel.hide()
         self.refresh(self.store.add(project))
         self._offer(project)
-        self.statusBar().showMessage(f"Loaded {Path(path).name}")
+        self.statusBar().showMessage(self.tr("Loaded {name}").format(name=Path(path).name))
         return True
 
     def load_over_path(self, path: Path) -> bool:
@@ -721,7 +745,9 @@ class MainWindow(QMainWindow):
         self.store.replace(pid, project)
         self.refresh(pid)
         self._offer(project)
-        self.statusBar().showMessage(f"Loaded {Path(path).name} over the project")
+        self.statusBar().showMessage(
+            self.tr("Loaded {name} over the project").format(name=Path(path).name)
+        )
         return True
 
     def load_text(self, text: str) -> tuple[bool, str | list[str]]:
@@ -734,14 +760,14 @@ class MainWindow(QMainWindow):
         """
         found = extract_json(text)
         if found is None:
-            return False, NO_JSON
+            return False, translate("MainWindow", NO_JSON)
         project, remarks = parse_text(found)
         if project is None:
             return False, [str(r) for r in remarks]
         self.remarks_panel.hide()
         self.refresh(self.store.add(project))
         self._offer(project)
-        message = f"Loaded {project.name}"
+        message = self.tr("Loaded {name}").format(name=project.name)
         self.statusBar().showMessage(message)
         return True, message
 
@@ -750,10 +776,10 @@ class MainWindow(QMainWindow):
         present = next((i.id for i in self.store.list() if i.name == EXAMPLE_NAME), None)
         if present is None:
             self.refresh(add_example(self.store))
-            message = f"Added {EXAMPLE_NAME}"
+            message = self.tr("Added {name}").format(name=EXAMPLE_NAME)
         else:
             self.refresh(present)
-            message = "Example is already in the list"
+            message = self.tr("Example is already in the list")
         self.tabs.setCurrentWidget(self.comparison)
         self.statusBar().showMessage(message)
 
@@ -787,13 +813,13 @@ class MainWindow(QMainWindow):
         self.remarks_panel.hide()
         self.refresh(self.store.add(project))
         self.tabs.setCurrentWidget(self.dictionary)
-        self.statusBar().showMessage(f"Created {project.name}")
+        self.statusBar().showMessage(self.tr("Created {name}").format(name=project.name))
         return True
 
     def save_path(self, path: Path) -> None:
         """Write the selected project's file."""
         Path(path).write_text(self.store.text(self.current_id), encoding="utf-8")
-        self.statusBar().showMessage(f"Saved {Path(path).name}")
+        self.statusBar().showMessage(self.tr("Saved {name}").format(name=Path(path).name))
 
     def copy_project(self) -> None:
         """Copy the selected project and select the copy."""
@@ -804,7 +830,8 @@ class MainWindow(QMainWindow):
         """Delete the selected project after confirmation."""
         if self.current_id is None:
             return
-        if not self.confirm(f"Delete the project “{self.projects.currentText()}”? This cannot be undone."):
+        question = self.tr("Delete the project “{name}”? This cannot be undone.")
+        if not self.confirm(question.format(name=self.projects.currentText())):
             return
         self.store.delete(self.current_id)
         self.refresh()
@@ -820,7 +847,9 @@ class MainWindow(QMainWindow):
 
     def ask_name(self, text: str) -> str | None:
         """Ask the name of a new project; ``None`` when cancelled."""
-        name, ok = QInputDialog.getText(self, "Project name", "Project name:", text=text)
+        name, ok = QInputDialog.getText(
+            self, self.tr("Project name"), self.tr("Project name:"), text=text
+        )
         return name if ok else None
 
     # --- actions with file dialogs
@@ -841,28 +870,37 @@ class MainWindow(QMainWindow):
         dialog.deleteLater()
 
     def on_load(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Load project file", "", JSON_FILTER)
+        path, _ = QFileDialog.getOpenFileName(
+            self, self.tr("Load project file"), "", translate("MainWindow", JSON_FILTER)
+        )
         if path:
             self.load_path(Path(path))
 
     def on_load_over(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Load over the selected project", "", JSON_FILTER)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Load over the selected project"),
+            "",
+            translate("MainWindow", JSON_FILTER),
+        )
         if path:
             self.load_over_path(Path(path))
 
     def on_save(self) -> None:
         name = f"{self.projects.currentText() or 'project'}.json"
-        path, _ = QFileDialog.getSaveFileName(self, "Save project file", name, JSON_FILTER)
+        path, _ = QFileDialog.getSaveFileName(
+            self, self.tr("Save project file"), name, translate("MainWindow", JSON_FILTER)
+        )
         if path:
             try:
                 self.save_path(Path(path))
             except OSError as exc:
-                self.warn(f"Cannot write the file: {exc}")
+                self.warn(self.tr("Cannot write the file: {error}").format(error=exc))
 
     def on_export(self, suffix: str) -> None:
-        what = "Markdown (*.md)" if suffix == ".md" else "CSV (*.csv)"
+        what = self.tr("Markdown (*.md)") if suffix == ".md" else self.tr("CSV (*.csv)")
         name = f"{self.projects.currentText() or 'comparison'}{suffix}"
-        path, _ = QFileDialog.getSaveFileName(self, "Export comparison", name, what)
+        path, _ = QFileDialog.getSaveFileName(self, self.tr("Export comparison"), name, what)
         if not path:
             return
         p = Path(path)
@@ -870,9 +908,9 @@ class MainWindow(QMainWindow):
             p = p.with_name(p.name + suffix)
         try:
             self.comparison.export_path(p)
-            self.statusBar().showMessage(f"Exported {p.name}")
+            self.statusBar().showMessage(self.tr("Exported {name}").format(name=p.name))
         except OSError as exc:
-            self.warn(f"Cannot write the file: {exc}")
+            self.warn(self.tr("Cannot write the file: {error}").format(error=exc))
 
     def on_report(self) -> None:
         project = self.comparison._project
@@ -888,7 +926,9 @@ class MainWindow(QMainWindow):
         :return: ``True`` when the file is written.
         """
         name = f"{self.projects.currentText() or 'report'}.pdf"
-        path, _ = QFileDialog.getSaveFileName(self, "Save PDF report", name, "PDF (*.pdf)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, self.tr("Save PDF report"), name, self.tr("PDF (*.pdf)")
+        )
         if not path:
             return False
         p = Path(path)
@@ -897,9 +937,9 @@ class MainWindow(QMainWindow):
         try:
             report.write(self.comparison._project, p, chosen=pages, ways=ways)
         except (OSError, ValueError) as exc:
-            self.warn(f"Cannot write the report: {exc}")
+            self.warn(self.tr("Cannot write the report: {error}").format(error=exc))
             return False
-        self.statusBar().showMessage(f"Saved {p.name}")
+        self.statusBar().showMessage(self.tr("Saved {name}").format(name=p.name))
         return True
 
 

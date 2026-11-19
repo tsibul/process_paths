@@ -10,29 +10,41 @@ from __future__ import annotations
 
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide6.QtGui import QGuiApplication, QPainter, QTextCursor
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
                                QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
 from measure_twice.ai import Prompt, prompts, remarks_prompt, task_limit, task_prompt
-from measure_twice.ui.tables import label
+from measure_twice.ui.tables import label, plural, translate
 
-TITLE = "Add a process with AI"
-COPIED = "✓ Copied. Paste it into your AI chat."
-PROMPT_COPIED = "Prompt copied"
-SHOW_AGAIN = "Show prompt again"
-HIDE_AGAIN = "Hide prompt"
-ANSWER_CAPTION = "Paste the AI’s answer"
+TITLE = QT_TRANSLATE_NOOP("AiScenarioDialog", "Add a process with AI")
+COPIED = QT_TRANSLATE_NOOP("AiScenarioDialog", "✓ Copied. Paste it into your AI chat.")
+PROMPT_COPIED = QT_TRANSLATE_NOOP("AiScenarioDialog", "Prompt copied")
+SHOW_AGAIN = QT_TRANSLATE_NOOP("AiScenarioDialog", "Show prompt again")
+HIDE_AGAIN = QT_TRANSLATE_NOOP("AiScenarioDialog", "Hide prompt")
+ANSWER_CAPTION = QT_TRANSLATE_NOOP("AiScenarioDialog", "Paste the AI’s answer")
 FILE_STEP = 5
 # The header note of each step on screen; the notes in the prompts file are for its readers.
 NOTES = {
-    1: "Describe the job in one or two sentences, then copy the prompt into your AI chat.",
-    2: "Use it when you have agreed on the list of ways.",
-    3: "Use it when you have agreed on the steps of each way.",
-    4: "Use it when you have agreed on the actions and the checks.",
-    5: "Use it when you have agreed who does what and how long it takes.",
-    6: "The program found problems in the file. Copy this prompt into the same chat.",
+    1: QT_TRANSLATE_NOOP(
+        "AiScenarioDialog",
+        "Describe the job in one or two sentences, then copy the prompt into your AI chat.",
+    ),
+    2: QT_TRANSLATE_NOOP("AiScenarioDialog", "Use it when you have agreed on the list of ways."),
+    3: QT_TRANSLATE_NOOP(
+        "AiScenarioDialog", "Use it when you have agreed on the steps of each way."
+    ),
+    4: QT_TRANSLATE_NOOP(
+        "AiScenarioDialog", "Use it when you have agreed on the actions and the checks."
+    ),
+    5: QT_TRANSLATE_NOOP(
+        "AiScenarioDialog", "Use it when you have agreed who does what and how long it takes."
+    ),
+    6: QT_TRANSLATE_NOOP(
+        "AiScenarioDialog",
+        "The program found problems in the file. Copy this prompt into the same chat.",
+    ),
 }
 REMARKS_STEP = 6
 
@@ -47,8 +59,9 @@ def _repolish(*widgets: QWidget) -> None:
 
 
 def _not_accepted(count: int) -> str:
-    word = "remark" if count == 1 else "remarks"
-    return f"Not accepted: {count} {word}"
+    one = "Not accepted: %n remark"
+    text = translate("AiScenarioDialog", "Not accepted: %n remark", "", count)
+    return plural(text, one, "Not accepted: %n remarks", count)
 
 
 class ElidedLabel(QLabel):
@@ -94,10 +107,11 @@ class StepCard(QFrame):
         self.summary = ElidedLabel()
         self.summary.setObjectName("aiSummary")
         head.addWidget(self.summary, 1)
-        self.note = label(NOTES.get(prompt.number, prompt.note), "note")
+        note = NOTES.get(prompt.number)
+        self.note = label(translate("AiScenarioDialog", note) if note else prompt.note, "note")
         self.note.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         head.addWidget(self.note, 1)
-        self.again_button = QPushButton(SHOW_AGAIN)
+        self.again_button = QPushButton(translate("AiScenarioDialog", SHOW_AGAIN))
         self.again_button.setObjectName("aiLink")
         self.again_button.setCursor(Qt.CursorShape.PointingHandCursor)
         head.addWidget(self.again_button)
@@ -115,11 +129,11 @@ class StepCard(QFrame):
         self.body_layout.addWidget(self.prompt_view)
         self.row = QHBoxLayout()
         self.row.setSpacing(8)
-        self.copied = label(COPIED, "note")
+        self.copied = label(translate("AiScenarioDialog", COPIED), "note")
         self.row.addWidget(self.copied)
         self.row.addStretch(1)
-        self.copy_button = QPushButton("Copy prompt")
-        self.next_button = QPushButton("Next step")
+        self.copy_button = QPushButton(self.tr("Copy prompt"))
+        self.next_button = QPushButton(self.tr("Next step"))
         self.next_button.setProperty("primary", True)
         self.row.addWidget(self.copy_button)
         self.row.addWidget(self.next_button)
@@ -145,7 +159,7 @@ class AiScenarioDialog(QDialog):
         self._prompts = prompts()
         self._remarks: list[str] = []
         self.setObjectName("aiScenario")
-        self.setWindowTitle(TITLE)
+        self.setWindowTitle(translate("AiScenarioDialog", TITLE))
         self.setModal(True)
         self.resize(1000, 820)
         lay = QVBoxLayout(self)
@@ -156,9 +170,9 @@ class AiScenarioDialog(QDialog):
         top.setObjectName("aiTop")
         top_row = QHBoxLayout(top)
         top_row.setContentsMargins(16, 10, 16, 10)
-        top_row.addWidget(label(TITLE, "aiTopTitle"))
+        top_row.addWidget(label(translate("AiScenarioDialog", TITLE), "aiTopTitle"))
         top_row.addStretch(1)
-        self.close_button = QPushButton("Close")
+        self.close_button = QPushButton(self.tr("Close"))
         self.close_button.setObjectName("aiLink")
         self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         top_row.addWidget(self.close_button)
@@ -219,19 +233,21 @@ class AiScenarioDialog(QDialog):
 
     def _show_left(self) -> None:
         left = self._task_limit - len(self.task.toPlainText())
-        self.task_left.setText(f"{left} characters left")
+        one = "%n character left"
+        text = translate("AiScenarioDialog", "%n character left", "", left)
+        self.task_left.setText(plural(text, one, "%n characters left", left))
 
     def _build_file(self) -> None:
         card = self.cards[FILE_STEP - 1]
         card.forward = None
-        caption = label(ANSWER_CAPTION, "aiCaption")
+        caption = label(translate("AiScenarioDialog", ANSWER_CAPTION), "aiCaption")
         self.answer = QPlainTextEdit()
         self.answer.setObjectName("aiAnswer")
         self.answer.setMinimumHeight(150)
         self.error = label("", "err")
         load_row = QHBoxLayout()
         load_row.addStretch(1)
-        self.load_button = QPushButton("Load file")
+        self.load_button = QPushButton(self.tr("Load file"))
         self.load_button.setProperty("primary", True)
         load_row.addWidget(self.load_button)
         holder = QWidget()
@@ -245,7 +261,7 @@ class AiScenarioDialog(QDialog):
 
     def _build_remarks(self) -> None:
         card = self.cards[REMARKS_STEP - 1]
-        self.back_button = QPushButton(f"Back to step {FILE_STEP}")
+        self.back_button = QPushButton(self.tr("Back to step {n}").format(n=FILE_STEP))
         card.row.addWidget(self.back_button)
         card.forward = self.back_button
         self.back_button.clicked.connect(self.back_to_file)
@@ -265,7 +281,7 @@ class AiScenarioDialog(QDialog):
             return " ".join(self.task.toPlainText().split())
         if card.number == FILE_STEP:
             return _not_accepted(len(self._remarks))
-        return PROMPT_COPIED
+        return translate("AiScenarioDialog", PROMPT_COPIED)
 
     def current(self) -> int:
         """The number of the open step."""
@@ -280,7 +296,9 @@ class AiScenarioDialog(QDialog):
         card.summary.setVisible(done)
         card.summary.setText(self._summary(card) if done else "")
         card.again_button.setVisible(done)
-        card.again_button.setText(HIDE_AGAIN if card.expanded else SHOW_AGAIN)
+        card.again_button.setText(
+            translate("AiScenarioDialog", HIDE_AGAIN if card.expanded else SHOW_AGAIN)
+        )
         card.note.setVisible(current)
         card.body.setVisible(current or (done and card.expanded))
         for w in card.extras:
