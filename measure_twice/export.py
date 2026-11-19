@@ -1,7 +1,11 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Export of the comparison to Markdown and CSV."""
+"""Export of the comparison to Markdown and CSV.
+
+The texts are English; ``tr`` (the window gives its translation, ``measure_twice.i18n.shown``)
+turns each heading and cell into the language shown. The numbers keep the point.
+"""
 
 from __future__ import annotations
 
@@ -9,17 +13,21 @@ import csv
 import io
 from decimal import Decimal
 from pathlib import Path
+from typing import Callable
 
 from measure_twice.calc import (Comparison, Group, Row, Step, compare, details, fmt, groups, money,
                                 waiting_text)
+from measure_twice.message import QT_TRANSLATE_NOOP, translate
 from measure_twice.project import FINAL, Project
 
 DASH = "—"
 ARROW = "→"
-NOT_SET = "not set"
-NOT_REACHED = " (not reached)"
-WAITING = "Waiting"
-LABOUR_WAITING = "Labour + waiting"
+NOT_SET = QT_TRANSLATE_NOOP("Export", "not set")
+NOT_REACHED = QT_TRANSLATE_NOOP("Export", "{number} (not reached)")
+WAITING = QT_TRANSLATE_NOOP("Export", "Waiting")
+LABOUR_WAITING = QT_TRANSLATE_NOOP("Export", "Labour + waiting")
+
+Tr = Callable[[str], str]
 
 
 def number(d: Decimal | None, form=money) -> str:
@@ -61,7 +69,12 @@ def numbers(cmp: Comparison, r: Row) -> list[str]:
     out.append(waiting_text(r.waiting))
     if LABOUR_WAITING in extra:
         out.append(number(r.labour_waiting))
-    return out + [number(s.total) + ("" if s.reached else NOT_REACHED) for s in r.slices]
+    return out + [_risk(s) for s in r.slices]
+
+
+def _risk(s) -> str:
+    shown = number(s.total)
+    return shown if s.reached else NOT_REACHED.format(number=shown)
 
 
 def step_numbers(s: Step, failed: bool) -> list[str]:
@@ -80,23 +93,36 @@ def _cell(text: object) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def _table(rows: list[list[str]]) -> list[str]:
-    lines = ["| " + " | ".join(_cell(c) for c in rows[0]) + " |",
+def _table(rows: list[list[str]], tr: Tr = str) -> list[str]:
+    lines = ["| " + " | ".join(_cell(tr(c)) for c in rows[0]) + " |",
              "|" + "|".join(" --- " for _ in rows[0]) + "|"]
-    lines += ["| " + " | ".join(_cell(c) for c in r) + " |" for r in rows[1:]]
+    lines += ["| " + " | ".join(_cell(tr(c)) for c in r) + " |" for r in rows[1:]]
     return lines
 
 
-SIDES = {"own": "Ours", "other": "Theirs"}
-NO_PAIR = "No comparable variant"
-NO_PAIR_NOTE = "Not compared: no other variant has the same task"
-OUT = "Out of comparison"
+SIDES = {"own": QT_TRANSLATE_NOOP("Export", "Ours"), "other": QT_TRANSLATE_NOOP("Export", "Theirs")}
+NO_PAIR = QT_TRANSLATE_NOOP("Export", "No comparable variant")
+NO_PAIR_NOTE = QT_TRANSLATE_NOOP("Export", "Not compared: no other variant has the same task")
+OUT = QT_TRANSLATE_NOOP("Export", "Out of comparison")
+GROUP = QT_TRANSLATE_NOOP("Export", "Group")
+REASON = QT_TRANSLATE_NOOP("Export", "Reason")
+UNCOUNTED = QT_TRANSLATE_NOOP("Export", "Uncounted errors")
+DETAILS = QT_TRANSLATE_NOOP("Export", "Details")
 
 
 def _header(cmp: Comparison) -> list[str]:
-    return (["Code", "Title", "Side", "Steps"] + [f"Labour · {x}" for x in cmp.executors]
-            + ["Labour · total"] + waiting_headers(cmp)
-            + [f"Risk left, {'end' if n == FINAL else n}" for n in cmp.slice_names])
+    labour = QT_TRANSLATE_NOOP("Export", "Labour · {executor}")
+    risk = QT_TRANSLATE_NOOP("Export", "Risk left, {slice}")
+    end = QT_TRANSLATE_NOOP("Export", "end")
+    head = [
+        QT_TRANSLATE_NOOP("Export", "Code"),
+        QT_TRANSLATE_NOOP("Export", "Title"),
+        QT_TRANSLATE_NOOP("Export", "Side"),
+        QT_TRANSLATE_NOOP("Export", "Steps"),
+    ]
+    return (head + [labour.format(executor=x) for x in cmp.executors]
+            + [QT_TRANSLATE_NOOP("Export", "Labour · total")] + waiting_headers(cmp)
+            + [risk.format(slice=end if n == FINAL else n) for n in cmp.slice_names])
 
 
 def _row(cmp: Comparison, r: Row) -> list[str]:
@@ -105,29 +131,31 @@ def _row(cmp: Comparison, r: Row) -> list[str]:
 
 def _group_name(g: Group) -> str:
     if g.kind == "task":
-        return f"Task: {g.task}"
+        return QT_TRANSLATE_NOOP("Export", "Task: {task}").format(task=g.task)
     return NO_PAIR if g.kind == "no-pair" else OUT
 
 
 def _grid(cmp: Comparison) -> list[list[str]]:
-    out = [["Group"] + _header(cmp) + ["Reason"]]
+    out = [[GROUP] + _header(cmp) + [REASON]]
     for g in groups(cmp):
         out += [[_group_name(g)] + _row(cmp, r) + [r.reason or ""] for r in g.rows]
     return out
 
 
-def shown_table(cmp: Comparison, shown: list[tuple[Group, list[Row]]]) -> list[list[str]]:
+def shown_table(cmp: Comparison, shown: list[tuple[Group, list[Row]]], tr: Tr = str
+                ) -> list[list[str]]:
     """The comparison table as the window shows it: a header line and a line per shown row.
 
     :param cmp: the table.
     :param shown: groups with the rows of each that the window shows, in its order.
+    :param tr: turns a text into the language shown.
     :return: lines of cells; the first cell is the group name, then the columns of the window.
     :rtype: list[list[str]]
     """
-    out = [["Group"] + _header(cmp)]
+    out = [[GROUP] + _header(cmp)]
     for g, rows in shown:
         out += [[_group_name(g)] + _row(cmp, r) for r in rows]
-    return out
+    return [[tr(c) for c in line] for line in out]
 
 
 def _change(c: tuple[str, str, str | None, str | None]) -> str:
@@ -135,10 +163,11 @@ def _change(c: tuple[str, str, str | None, str | None]) -> str:
     return f"{e}/{a}: {before if before is not None else DASH} {ARROW} {after if after is not None else DASH}"
 
 
-def markdown(project: Project) -> str:
+def markdown(project: Project, tr: Tr = str) -> str:
     """Markdown export of the comparison.
 
     :param project: a checked project.
+    :param tr: turns a text into the language shown.
     :return: Markdown text.
     :rtype: str
     """
@@ -147,56 +176,69 @@ def markdown(project: Project) -> str:
     if project.description:
         out += [project.description, ""]
     for g in groups(cmp):
-        out += [f"## {_group_name(g)}", ""]
+        out += [f"## {tr(_group_name(g))}", ""]
         if g.kind == "task":
-            out += [f"{len(g.rows)} variants", ""]
+            out += [tr(translate("Export", "%n variants", "", len(g.rows))), ""]
         elif g.kind == "no-pair":
-            out += [NO_PAIR_NOTE, ""]
-        head = _header(cmp) + (["Reason"] if g.kind == "out" else [])
+            out += [tr(NO_PAIR_NOTE), ""]
+        head = _header(cmp) + ([REASON] if g.kind == "out" else [])
         body = [_row(cmp, r) + ([r.reason or ""] if g.kind == "out" else []) for r in g.rows]
-        out += _table([head] + body) + [""]
+        out += _table([head] + body, tr) + [""]
     if cmp.uncounted_errors:
-        out += ["## Uncounted errors", ""]
+        out += [f"## {tr(UNCOUNTED)}", ""]
         for group, items in cmp.uncounted_errors.items():
             out += [f"### {group}", ""] + [f"- {t}" for t in items] + [""]
-    out += ["## Details", ""]
-    head = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope coef.", "Executor coef.",
-            "Labour", "Change"]
+    out += [f"## {tr(DETAILS)}", ""]
+    head = [
+        "#",
+        QT_TRANSLATE_NOOP("Export", "Kind"),
+        QT_TRANSLATE_NOOP("Export", "Executor"),
+        QT_TRANSLATE_NOOP("Export", "Instrument"),
+        QT_TRANSLATE_NOOP("Export", "Scope"),
+        QT_TRANSLATE_NOOP("Export", "Cost"),
+        QT_TRANSLATE_NOOP("Export", "Scope coef."),
+        QT_TRANSLATE_NOOP("Export", "Executor coef."),
+        QT_TRANSLATE_NOOP("Export", "Labour"),
+        QT_TRANSLATE_NOOP("Export", "Change"),
+    ]
     for r in cmp.rows + cmp.excluded_rows:
         out += [f"### {r.code}: {r.title}", ""]
         rows = [head]
         for s in details(project, r.code):
             rows.append([str(s.number), s.kind, s.executor, s.instrument, s.scope]
                         + step_numbers(s, r.error is not None) + ["; ".join(_change(c) for c in s.changes)])
-        out += _table(rows) + [""]
+        out += _table(rows, tr) + [""]
     return "\n".join(out)
 
 
-def csv_text(project: Project) -> str:
-    """CSV export of the comparison table.
+def csv_text(project: Project, tr: Tr = str) -> str:
+    """CSV export of the comparison table; the numbers keep the point in any language.
 
     :param project: a checked project.
+    :param tr: turns a text into the language shown.
     :return: CSV text with a header row.
     :rtype: str
     """
     buf = io.StringIO()
-    csv.writer(buf, lineterminator="\n").writerows(_grid(compare(project)))
+    rows = [[tr(c) for c in line] for line in _grid(compare(project))]
+    csv.writer(buf, lineterminator="\n").writerows(rows)
     return buf.getvalue()
 
 
-def write(project: Project, path: Path) -> None:
+def write(project: Project, path: Path, tr: Tr = str) -> None:
     """Write the export; the format follows the suffix.
 
     :param project: a checked project.
     :param path: file path ending in ``.md`` or ``.csv``.
+    :param tr: turns a text into the language shown.
     :raises ValueError: other suffix.
     """
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix == ".md":
-        text = markdown(project)
+        text = markdown(project, tr)
     elif suffix == ".csv":
-        text = csv_text(project)
+        text = csv_text(project, tr)
     else:
         raise ValueError(f"unknown export format: {path.suffix!r}, use .md or .csv")
     path.write_text(text, encoding="utf-8", newline="")

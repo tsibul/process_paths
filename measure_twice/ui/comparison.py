@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLay
                                QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from measure_twice import export
+from measure_twice import export, i18n
 from measure_twice.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, series
 from measure_twice.project import FINAL, Project
 from measure_twice.ui import style
@@ -269,7 +269,8 @@ class StepsPanel(QFrame):
         failed = row.error is not None
         points = series(project, row.code)  # none for a variant with a run error
         self.table.set_rows([
-            [str(s.number), s.kind, s.executor, s.instrument, s.scope] + export.step_numbers(s, failed)
+            [str(s.number), s.kind, s.executor, s.instrument, s.scope]
+            + [i18n.shown(x) for x in export.step_numbers(s, failed)]
             + [DASH if failed else str(points[i].skips_count),
                "; ".join(f"{e}/{a}: {b if b is not None else DASH} {ARROW} {x if x is not None else DASH}"
                          for e, a, b, x in s.changes)]
@@ -278,7 +279,8 @@ class StepsPanel(QFrame):
         self.skipped: list[QLabel] = []
         for s in row.slices:
             if s.skips:
-                what = ", ".join(f"{e}/{a} ({export.number(p, fmt)})" for e, a, p in s.skips)
+                what = ", ".join(f"{e}/{a} ({i18n.shown(export.number(p, fmt))})"
+                                 for e, a, p in s.skips)
                 w = label(self._not_checked(row, s, what))
                 w.setObjectName("skipped")
                 self.skipped.append(w)
@@ -326,7 +328,7 @@ class StepCell(QFrame):
         self.marker.setVisible(bool(point.slices))
         top.addWidget(self.marker, 0, Qt.AlignmentFlag.AlignTop)
         box.addLayout(top)
-        self.labour = QLabel(export.number(point.labour))
+        self.labour = QLabel(i18n.shown(export.number(point.labour)))
         self.skips = QLabel(self.tr("Risk left: {count}").format(count=point.skips_count))
         self.skips.setStyleSheet(f"color: {style.ERR if point.skips_count else style.OK};")
         for w in (self.labour, self.skips):
@@ -762,8 +764,9 @@ class ComparisonPage(Page):
         cmp = self._cmp
         title = r.title
         if r.reason:
-            title += "\n" + self.tr("Reason: {reason}").format(reason=r.reason)
-        texts = [r.code, title, style.side_text(r.side), str(r.steps)] + export.numbers(cmp, r)
+            title += "\n" + self.tr("Reason: {reason}").format(reason=i18n.shown(r.reason))
+        texts = [r.code, title, style.side_text(r.side), str(r.steps)]
+        texts += [i18n.shown(x) for x in export.numbers(cmp, r)]
         it = QTreeWidgetItem(parent, texts)
         it.setData(0, KIND, "variant")
         it.setData(0, CODE, r.code)
@@ -932,7 +935,8 @@ class ComparisonPage(Page):
         if self._cmp is None:
             return
         shown = [(g, self._shown_rows(g)) for g in self._groups]
-        lines = export.shown_table(self._cmp, [(g, rows) for g, rows in shown if rows])
+        lines = export.shown_table(self._cmp, [(g, rows) for g, rows in shown if rows],
+                                   i18n.shown)
         text = "\n".join("\t".join(cells) for cells in lines)
         head = "".join(f"<th>{html.escape(c)}</th>" for c in lines[0])
         body = "".join("<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in cells) + "</tr>"
@@ -945,4 +949,4 @@ class ComparisonPage(Page):
 
     def export_path(self, path: Path) -> None:
         """Write the comparison to a .md or .csv file."""
-        export.write(self._project, Path(path))
+        export.write(self._project, Path(path), i18n.shown)

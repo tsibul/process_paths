@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QListWidget, QListWidgetItem,
                                QPushButton, QVBoxLayout, QWidget)
 
+from measure_twice import i18n
 from measure_twice.calc import compare, groups
 from measure_twice.project import Project
 from measure_twice.report import HEADINGS, PAGES
@@ -46,7 +47,7 @@ class ReportDialog(QDialog):
         lay.addWidget(label(self.tr("Pages"), "h3"))
         self.pages: dict[str, QCheckBox] = {}
         for kind in PAGES:
-            box = QCheckBox(HEADINGS[kind])
+            box = QCheckBox(i18n.shown(HEADINGS[kind]))
             box.setChecked(True)
             box.toggled.connect(self._update)
             self.pages[kind] = box

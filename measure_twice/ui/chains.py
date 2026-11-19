@@ -34,6 +34,7 @@ from measure_twice.calc import (
     groups,
     slice_at,
 )
+from measure_twice import i18n
 from measure_twice.project import Project
 from measure_twice.ui import style
 from measure_twice.ui.comparison import NO_PAIR, OUT, PAD_X, GroupHeader
@@ -1073,7 +1074,7 @@ class ChainsPage(Page):
         adding = None
         if self._next_input is not None and self._next_input[0] == code:
             adding = self._next_input[1]
-        error = (r.error[0], r.reason) if r.error else None
+        error = (r.error[0], i18n.shown(r.reason)) if r.error else None
         self.table.set_chain(chain(self._project, code), error, adding)
 
     # --- editing

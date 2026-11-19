@@ -126,99 +126,142 @@
     </message>
 </context>
 <context>
+    <name>Calc</name>
+    <message>
+        <location filename="../calc.py" line="294"/>
+        <source>cost of {kind}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="295"/>
+        <source>coefficient of executor {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="296"/>
+        <source>coefficient of scope {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="297"/>
+        <source>check price of {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="312"/>
+        <source>Error at transition {number}: {reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="315"/>
+        <source>Not set: {items}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="625"/>
+        <source>{number} d</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../calc.py" line="626"/>
+        <source>{number} h</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChainsPage</name>
     <message>
-        <location filename="../ui/chains.py" line="50"/>
+        <location filename="../ui/chains.py" line="51"/>
         <source>No transitions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="51"/>
+        <location filename="../ui/chains.py" line="52"/>
         <source>Steps not given</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="55"/>
+        <location filename="../ui/chains.py" line="56"/>
         <source>Move up</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="56"/>
+        <location filename="../ui/chains.py" line="57"/>
         <source>Move down</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="57"/>
+        <location filename="../ui/chains.py" line="58"/>
         <source>Remove</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="58"/>
+        <location filename="../ui/chains.py" line="59"/>
         <source>Add transition below</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="61"/>
+        <location filename="../ui/chains.py" line="62"/>
         <source>variants with the same task are compared</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="63"/>
+        <location filename="../ui/chains.py" line="64"/>
         <source>Entities and initial state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="64"/>
+        <location filename="../ui/chains.py" line="65"/>
         <source>no box ticked = entities of the transitions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="67"/>
+        <location filename="../ui/chains.py" line="68"/>
         <source>as in dictionary: {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="68"/>
+        <location filename="../ui/chains.py" line="69"/>
         <source>Not allowed here</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="69"/>
+        <location filename="../ui/chains.py" line="70"/>
         <source>State here:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="77"/>
+        <location filename="../ui/chains.py" line="78"/>
         <source>Add an executor on the Dictionary tab first: every new path needs one for each variant parameter.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="84"/>
+        <location filename="../ui/chains.py" line="85"/>
         <source>Initial-state changes of {} were cleared.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="99"/>
+        <location filename="../ui/chains.py" line="100"/>
         <source>Kind</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="100"/>
+        <location filename="../ui/chains.py" line="101"/>
         <source>Executor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="101"/>
+        <location filename="../ui/chains.py" line="102"/>
         <source>Instrument</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="102"/>
+        <location filename="../ui/chains.py" line="103"/>
         <source>Scope</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/chains.py" line="108"/>
+        <location filename="../ui/chains.py" line="109"/>
         <source>%n transition</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -227,7 +270,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/chains.py" line="113"/>
+        <location filename="../ui/chains.py" line="114"/>
         <source>%n step</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -236,73 +279,73 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="117"/>
+        <location filename="../ui/chains.py" line="118"/>
         <source>slice “{name}” reached</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="822"/>
+        <location filename="../ui/chains.py" line="823"/>
         <source>Code</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="825"/>
+        <location filename="../ui/chains.py" line="826"/>
         <source>Title</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="830"/>
+        <location filename="../ui/chains.py" line="831"/>
         <source>Copy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="833"/>
+        <location filename="../ui/chains.py" line="834"/>
         <source>Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="863"/>
+        <location filename="../ui/chains.py" line="864"/>
         <source>New</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="866"/>
+        <location filename="../ui/chains.py" line="867"/>
         <source>Add a variant</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="892"/>
+        <location filename="../ui/chains.py" line="893"/>
         <source>Side</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="902"/>
+        <location filename="../ui/chains.py" line="903"/>
         <source>Task</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="904"/>
+        <location filename="../ui/chains.py" line="905"/>
         <source>task</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="916"/>
+        <location filename="../ui/chains.py" line="917"/>
         <source>Out of comparison</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="920"/>
+        <location filename="../ui/chains.py" line="921"/>
         <source>reason</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="1020"/>
+        <location filename="../ui/chains.py" line="1021"/>
         <source>Paths</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="1025"/>
-        <location filename="../ui/chains.py" line="1063"/>
+        <location filename="../ui/chains.py" line="1026"/>
+        <location filename="../ui/chains.py" line="1064"/>
         <source>Task: {task}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -389,13 +432,13 @@
     </message>
     <message>
         <location filename="../ui/comparison.py" line="73"/>
-        <location filename="../ui/comparison.py" line="646"/>
+        <location filename="../ui/comparison.py" line="648"/>
         <source>Labour</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../ui/comparison.py" line="74"/>
-        <location filename="../ui/comparison.py" line="650"/>
+        <location filename="../ui/comparison.py" line="652"/>
         <source>Risk left</source>
         <translation type="unfinished"></translation>
     </message>
@@ -419,87 +462,87 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="550"/>
+        <location filename="../ui/comparison.py" line="552"/>
         <source>Comparison</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="552"/>
+        <location filename="../ui/comparison.py" line="554"/>
         <source>Side:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="555"/>
+        <location filename="../ui/comparison.py" line="557"/>
         <source>All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="579"/>
+        <location filename="../ui/comparison.py" line="581"/>
         <source>Export table (Markdown)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="581"/>
+        <location filename="../ui/comparison.py" line="583"/>
         <source>Export table (CSV)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="584"/>
+        <location filename="../ui/comparison.py" line="586"/>
         <source>Copy table</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="587"/>
+        <location filename="../ui/comparison.py" line="589"/>
         <source>Report (PDF)…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="642"/>
+        <location filename="../ui/comparison.py" line="644"/>
         <source>Waiting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="643"/>
+        <location filename="../ui/comparison.py" line="645"/>
         <source>Labour + waiting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="647"/>
+        <location filename="../ui/comparison.py" line="649"/>
         <source>total</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="660"/>
+        <location filename="../ui/comparison.py" line="662"/>
         <source>Code</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="660"/>
+        <location filename="../ui/comparison.py" line="662"/>
         <source>Title</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="660"/>
+        <location filename="../ui/comparison.py" line="662"/>
         <source>Side</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="660"/>
+        <location filename="../ui/comparison.py" line="662"/>
         <source>Steps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="687"/>
+        <location filename="../ui/comparison.py" line="689"/>
         <source>Uncounted errors (shown, never counted):</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="765"/>
+        <location filename="../ui/comparison.py" line="767"/>
         <source>Reason: {reason}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="944"/>
+        <location filename="../ui/comparison.py" line="948"/>
         <source>Copied table</source>
         <translation type="unfinished"></translation>
     </message>
@@ -811,6 +854,795 @@
     </message>
 </context>
 <context>
+    <name>Edit</name>
+    <message>
+        <location filename="../edit.py" line="53"/>
+        <source>unknown table: {table}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="57"/>
+        <source>key must be (entity, axis)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="58"/>
+        <source>key must be a name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="62"/>
+        <source>kind {label} has zero weight, its cost is always 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="66"/>
+        <source>kind {label} is a waiting kind, it has no labour cost</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="73"/>
+        <source>{name}: not a number: {text}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="76"/>
+        <source>{name}: price must be above zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="79"/>
+        <source>{name}: must not be below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="114"/>
+        <source>not a number: {text}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="117"/>
+        <source>must not be below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="165"/>
+        <location filename="../edit.py" line="201"/>
+        <location filename="../edit.py" line="224"/>
+        <location filename="../edit.py" line="267"/>
+        <location filename="../edit.py" line="284"/>
+        <location filename="../edit.py" line="296"/>
+        <location filename="../edit.py" line="422"/>
+        <source>no such variant</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="168"/>
+        <source>cannot add after transition {after}, the variant has {n}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="172"/>
+        <source>a transition is (kind, executor, instrument, scope)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="179"/>
+        <source>no such step: {step}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="184"/>
+        <source>transition {after} is not at step {step}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="203"/>
+        <location filename="../edit.py" line="227"/>
+        <source>no such transition: {number}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="230"/>
+        <location filename="../edit.py" line="1187"/>
+        <source>move by -1 or +1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="233"/>
+        <source>transition {number} cannot move up</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="235"/>
+        <source>transition {number} cannot move down</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="270"/>
+        <source>variant code is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="299"/>
+        <location filename="../edit.py" line="389"/>
+        <source>code and title must not be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="301"/>
+        <source>variant code is taken: {new_code}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="319"/>
+        <source>side must be &quot;own&quot; or &quot;other&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="326"/>
+        <source>{key} must be a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="336"/>
+        <source>entities must be a list of texts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="383"/>
+        <source>add variant</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="386"/>
+        <source>code and title must be texts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="391"/>
+        <source>variant code is taken: {code}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="438"/>
+        <source>entity {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="439"/>
+        <source>axis {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="440"/>
+        <source>value {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="441"/>
+        <location filename="../edit.py" line="852"/>
+        <source>kind {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="442"/>
+        <source>executor {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="443"/>
+        <source>instrument {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="444"/>
+        <source>scope {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="445"/>
+        <source>variant param {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="446"/>
+        <source>named slice {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="450"/>
+        <location filename="../edit.py" line="527"/>
+        <source>no such entity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="451"/>
+        <location filename="../edit.py" line="559"/>
+        <source>no such axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="452"/>
+        <location filename="../edit.py" line="631"/>
+        <source>no such value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="453"/>
+        <source>no such kind</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="454"/>
+        <source>no such executor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="455"/>
+        <source>no such instrument</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="456"/>
+        <source>no such scope</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="457"/>
+        <source>no such variant param</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="458"/>
+        <location filename="../edit.py" line="663"/>
+        <source>no such named slice</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="462"/>
+        <location filename="../edit.py" line="1347"/>
+        <source>kind name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="463"/>
+        <source>executor name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="464"/>
+        <source>instrument name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="465"/>
+        <source>scope name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="466"/>
+        <source>variant param name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="470"/>
+        <source>add entity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="471"/>
+        <source>add axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="472"/>
+        <source>add value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="473"/>
+        <source>add executor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="474"/>
+        <source>add instrument</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="475"/>
+        <source>add scope</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="476"/>
+        <source>add variant param</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="480"/>
+        <location filename="../edit.py" line="1014"/>
+        <source>name must be (entity, axis)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="481"/>
+        <location filename="../edit.py" line="1015"/>
+        <source>name must be (entity, axis, value)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="531"/>
+        <location filename="../edit.py" line="1071"/>
+        <source>entity name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="567"/>
+        <location filename="../edit.py" line="572"/>
+        <source>axis name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="574"/>
+        <source>the name {name} is the existence axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="637"/>
+        <source>value is taken: {e}/{a}={name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="667"/>
+        <location filename="../edit.py" line="1449"/>
+        <source>the name {final} is reserved for the final slice</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="670"/>
+        <location filename="../edit.py" line="1462"/>
+        <source>named slice name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="747"/>
+        <location filename="../edit.py" line="923"/>
+        <source>unknown kind of word: {what}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="750"/>
+        <location filename="../edit.py" line="927"/>
+        <source>name must be a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="754"/>
+        <source>name must not be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="796"/>
+        <source>variant {code}, call {number}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="801"/>
+        <location filename="../edit.py" line="1211"/>
+        <source>batch scope</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="806"/>
+        <source>variant {code}, parameter {param}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="811"/>
+        <location filename="../edit.py" line="857"/>
+        <source>slice {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="839"/>
+        <source>variant {code}, entities</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="842"/>
+        <source>variant {code}, initial</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="846"/>
+        <source>kind {name}, from</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="847"/>
+        <source>kind {name}, to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="854"/>
+        <source>kind {name}, condition</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="863"/>
+        <source>axis {entity}/{axis}, inherit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="868"/>
+        <location filename="../edit.py" line="1233"/>
+        <source>existence axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="871"/>
+        <source>initial value of {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="934"/>
+        <source>{name} is used and cannot be deleted:
+{places}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="972"/>
+        <location filename="../edit.py" line="1019"/>
+        <source>name is empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1008"/>
+        <source>name must be text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1026"/>
+        <source>variant parameter name is taken: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1030"/>
+        <source>the variants need an executor for the new variant parameter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1034"/>
+        <source>no such executor: {executor}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1063"/>
+        <source>cannot add this kind of word: {what}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1078"/>
+        <source>no such entity: {entity}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1081"/>
+        <source>axis name is taken: {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1085"/>
+        <source>axis {entity}/{axis} needs its first value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1093"/>
+        <source>no such axis: {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1096"/>
+        <source>value name is taken: {entity}/{axis}={value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1158"/>
+        <source>cannot move up</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1159"/>
+        <source>cannot move down</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1184"/>
+        <source>unknown kind of word or wrong name: {what}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1185"/>
+        <source>move word</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1191"/>
+        <source>no such word</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1213"/>
+        <source>no such scope: {scope}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1237"/>
+        <source>name and value must be texts, not empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1273"/>
+        <source>the structure must be a dictionary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1276"/>
+        <location filename="../edit.py" line="1414"/>
+        <source>unknown fields: {fields}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1282"/>
+        <source>{field} must be a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1286"/>
+        <source>requires must be a list of triples</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1293"/>
+        <source>{flag} must be true or false</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1298"/>
+        <source>zero_weight_note must be a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1339"/>
+        <source>kind name must be a text, not empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1350"/>
+        <source>no such kind: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1376"/>
+        <source>add kind</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1394"/>
+        <source>set kind</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1420"/>
+        <source>a group must be a list of rows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1426"/>
+        <source>a row must be three texts or two texts: {row}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1433"/>
+        <source>empty group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1445"/>
+        <source>slice name must be a text, not empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1452"/>
+        <source>a slice needs at least one group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1465"/>
+        <source>no such named slice: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1484"/>
+        <source>add slice</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../edit.py" line="1497"/>
+        <source>set slice</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Export</name>
+    <message>
+        <location filename="../export.py" line="25"/>
+        <source>not set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="26"/>
+        <source>{number} (not reached)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="27"/>
+        <source>Waiting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="28"/>
+        <source>Labour + waiting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="103"/>
+        <source>Ours</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="103"/>
+        <source>Theirs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="104"/>
+        <source>No comparable variant</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="105"/>
+        <source>Not compared: no other variant has the same task</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="106"/>
+        <source>Out of comparison</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="107"/>
+        <source>Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="108"/>
+        <source>Reason</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="109"/>
+        <source>Uncounted errors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="110"/>
+        <source>Details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="114"/>
+        <source>Labour · {executor}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="115"/>
+        <source>Risk left, {slice}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="116"/>
+        <source>end</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="118"/>
+        <source>Code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="119"/>
+        <source>Title</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="120"/>
+        <source>Side</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="121"/>
+        <source>Steps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="124"/>
+        <source>Labour · total</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="134"/>
+        <source>Task: {task}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../export.py" line="181"/>
+        <source>%n variants</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="194"/>
+        <source>Kind</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="195"/>
+        <source>Executor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="196"/>
+        <source>Instrument</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="197"/>
+        <source>Scope</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="198"/>
+        <source>Cost</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="199"/>
+        <source>Scope coef.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="200"/>
+        <source>Executor coef.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="201"/>
+        <source>Labour</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../export.py" line="202"/>
+        <source>Change</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GroupHeader</name>
     <message>
         <location filename="../ui/comparison.py" line="161"/>
@@ -821,32 +1653,32 @@
 <context>
     <name>InputRow</name>
     <message>
-        <location filename="../ui/chains.py" line="403"/>
+        <location filename="../ui/chains.py" line="404"/>
         <source>Add</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="406"/>
+        <location filename="../ui/chains.py" line="407"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="415"/>
+        <location filename="../ui/chains.py" line="416"/>
         <source>Kind</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="416"/>
+        <location filename="../ui/chains.py" line="417"/>
         <source>Executor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="417"/>
+        <location filename="../ui/chains.py" line="418"/>
         <source>Instrument</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/chains.py" line="418"/>
+        <location filename="../ui/chains.py" line="419"/>
         <source>Scope</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1171,105 +2003,105 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="732"/>
-        <location filename="../ui/app.py" line="770"/>
+        <location filename="../ui/app.py" line="735"/>
+        <location filename="../ui/app.py" line="773"/>
         <source>Loaded {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="749"/>
+        <location filename="../ui/app.py" line="752"/>
         <source>Loaded {name} over the project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="779"/>
+        <location filename="../ui/app.py" line="782"/>
         <source>Added {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="782"/>
+        <location filename="../ui/app.py" line="785"/>
         <source>Example is already in the list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="816"/>
+        <location filename="../ui/app.py" line="819"/>
         <source>Created {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="822"/>
-        <location filename="../ui/app.py" line="942"/>
+        <location filename="../ui/app.py" line="825"/>
+        <location filename="../ui/app.py" line="945"/>
         <source>Saved {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="833"/>
+        <location filename="../ui/app.py" line="836"/>
         <source>Delete the project “{name}”? This cannot be undone.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="851"/>
+        <location filename="../ui/app.py" line="854"/>
         <source>Project name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="851"/>
+        <location filename="../ui/app.py" line="854"/>
         <source>Project name:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="874"/>
+        <location filename="../ui/app.py" line="877"/>
         <source>Load project file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="882"/>
+        <location filename="../ui/app.py" line="885"/>
         <source>Load over the selected project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="892"/>
+        <location filename="../ui/app.py" line="895"/>
         <source>Save project file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="898"/>
-        <location filename="../ui/app.py" line="913"/>
+        <location filename="../ui/app.py" line="901"/>
+        <location filename="../ui/app.py" line="916"/>
         <source>Cannot write the file: {error}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="901"/>
+        <location filename="../ui/app.py" line="904"/>
         <source>Markdown (*.md)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="901"/>
+        <location filename="../ui/app.py" line="904"/>
         <source>CSV (*.csv)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="903"/>
+        <location filename="../ui/app.py" line="906"/>
         <source>Export comparison</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="911"/>
+        <location filename="../ui/app.py" line="914"/>
         <source>Exported {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="930"/>
+        <location filename="../ui/app.py" line="933"/>
         <source>Save PDF report</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="930"/>
+        <location filename="../ui/app.py" line="933"/>
         <source>PDF (*.pdf)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="940"/>
+        <location filename="../ui/app.py" line="943"/>
         <source>Cannot write the report: {error}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1430,18 +2262,441 @@
 <context>
     <name>PathItem</name>
     <message>
-        <location filename="../ui/chains.py" line="190"/>
+        <location filename="../ui/chains.py" line="191"/>
         <source>error</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/chains.py" line="198"/>
+        <location filename="../ui/chains.py" line="199"/>
         <source>%n step without transitions</source>
         <translation type="unfinished">
             <numerusform></numerusform>
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>Project</name>
+    <message>
+        <location filename="../project.py" line="54"/>
+        <source>waiting needs a number above 0 and the unit hours or days</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="60"/>
+        <source>entity {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="61"/>
+        <source>{where}, axis {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="62"/>
+        <source>kind {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="63"/>
+        <source>named slice {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="64"/>
+        <source>variant {code}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="65"/>
+        <source>{where}, step {number}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="66"/>
+        <source>{where}, call {number}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="67"/>
+        <source>number expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="68"/>
+        <source>text expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="69"/>
+        <source>list expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="70"/>
+        <source>{field} must be a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="71"/>
+        <source>unknown {entity}/{axis}={value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="72"/>
+        <source>unknown executor {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="73"/>
+        <source>unknown variant parameter {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="74"/>
+        <source>the name {name} is reserved for the final slice</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="212"/>
+        <source>list of names expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="220"/>
+        <source>unknown field {field}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="226"/>
+        <source>object expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="235"/>
+        <source>field {field} is missing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="245"/>
+        <source>list of [{names}] expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="274"/>
+        <source>steps must be a list</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="292"/>
+        <source>calls must be an integer, 0 or more</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../project.py" line="295"/>
+        <source>steps cover %n calls, the variant has {count}</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="307"/>
+        <source>must be {format}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="319"/>
+        <source>name and absent must be texts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="332"/>
+        <source>axes: list expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="366"/>
+        <source>{field} must be true or false</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="370"/>
+        <source>zero_weight_note needs zero_weight true and a text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="393"/>
+        <source>&quot;any&quot;: non-empty list of groups expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="402"/>
+        <source>empty group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="417"/>
+        <source>side must be &quot;own&quot; or &quot;other&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="422"/>
+        <source>object {parameter: executor} expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="429"/>
+        <source>object {entity: {axis: value}} expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="435"/>
+        <source>out_of_comparison must be a reason text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="460"/>
+        <source>list of texts expected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="534"/>
+        <source>entity repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="539"/>
+        <source>axis repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="545"/>
+        <source>no values</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="546"/>
+        <source>value repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="551"/>
+        <source>unknown inherit source {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="557"/>
+        <source>existence axis lacks the value {value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="561"/>
+        <source>kind repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="564"/>
+        <source>executor repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="566"/>
+        <source>instrument repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="567"/>
+        <source>scope repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="569"/>
+        <source>{scope} is not among the scopes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="579"/>
+        <location filename="../project.py" line="652"/>
+        <source>unknown entity {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="581"/>
+        <source>unknown axis {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="586"/>
+        <source>unknown value {entity}/{axis}={value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="589"/>
+        <source>from equals to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="594"/>
+        <source>condition: unknown {entity}/{axis}={value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="597"/>
+        <source>condition on its own axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="599"/>
+        <source>a waiting kind cannot be a check</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="603"/>
+        <source>variant parameter repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="635"/>
+        <source>variant code repeats: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="642"/>
+        <source>variant parameter {name} not set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="648"/>
+        <source>parameter {name}: unknown executor {executor}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="660"/>
+        <source>unknown kind {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="664"/>
+        <source>unknown instrument {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="667"/>
+        <source>unknown scope {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="694"/>
+        <source>kind {name} is a waiting kind, its cost must be 0 or absent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="701"/>
+        <source>kind {name} has zero_weight, its cost must be 0 or absent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="707"/>
+        <source>kind without cost: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="711"/>
+        <source>cost of unknown kind: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="716"/>
+        <source>kind {name}: cost below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="719"/>
+        <source>{name} costs 0; a kind without labour needs zero_weight</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="723"/>
+        <source>executor without coefficient: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="724"/>
+        <source>coefficient of unknown executor: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="725"/>
+        <source>executor {name}: coefficient below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="728"/>
+        <source>scope without coefficient: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="729"/>
+        <source>coefficient of unknown scope: {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="730"/>
+        <source>scope {name}: coefficient below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="748"/>
+        <source>check axis without check price: {entity}/{axis}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="757"/>
+        <source>{entity}/{axis} is not a check axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="760"/>
+        <source>{entity}/{axis}: price must be above zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="764"/>
+        <source>must be above zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="768"/>
+        <source>must not be below zero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="805"/>
+        <source>same change of state: {kind} = {other}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="808"/>
+        <source>kind {name} repeats the chain {chain}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="828"/>
+        <source>task is required</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="873"/>
+        <source>not valid JSON: line {line}, column {column}: {reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../project.py" line="890"/>
+        <source>cannot read: {reason}</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1459,37 +2714,37 @@
 <context>
     <name>RemarksPanel</name>
     <message>
-        <location filename="../ui/remarks.py" line="18"/>
+        <location filename="../ui/remarks.py" line="19"/>
         <source>Nothing was stored. Fix the file and load it again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/remarks.py" line="19"/>
+        <location filename="../ui/remarks.py" line="20"/>
         <source>Nothing was stored. Enter a name and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/remarks.py" line="33"/>
+        <location filename="../ui/remarks.py" line="34"/>
         <source>Copy remarks</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/remarks.py" line="36"/>
+        <location filename="../ui/remarks.py" line="37"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/remarks.py" line="54"/>
+        <location filename="../ui/remarks.py" line="55"/>
         <source>{count} — {name} was not loaded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/remarks.py" line="63"/>
+        <location filename="../ui/remarks.py" line="64"/>
         <source>{count} — the project was not created</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/remarks.py" line="72"/>
+        <location filename="../ui/remarks.py" line="73"/>
         <source>%n remark(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -1499,29 +2754,117 @@
     </message>
 </context>
 <context>
+    <name>Report</name>
+    <message>
+        <location filename="../report.py" line="43"/>
+        <source>Answer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="44"/>
+        <source>Steps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="45"/>
+        <source>Assumptions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="67"/>
+        <source>Task: {task}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="68"/>
+        <source>Risk left is in the same unit as labour.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="69"/>
+        <source>Reason: {reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="70"/>
+        <source>Executor coefficients</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="71"/>
+        <source>Scope coefficients</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="72"/>
+        <source>Check prices</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="73"/>
+        <source>Check price is added to Risk left when a way does not do the check.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="75"/>
+        <source>Labour per hour of waiting: {value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="449"/>
+        <source>Coefficient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="450"/>
+        <source>Executor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="454"/>
+        <source>Scope</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="459"/>
+        <source>Entity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="460"/>
+        <source>Check axis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../report.py" line="461"/>
+        <source>Check price</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ReportDialog</name>
     <message>
-        <location filename="../ui/report_dialog.py" line="41"/>
+        <location filename="../ui/report_dialog.py" line="42"/>
         <source>Report (PDF)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/report_dialog.py" line="46"/>
+        <location filename="../ui/report_dialog.py" line="47"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/report_dialog.py" line="55"/>
+        <location filename="../ui/report_dialog.py" line="56"/>
         <source>Ways (on every page)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/report_dialog.py" line="74"/>
+        <location filename="../ui/report_dialog.py" line="75"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/report_dialog.py" line="75"/>
+        <location filename="../ui/report_dialog.py" line="76"/>
         <source>Save PDF…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1634,7 +2977,7 @@
 <context>
     <name>StepCell</name>
     <message>
-        <location filename="../ui/comparison.py" line="330"/>
+        <location filename="../ui/comparison.py" line="332"/>
         <source>Risk left: {count}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1642,22 +2985,22 @@
 <context>
     <name>StepsPanel</name>
     <message>
-        <location filename="../ui/comparison.py" line="291"/>
+        <location filename="../ui/comparison.py" line="293"/>
         <source>Not checked, {slice} (not reached): {what}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="293"/>
+        <location filename="../ui/comparison.py" line="295"/>
         <source>Not checked, {slice}: {what}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="295"/>
+        <location filename="../ui/comparison.py" line="297"/>
         <source>Not checked (not reached): {what}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/comparison.py" line="297"/>
+        <location filename="../ui/comparison.py" line="299"/>
         <source>Not checked: {what}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1665,7 +3008,7 @@
 <context>
     <name>StepsView</name>
     <message>
-        <location filename="../ui/comparison.py" line="367"/>
+        <location filename="../ui/comparison.py" line="369"/>
         <source>Back to table</source>
         <translation type="unfinished"></translation>
     </message>

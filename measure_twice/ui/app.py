@@ -410,7 +410,8 @@ class MainWindow(QMainWindow):
         data, remarks = set_number(self.store.get(self.current_id).data, table, key, text)
         if data is None:
             own = f"normalization, {table}"
-            self.norm.show_refusal(table, "; ".join(r.text if r.where == own else str(r) for r in remarks))
+            self.norm.show_refusal(table, "; ".join(
+                i18n.shown(r.text) if r.where == own else i18n.remark(r) for r in remarks))
             return False
         self._save_edit(data)
         return True
@@ -453,7 +454,8 @@ class MainWindow(QMainWindow):
         data, remarks = fn(self.store.get(self.current_id).data, *args, **fields)
         if data is None:
             own = f"variant {args[0]}"
-            self.chains.show_refusal("; ".join(r.text if r.where == own else str(r) for r in remarks))
+            self.chains.show_refusal("; ".join(
+                i18n.shown(r.text) if r.where == own else i18n.remark(r) for r in remarks))
             return False
         if op == "copy":
             self.chains.choose_next(copy_code(args[0]))
@@ -485,9 +487,9 @@ class MainWindow(QMainWindow):
             texts = []
             for r in remarks:
                 if r.where == "add variant":
-                    texts.append(r.text)
+                    texts.append(i18n.shown(r.text))
                 else:
-                    texts.append(str(r))
+                    texts.append(i18n.remark(r))
             self.chains.show_refusal("; ".join(texts))
             return False
         self.chains.choose_next(code)
@@ -518,7 +520,8 @@ class MainWindow(QMainWindow):
         if new is None:
             short = old[-1] if isinstance(old, tuple) else old
             own = f"{what.replace('_', ' ')} {'/'.join(old) if isinstance(old, tuple) else old}"
-            text = "; ".join(r.text if r.where == own else str(r) for r in remarks)
+            text = "; ".join(
+                i18n.shown(r.text) if r.where == own else i18n.remark(r) for r in remarks)
             line, _, places = text.partition("\n")
             if op == "rename" and remarks[0].where == own:
                 line = f"{short}: {line}"
@@ -687,9 +690,9 @@ class MainWindow(QMainWindow):
         texts = []
         for r in remarks:
             if r.where in owns:
-                texts.append(r.text)
+                texts.append(i18n.shown(r.text))
             else:
-                texts.append(str(r))
+                texts.append(i18n.remark(r))
         line, _, places = "; ".join(texts).partition("\n")
         rest = []
         if places:
@@ -763,7 +766,7 @@ class MainWindow(QMainWindow):
             return False, translate("MainWindow", NO_JSON)
         project, remarks = parse_text(found)
         if project is None:
-            return False, [str(r) for r in remarks]
+            return False, [i18n.remark(r) for r in remarks]
         self.remarks_panel.hide()
         self.refresh(self.store.add(project))
         self._offer(project)

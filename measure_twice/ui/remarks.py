@@ -11,6 +11,7 @@ from PySide6.QtCore import QT_TRANSLATE_NOOP
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPlainTextEdit, QPushButton, QVBoxLayout
 
+from measure_twice import i18n
 from measure_twice.project import Remark
 from measure_twice.ui.tables import label, translate
 
@@ -49,7 +50,7 @@ class RemarksPanel(QFrame):
 
     def show_remarks(self, path: Path, remarks: list[Remark]) -> None:
         """Show the remarks of one file."""
-        self._lines = [str(r) for r in remarks]
+        self._lines = [i18n.remark(r) for r in remarks]
         count = self._count()
         text = self.tr("{count} — {name} was not loaded")
         self.count_label.setText(text.format(count=count, name=Path(path).name))
@@ -59,7 +60,7 @@ class RemarksPanel(QFrame):
 
     def show_name_remarks(self, remarks: list[Remark]) -> None:
         """Show why a new project was not created."""
-        self._lines = [str(r) for r in remarks]
+        self._lines = [i18n.remark(r) for r in remarks]
         text = self.tr("{count} — the project was not created")
         self.count_label.setText(text.format(count=self._count()))
         self.text.setPlainText("\n".join(self._lines))

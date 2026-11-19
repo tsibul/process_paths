@@ -19,6 +19,8 @@ from pathlib import Path
 from PySide6.QtCore import (QCoreApplication, QLibraryInfo, QLocale, QProcess, QSettings,
                             QTranslator)
 
+from measure_twice.message import Message
+
 KEY = "language"
 SOURCE = "en"  # the language of the strings in the code
 # Code and the name of the language in itself, in the order of the switch.
@@ -125,6 +127,44 @@ def current() -> str:
 def locale() -> QLocale:
     """The locale of the window language, for dates and numbers."""
     return QLocale(_current)
+
+
+def shown(text: object) -> str:
+    """A text of the core in the language of the window.
+
+    A :class:`~measure_twice.message.Message` has its template translated and its substitutions
+    filled in, each translated in turn; any other text is shown as it is. A translation that
+    lost a substitution shows the English text.
+
+    :param text: a message, a plain text or ``None`` (an empty text).
+    :return: the text to show.
+    :rtype: str
+    """
+    if text is None:
+        return ""
+    if not isinstance(text, Message):
+        return str(text)
+    template = text.template
+    if text.context is not None:
+        if text.n is None:
+            template = QCoreApplication.translate(text.context, template)
+        else:
+            template = QCoreApplication.translate(text.context, template, "", text.n)
+    elif text.n is not None:
+        template = template.replace("%n", str(text.n))
+    if not text.args:
+        return template
+    try:
+        return template.format_map({k: shown(v) for k, v in text.args.items()})
+    except (KeyError, IndexError, ValueError):
+        return str(text)
+
+
+def remark(r) -> str:
+    """One remark of the core as a line in the language of the window: ``place: text``."""
+    where = shown(r.where)
+    text = shown(r.text)
+    return f"{where}: {text}" if where else text
 
 
 def restart() -> None:
