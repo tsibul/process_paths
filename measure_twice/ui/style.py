@@ -46,6 +46,16 @@ def side_name(side: str) -> str:
     return side
 
 
+def side_word(side: str) -> str:
+    """The stored word ``own`` or ``other`` as the Variants table shows it, in the language of the
+    window; an unknown side as it is."""
+    if side == "own":
+        return QCoreApplication.translate("Side", "own")
+    if side == "other":
+        return QCoreApplication.translate("Side", "other")
+    return side
+
+
 def side_text(side: str) -> str:
     """The side with its mark: ``● Ours`` or ``○ Theirs``."""
     return f"{SIDE_MARK[side]} {side_name(side)}" if side in SIDE_MARK else side

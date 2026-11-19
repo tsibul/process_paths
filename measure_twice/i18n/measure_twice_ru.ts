@@ -1404,7 +1404,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/pages.py" line="1948"/>
+        <location filename="../ui/pages.py" line="1951"/>
         <source>{code} · {title} — calls</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1536,6 +1536,16 @@
     <message>
         <location filename="../ui/style.py" line="45"/>
         <source>Theirs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ui/style.py" line="53"/>
+        <source>own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ui/style.py" line="55"/>
+        <source>other</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

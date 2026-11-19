@@ -1875,8 +1875,11 @@ class NormPage(Page):
         self.missing_label.setText(text)
         self.missing_label.setVisible(missing > 0)
         self.errors.set_rows([[g, t] for g, texts in n.uncounted_errors.items() for t in texts] or [[DASH, ""]])
-        self.variants.set_rows([[v.code, v.title, p.sides[v.code], str(len(v.calls)), v.out_of_comparison or ""]
-                                for v in m.variants])
+        self.variants.set_rows([
+            [v.code, v.title, style.side_word(p.sides[v.code]), str(len(v.calls)),
+             v.out_of_comparison or ""]
+            for v in m.variants
+        ])
         if m.variants:
             self.variants.selectRow(0)
         if chosen is not None:

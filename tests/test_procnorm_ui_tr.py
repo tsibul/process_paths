@@ -228,6 +228,7 @@ def untranslated(text: str, data: list[str]) -> bool:
     """Whether the text has English letters outside the project names and has no mark."""
     if MARK in text or text in outside_the_window():
         return False
+    text = text.replace("\xa0", " ")  # the state lines bind names with no-break spaces
     for word in sorted(data + FIXED, key=len, reverse=True):
         text = text.replace(word, " ")
     return bool(LETTERS.search(text))
@@ -308,6 +309,7 @@ def data_words(win: MainWindow) -> list[str]:
     words = leaves(english_project())
     for info in win.store.list():
         words += leaves(win.store.get(info.id).data)
+    words = [w for w in words if w not in ("own", "other")]  # stored side values, not names
     words += [win.projects.itemText(i) for i in range(win.projects.count())]
     return words
 
@@ -320,6 +322,41 @@ def visit(win: MainWindow, shown: list[str]) -> list[tuple[str, str]]:
         win.tabs.setCurrentIndex(index)
         QApplication.processEvents()
         found += widget_texts(win)
+    return found
+
+
+def open_inputs(win: MainWindow) -> list[tuple[str, str]]:
+    """Open the add rows, the forms of kinds and slices and the input and state rows of the chain
+    of the current project, and gather the texts of each."""
+    found: list[tuple[str, str]] = []
+    page = win.dictionary
+    for table in page.tables():
+        for what, owner in list(table._adds):
+            if what in ("kind", "named_slice"):
+                continue  # these open a form, not the one-line input
+            table.open_add(what, owner)
+            QApplication.processEvents()
+            found += widget_texts(table)
+        table.cancel_add()
+    for table, what in ((page.kinds, "kind"), (page.slices, "named_slice")):
+        names = [None] + [
+            table.item(r, c).text()
+            for r in range(table.rowCount())
+            for c in range(table.columnCount())
+            if table.item(r, c) is not None and table.word_item(what, table.item(r, c).text())
+        ][:2]
+        for old in names:
+            page._open_form(table, what, old)
+            QApplication.processEvents()
+            found += widget_texts(table)
+            table.cancel_add()
+    win.tabs.setCurrentWidget(win.chains)
+    table = win.chains.table
+    for adding in (("none", 0), ("none", 1), ("call", 1), ("call", 2)):
+        table.open_input(adding)
+        QApplication.processEvents()
+        found += widget_texts(win.chains)
+    table.open_input(None)
     return found
 
 
@@ -355,6 +392,7 @@ def test_every_visible_string_is_marked(win, shown):
     for i in range(win.projects.count()):
         win.projects.setCurrentIndex(i)
         extra += visit(win, shown)
+        extra += open_inputs(win)
     extra += visit(win, shown)
     data = data_words(win)
     bad = sorted({f"{where}: {text!r}" for where, text in extra if untranslated(text, data)})
