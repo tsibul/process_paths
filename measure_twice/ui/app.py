@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
                                QWidgetAction)
 
 from measure_twice.calc import empty_steps, project_empty_steps
-from measure_twice import edit
+from measure_twice import edit, report
 from measure_twice.ai import extract_json
 from measure_twice.example import EXAMPLE_NAME, add_example, first_run
 from measure_twice.edit import (
@@ -38,6 +38,7 @@ from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.pages import DictionaryPage, NormPage
 from measure_twice.ui.paste import PasteDialog
 from measure_twice.ui.remarks import RemarksPanel
+from measure_twice.ui.report_dialog import ReportDialog
 from measure_twice.ui.style import ACCENT, STYLE
 from measure_twice.ui.tables import NOTE_ROLE, NoteDelegate, label, project_note
 
@@ -161,6 +162,7 @@ class MainWindow(QMainWindow):
         self.dictionary.slice_set.connect(self.set_slice)
         self.comparison.export_md.clicked.connect(lambda: self.on_export(".md"))
         self.comparison.export_csv.clicked.connect(lambda: self.on_export(".csv"))
+        self.comparison.report_button.clicked.connect(self.on_report)
 
         last = settings.value(LAST) if settings is not None else None
         self.refresh(int(last) if last is not None else None)
@@ -828,6 +830,34 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Exported {p.name}")
         except OSError as exc:
             self.warn(f"Cannot write the file: {exc}")
+
+    def on_report(self) -> None:
+        project = self.comparison._project
+        if project is None:
+            return
+        dialog = ReportDialog(project, lambda pages, ways: self.save_report(pages, ways), self)
+        dialog.exec()
+        dialog.deleteLater()
+
+    def save_report(self, pages: list[str], ways: list[str]) -> bool:
+        """Ask for the PDF file and write the report of the chosen pages and ways.
+
+        :return: ``True`` when the file is written.
+        """
+        name = f"{self.projects.currentText() or 'report'}.pdf"
+        path, _ = QFileDialog.getSaveFileName(self, "Save PDF report", name, "PDF (*.pdf)")
+        if not path:
+            return False
+        p = Path(path)
+        if p.suffix.lower() != ".pdf":
+            p = p.with_name(p.name + ".pdf")
+        try:
+            report.write(self.comparison._project, p, chosen=pages, ways=ways)
+        except (OSError, ValueError) as exc:
+            self.warn(f"Cannot write the report: {exc}")
+            return False
+        self.statusBar().showMessage(f"Saved {p.name}")
+        return True
 
 
 def build_window(store: Store, settings: QSettings, select: int | None = None) -> MainWindow:

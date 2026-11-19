@@ -532,6 +532,8 @@ class ComparisonPage(Page):
         self.export_csv = QPushButton("Export table (CSV)")
         buttons.addWidget(self.export_md)
         buttons.addWidget(self.export_csv)
+        self.report_button = QPushButton("Report (PDF)…")
+        buttons.addWidget(self.report_button)
         buttons.addStretch(1)
         self.export_bar = QWidget()
         self.export_bar.setLayout(buttons)
@@ -567,6 +569,7 @@ class ComparisonPage(Page):
         self._open = [c for c in opened if c in codes]
         self.export_md.setEnabled(p is not None)
         self.export_csv.setEnabled(p is not None)
+        self.report_button.setEnabled(p is not None)
         self.notes.setText(self._notes_text())
         self._render()
         g = next((g for g in self._groups if g.kind == "task" and g.task == task), None)
