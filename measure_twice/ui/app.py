@@ -37,7 +37,7 @@ from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.pages import DictionaryPage, NormPage
 from measure_twice.ui.remarks import RemarksPanel
 from measure_twice.ui.style import ACCENT, STYLE
-from measure_twice.ui.tables import label
+from measure_twice.ui.tables import NOTE_ROLE, NoteDelegate, label, project_note
 
 LAST = "last_project"
 NEW_NAME = "New project"
@@ -118,8 +118,9 @@ class MainWindow(QMainWindow):
         head.addWidget(label("Measure Twice", "title"))
         bar = QHBoxLayout()
         bar.setSpacing(8)
-        bar.addWidget(label("<b>Project:</b>"))
+        bar.addWidget(label("<b>Comparing:</b>"))
         self.projects = QComboBox()
+        self.projects.setItemDelegate(NoteDelegate(self.projects))
         self.projects.currentIndexChanged.connect(self._project_chosen)
         bar.addWidget(self.projects, 1)
         self.new_button = self._button(bar, "New", self.on_new)
@@ -257,9 +258,18 @@ class MainWindow(QMainWindow):
         self.projects.clear()
         for i in infos:
             self.projects.addItem(i.name, i.id)
+            self.projects.setItemData(self.projects.count() - 1, project_note(i.ways, i.updated),
+                                      NOTE_ROLE)
         self.projects.setCurrentIndex(ids.index(select) if select is not None else -1)
         self.projects.blockSignals(False)
         self._open(select)
+
+    def _update_note(self) -> None:
+        """Refresh the grey column of the open project's row after a write."""
+        index = self.projects.findData(self.current_id)
+        for i in self.store.list():
+            if i.id == self.current_id and index >= 0:
+                self.projects.setItemData(index, project_note(i.ways, i.updated), NOTE_ROLE)
 
     def project_names(self) -> list[str]:
         """Names in the project list."""
@@ -599,6 +609,7 @@ class MainWindow(QMainWindow):
         """
         before = set(self.store.get(self.current_id).errors)
         self.store.save(self.current_id, data)
+        self._update_note()
         project = self.store.get(self.current_id)
         for page in (self.dictionary, self.norm, self.comparison, self.chains):
             page.show_project(project, keep=True)

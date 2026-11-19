@@ -5,13 +5,21 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QFontDatabase, QFontMetrics
-from PySide6.QtWidgets import QAbstractItemView, QLabel, QTableWidget, QTableWidgetItem, QWidget
+from datetime import datetime
+
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontMetrics, QPainter
+from PySide6.QtWidgets import (QAbstractItemView, QLabel, QStyle, QStyledItemDelegate,
+                               QStyleOptionViewItem, QTableWidget, QTableWidgetItem, QWidget)
+
+from measure_twice.ui.style import TEXT2
 
 DASH = "—"
 ARROW = "→"
 CHECK = "✓"
+NOTE_ROLE = Qt.ItemDataRole.UserRole + 1  # the grey column of a list row
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+NOTE_GAP = 24  # pixels between the name and the grey column
 
 
 def label(text: str, name: str = "") -> QLabel:
@@ -22,6 +30,59 @@ def label(text: str, name: str = "") -> QLabel:
     if name:
         w.setObjectName(name)
     return w
+
+
+def project_note(ways: int, updated: str, now: datetime | None = None) -> str:
+    """The grey column of a project row: ``6 ways · 18 Nov 14:32``, for a past year ``18 Nov 2025``.
+
+    :param ways: number of ways in the project.
+    :param updated: time of the last write, ISO, UTC.
+    :param now: the current local time with its zone; the clock when absent.
+    :return: the text of the column.
+    :rtype: str
+    """
+    if now is None:
+        now = datetime.now().astimezone()
+    local = datetime.fromisoformat(updated).astimezone(now.tzinfo)
+    day = f"{local.day} {MONTHS[local.month - 1]}"
+    when = f"{day} {local:%H:%M}" if local.year == now.year else f"{day} {local.year}"
+    count = f"{ways} {'way' if ways == 1 else 'ways'}"
+    return f"{count} · {when}"
+
+
+class NoteDelegate(QStyledItemDelegate):
+    """A list row with its text on the left and the grey ``NOTE_ROLE`` text on the right."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        super().paint(painter, option, index)
+        note = index.data(NOTE_ROLE)
+        if not note:
+            return
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.setPen(option.palette.highlightedText().color())
+        else:
+            painter.setPen(QColor(TEXT2))
+        rect = option.rect.adjusted(0, 0, -8, 0)
+        align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        painter.drawText(rect, align, note)
+        painter.restore()
+
+    def sizeHint(
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        size = super().sizeHint(option, index)
+        note = index.data(NOTE_ROLE)
+        if note:
+            size.setWidth(size.width() + NOTE_GAP + option.fontMetrics.horizontalAdvance(note))
+        return size
 
 
 def mono():
