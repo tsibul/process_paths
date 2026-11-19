@@ -215,6 +215,11 @@ def test_export(loaded, tmp_path):
     assert "Labour · total" in csv.read_text(encoding="utf-8")
 
 
+def test_export_buttons_named_as_table_exports(loaded):
+    assert loaded.comparison.export_md.text() == "Export table (Markdown)"
+    assert loaded.comparison.export_csv.text() == "Export table (CSV)"
+
+
 # --- comparison tree: groups by task (piece 5)
 
 LONG = "Очень длинное имя исполнителя для проверки обрезки"
