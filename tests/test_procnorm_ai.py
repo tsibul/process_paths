@@ -157,7 +157,6 @@ def test_prompt_three_takes_a_check_from_my_words():
     text = prompts()[2].text
     assert "If my words call an action a check, it is a check." in text
     assert "A check changes an attribute of its own, not the state it looks at" in text
-    assert "makes it absent" in text
     assert "Diagnosis and finding the cause are ordinary actions" not in text
 
 
@@ -175,6 +174,23 @@ def test_prompt_four_warns_about_added_steps():
 def test_prompt_four_scales_skip_price_to_the_fix():
     text = prompts()[3].text
     assert "comparable to the work of fixing what the skip lets through" in text
+
+
+def test_prompt_one_requires_added_ways_to_differ_in_actions():
+    text = prompts()[0].text
+    assert "An added way must differ from the others in its actions." in text
+
+
+def test_prompt_three_makes_a_leaving_part_absent_not_new():
+    text = prompts()[2].text
+    assert "never add a new thing for the old part" in text
+    assert "make the same thing absent with its exists attribute" in text
+
+
+def test_prompt_five_keeps_way_codes_and_drops_paying_line():
+    text = prompts()[4].text
+    assert '"code" (mine if I gave them)' in text
+    assert "Paying is not labour: no kind for it." not in text
 
 
 def test_task_prompt_fills_the_task():

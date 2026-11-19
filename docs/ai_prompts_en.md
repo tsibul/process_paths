@@ -22,12 +22,12 @@ We go in six steps; I will give you a prompt for each. Rules for the whole conve
 Step 1. Task.
 My task: {task}
 
-Give the task one short name; all ways share it. List the ways to do it that you understood
-from my words: a short title, one line on what is done, and "own" (mine) or "other"
-(someone else's). Then add the usual ways I did not mention: only ways that really solve the
-task, always "other". End the title of each added way with "(added)" and keep it
-through our conversation and in the file; action names get no mark. In "Points to check"
-name each added way and ask which ways are missing or extra.
+Give the task one short name; all ways share it. List the ways to do it that you understood from my
+words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). Then
+add the usual ways I did not mention: only ways that really solve the task, always "other".
+End the title of each added way with "(added)" and keep it through our conversation and in the file;
+action names get no mark. An added way must differ from the others in its actions. In "Points to
+check" name each added way and ask which ways are missing or extra.
 ```
 
 ## Prompt 2. Steps
@@ -73,8 +73,9 @@ Go over the steps of all ways together.
    -> inspected". A way without a check gets no step for it; the thing still has the check
    attribute, so the skip shows.
 6. Say what appears or disappears along the way (a bucket put under, a visit booked).
-   A part that leaves with another thing gets its own no-labour action that makes it absent
-   (Washer: exists yes -> no, thrown away with the old tap); its checks are then not skipped.
+   A part that leaves with another thing gets its own no-labour action:
+   make the same thing absent with its exists attribute (Washer: exists yes -> no, thrown away with
+   the old tap); never add a new thing for the old part. Its checks are then not skipped.
 7. Waiting for someone is its own kind of action: not a check, not labour. It still changes an
    attribute of its own (Plumber visit: booked -> done).
 Then run each way: every action starts from the state the previous one left. Fix any that
@@ -137,18 +138,17 @@ axis: "from" already says it;
 check: true - confirms the result of an action; on an axis of the thing checked;
 zero_weight: true with zero_weight_note - a step with no labour (draining).
 waiting: number > 0 with waiting_unit "hours"|"days" - waiting for someone: no cost, no check.
-Paying is not labour: no kind for it.
 from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
 (a->b, b->c, so no a->c). An action with no axis of its own gets a new axis.
 
 named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
 skips are counted when one group first holds. "final" is taken.
 
-variants: {"code", "title", "side": "own"|"other", "task", "calls", "steps"}. Ways with the
-same task text are compared. calls - [kind, executor, instrument, scope]; each starts from the
-value the previous one left; all requires hold. A way without a check has no call for it.
-steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the
-sum equals the number of calls.
+variants: {"code" (mine if I gave them), "title", "side": "own"|"other", "task", "calls", "steps"}.
+Ways with the same task text are compared. calls - [kind, executor, instrument, scope]; each starts
+from the value the previous one left; all requires hold. A way without a check has no call for it.
+steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the sum
+equals the number of calls.
 
 normalization: kind_costs {kind: cost} for every kind (zero_weight, waiting: 0 or left out);
 executor_coefficients {executor: k} for every executor, 0 only for a machine or program;
