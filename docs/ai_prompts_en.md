@@ -24,9 +24,10 @@ My task: {task}
 
 Give the task one short name; all ways share it. List the ways to do it that you understood
 from my words: a short title, one line on what is done, and "own" (mine) or "other"
-(someone else's). Then add the usual ways I did not mention, marked "added": only ways that
-really solve the task, always "other". In "Points to check" name each added way and ask which
-ways are missing or extra.
+(someone else's). Then add the usual ways I did not mention: only ways that really solve the
+task, always "other". End the title of each added way with "(added)" and keep it in every
+step and in the file. In "Points to check" name each added way and ask which ways are missing
+or extra.
 ```
 
 ## Prompt 2. Steps
@@ -46,6 +47,7 @@ is really done.
 - A way without a check gets no step for it, not even "no check is made".
 - Mark each step where the person only waits (for a plumber, for a delivery) and give a rough
   duration.
+- In "Points to check" name, in one point, the steps you added that are not in my words.
 Show a numbered list per way. No file format yet.
 End with "Points to check": the 2-4 steps you are least sure of.
 ```
@@ -65,7 +67,8 @@ Go over the steps of all ways together.
 4. An action with no change of its own gets a new attribute (Floor: wet -> dry). Never hang it
    on another thing's change. Only work without labour is "no labour".
 5. Mark the checks: a check confirms the result after an action, and skipping it has a price.
-   Diagnosis and finding the cause are ordinary actions. A check changes the thing it checks:
+   If my words call an action a check, it is a check. Otherwise finding the cause of a fault
+   is an ordinary action. A check changes the thing it checks:
    "Test for leaks: Tap, leak not tested -> tested". A way without a check gets no step for
    it; the thing still has the check attribute, so the skip shows.
 6. Say what appears or disappears along the way (a bucket put under, a visit booked).
@@ -89,12 +92,13 @@ Step 4. Who and how much.
    a hired one included. Put every coefficient 0 into "Points to check".
 3. Give each action a labour cost in one unit for the whole project (minutes or points).
    Paying is not labour: no action for it. Waiting for someone is an action with a duration
-   in hours or days, not a cost or weight: ask me for each. A short wait with no duration
+   in hours or days, not a cost or weight: mark each with "?". A short wait with no duration
    needed (water draining) costs 0.
 4. Say whether each action is done once for the whole job or for each unit; if per unit, how
    many units a batch has.
 5. For each check give the price of skipping it, more than 0. Never add it to labour.
 6. Show the total of each way: sum of cost x executor coefficient x scope coefficient.
+   If steps not in my words change a way's total noticeably, say so in "Points to check".
 Mark doubtful numbers with "?".
 End with "Points to check".
 ```

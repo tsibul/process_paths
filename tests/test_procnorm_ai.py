@@ -141,6 +141,33 @@ def test_six_prompts_from_the_packaged_file():
     assert not found[4].text.endswith("```")
 
 
+def test_prompt_one_marks_added_ways_in_the_title():
+    text = prompts()[0].text
+    assert 'End the title of each added way with "(added)"' in text
+
+
+def test_prompt_two_names_steps_not_in_my_words():
+    text = prompts()[1].text
+    assert "the steps you added that are not in my words" in text
+
+
+def test_prompt_three_takes_a_check_from_my_words():
+    text = prompts()[2].text
+    assert "If my words call an action a check, it is a check." in text
+    assert "Diagnosis and finding the cause are ordinary actions" not in text
+
+
+def test_prompt_four_marks_waiting_instead_of_asking():
+    text = prompts()[3].text
+    assert "ask me for each" not in text
+    assert 'mark each with "?"' in text
+
+
+def test_prompt_four_warns_about_added_steps():
+    text = prompts()[3].text
+    assert "If steps not in my words change a way's total noticeably" in text
+
+
 def test_task_prompt_fills_the_task():
     text = task_prompt("We wash a car.")
     assert "My task: We wash a car.\n" in text
