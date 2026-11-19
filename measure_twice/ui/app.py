@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHB
 from measure_twice.calc import empty_steps, project_empty_steps
 from measure_twice import edit, i18n, report
 from measure_twice.ai import extract_json
-from measure_twice.example import EXAMPLE_NAME, add_example, first_run
+from measure_twice.example import add_example, example_name, find_example, first_run
 from measure_twice.edit import (
     add_call,
     copy_code,
@@ -275,7 +275,7 @@ class MainWindow(QMainWindow):
         self.load_action = self._item(self.new_menu, self.tr("From file…"), self.on_load)
         self.new_action = self._item(self.new_menu, self.tr("Empty"), self.on_new)
         self.example_action = self._item(self.new_menu, self.tr("Example"), self.show_example)
-        tip = self.tr("Add the {name} example").format(name=EXAMPLE_NAME)
+        tip = self.tr("Add the {name} example").format(name=example_name(i18n.current()))
         self.example_action.setToolTip(tip)
         self.new_menu_button = self._menu_button(bar, self.tr("+ New ▾"), self.new_menu)
         self.new_menu_button.setProperty("primary", True)
@@ -781,10 +781,11 @@ class MainWindow(QMainWindow):
 
     def show_example(self) -> None:
         """Add the example unless it is in the list, select it and open the Comparison tab."""
-        present = next((i.id for i in self.store.list() if i.name == EXAMPLE_NAME), None)
+        lang = i18n.current()
+        present = find_example(self.store, lang)
         if present is None:
-            self.refresh(add_example(self.store))
-            message = self.tr("Added {name}").format(name=EXAMPLE_NAME)
+            self.refresh(add_example(self.store, lang))
+            message = self.tr("Added {name}").format(name=example_name(lang))
         else:
             self.refresh(present)
             message = self.tr("Example is already in the list")
@@ -988,7 +989,7 @@ def main() -> int:
     i18n.write_language(settings, lang)  # the first start keeps the language it chose
     i18n.build_qm()
     i18n.apply_language(app, lang)
-    window = build_window(store, settings, first_run(store, settings))
+    window = build_window(store, settings, first_run(store, settings, lang))
     window.show()
     try:
         return app.exec()

@@ -15,6 +15,7 @@ from PySide6.QtGui import QGuiApplication, QPainter, QTextCursor
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
                                QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
+from measure_twice import i18n
 from measure_twice.ai import Prompt, prompts, remarks_prompt, task_limit, task_prompt
 from measure_twice.ui.tables import label, plural, translate
 
@@ -156,7 +157,8 @@ class AiScenarioDialog(QDialog):
     def __init__(self, load: Loader, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._load = load
-        self._prompts = prompts()
+        self._lang = i18n.current()  # the prompts are in the language of the window
+        self._prompts = prompts(self._lang)
         self._remarks: list[str] = []
         self.setObjectName("aiScenario")
         self.setWindowTitle(translate("AiScenarioDialog", TITLE))
@@ -209,7 +211,7 @@ class AiScenarioDialog(QDialog):
 
     def _build_task(self) -> None:
         card = self.cards[0]
-        self._task_limit = task_limit()
+        self._task_limit = task_limit(self._lang)
         self.task = QPlainTextEdit()
         self.task.setObjectName("aiTask")
         self.task.setFixedHeight(64)
@@ -271,9 +273,9 @@ class AiScenarioDialog(QDialog):
     def prompt_text(self, number: int) -> str:
         """The prompt of a step as it is copied: with the task or the remarks filled."""
         if number == 1:
-            return task_prompt(self.task.toPlainText())
+            return task_prompt(self.task.toPlainText(), self._lang)
         if number == REMARKS_STEP:
-            return remarks_prompt(self._remarks)
+            return remarks_prompt(self._remarks, self._lang)
         return self._prompts[number - 1].text
 
     def _summary(self, card: StepCard) -> str:
