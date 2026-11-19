@@ -35,12 +35,12 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="21"/>
         <source>Add a process with AI</source>
-        <translation>Добавить процесс с ИИ</translation>
+        <translation>Добавить процесс с AI</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="22"/>
         <source>✓ Copied. Paste it into your AI chat.</source>
-        <translation>✓ Скопировано. Вставьте в чат с ИИ.</translation>
+        <translation>✓ Скопировано. Вставьте в чат с AI.</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="23"/>
@@ -61,12 +61,12 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="26"/>
         <source>Paste the AI’s answer</source>
-        <translation>Вставьте ответ ИИ</translation>
+        <translation>Вставьте ответ AI</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="30"/>
         <source>Describe the job in one or two sentences, then copy the prompt into your AI chat.</source>
-        <translation>Опишите работу одним-двумя предложениями, затем скопируйте просьбу в чат с ИИ.</translation>
+        <translation>Опишите работу одним-двумя предложениями, затем скопируйте просьбу в чат с AI.</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="34"/>
@@ -1985,12 +1985,12 @@
     <message>
         <location filename="../ui/app.py" line="268"/>
         <source>With AI…</source>
-        <translation>С ИИ…</translation>
+        <translation>С AI…</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="269"/>
         <source>Paste AI answer…</source>
-        <translation>Вставить ответ ИИ…</translation>
+        <translation>Вставить ответ AI…</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="270"/>
@@ -2015,7 +2015,7 @@
     <message>
         <location filename="../ui/app.py" line="275"/>
         <source>+ New ▾</source>
-        <translatorcomment>Меню: с ИИ, вставка ответа, из файла, пустой, пример.</translatorcomment>
+        <translatorcomment>Меню: с AI, вставка ответа, из файла, пустой, пример.</translatorcomment>
         <translation>+ Создать ▾</translation>
     </message>
     <message>
@@ -2305,7 +2305,7 @@
     <message>
         <location filename="../ui/paste.py" line="30"/>
         <source>Paste AI answer</source>
-        <translation>Вставить ответ ИИ</translation>
+        <translation>Вставить ответ AI</translation>
     </message>
     <message>
         <location filename="../ui/paste.py" line="45"/>

@@ -35,14 +35,14 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="22"/>
         <source>Add a process with AI</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>Προσθήκη διαδικασίας με ΤΝ</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>Προσθήκη διαδικασίας με AI</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="23"/>
         <source>✓ Copied. Paste it into your AI chat.</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>✓ Αντιγράφηκε. Επικολλήστε τη στη συνομιλία σας με την ΤΝ.</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>✓ Αντιγράφηκε. Επικολλήστε τη στη συνομιλία σας με το AI.</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="24"/>
@@ -53,7 +53,7 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="25"/>
         <source>Show prompt again</source>
-        <translatorcomment>Кнопка окна «Προσθήκη διαδικασίας με ΤΝ». Обратно: «Показать подсказку снова». Иначе, короче: «Επανεμφάνιση προτροπής».</translatorcomment>
+        <translatorcomment>Кнопка окна «Προσθήκη διαδικασίας με AI». Обратно: «Показать подсказку снова». Иначе, короче: «Επανεμφάνιση προτροπής».</translatorcomment>
         <translation>Εμφάνιση της προτροπής ξανά</translation>
     </message>
     <message>
@@ -64,14 +64,14 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="27"/>
         <source>Paste the AI’s answer</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>Επικολλήστε την απάντηση της ΤΝ</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>Επικολλήστε την απάντηση του AI</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="31"/>
         <source>Describe the job in one or two sentences, then copy the prompt into your AI chat.</source>
         <translatorcomment>«Δουλειά» — работа, разговорно; «εργασία» оставлено для задачи (task).</translatorcomment>
-        <translation>Περιγράψτε τη δουλειά με μία ή δύο προτάσεις και, στη συνέχεια, αντιγράψτε την προτροπή στη συνομιλία σας με την ΤΝ.</translation>
+        <translation>Περιγράψτε τη δουλειά με μία ή δύο προτάσεις και, στη συνέχεια, αντιγράψτε την προτροπή στη συνομιλία σας με το AI.</translation>
     </message>
     <message>
         <location filename="../ui/ai_scenario.py" line="35"/>
@@ -2004,14 +2004,14 @@
     <message>
         <location filename="../ui/app.py" line="273"/>
         <source>With AI…</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>Με ΤΝ…</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>Με AI…</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="274"/>
         <source>Paste AI answer…</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>Επικόλληση απάντησης ΤΝ…</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>Επικόλληση απάντησης AI…</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="275"/>
@@ -2036,7 +2036,7 @@
     <message>
         <location filename="../ui/app.py" line="280"/>
         <source>+ New ▾</source>
-        <translatorcomment>Средний род — по слову «έργο» (проект). Меню: с ИИ, вставка ответа, из файла, пустой, пример.</translatorcomment>
+        <translatorcomment>Средний род — по слову «έργο» (проект). Меню: с AI, вставка ответа, из файла, пустой, пример.</translatorcomment>
         <translation>+ Νέο ▾</translation>
     </message>
     <message>
@@ -2325,8 +2325,8 @@
     <message>
         <location filename="../ui/paste.py" line="30"/>
         <source>Paste AI answer</source>
-        <translatorcomment>«ΤΝ» — принятое греческое сокращение «τεχνητή νοημοσύνη» (ИИ). Синоним: латинское «AI», его часто оставляют в греческих программах.</translatorcomment>
-        <translation>Επικόλληση απάντησης ΤΝ</translation>
+        <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
+        <translation>Επικόλληση απάντησης AI</translation>
     </message>
     <message>
         <location filename="../ui/paste.py" line="45"/>
