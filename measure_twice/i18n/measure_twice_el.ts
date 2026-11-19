@@ -53,6 +53,7 @@
     <message>
         <location filename="../ui/ai_scenario.py" line="25"/>
         <source>Show prompt again</source>
+        <translatorcomment>Кнопка окна «Προσθήκη διαδικασίας με ΤΝ». Обратно: «Показать подсказку снова». Иначе, короче: «Επανεμφάνιση προτροπής».</translatorcomment>
         <translation>Εμφάνιση της προτροπής ξανά</translation>
     </message>
     <message>
@@ -412,8 +413,8 @@
     <message>
         <location filename="../ui/comparison.py" line="37"/>
         <source>Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left is counted separately. Click a row to see its steps.</source>
-        <translatorcomment>Сторона пути: «Δικές μας» (наши) / «Τρίτων» (третьих лиц) — привычная деловая пара. Синонимы для чужих: «Άλλων», «Ξένες».</translatorcomment>
-        <translation>Οι γραμμές ομαδοποιούνται ανά εργασία. Πρώτα οι δικές μας, μετά των τρίτων· λιγότερα εργατικά σημαίνει φθηνότερα, όμως ο υπολειπόμενος κίνδυνος μετριέται χωριστά. Κάντε κλικ σε μια γραμμή για να δείτε τα βήματά της.</translation>
+        <translatorcomment>Сторона пути: «Δικές μας» (наши) / «Τρίτων» (третьих лиц) — привычная деловая пара. Синонимы для чужих: «Άλλων», «Ξένες». Подсказка над таблицей «Σύγκριση». Сверка: было «Πρώτα οι δικές μας, μετά των τρίτων» — «μετά των» читается по-книжному как «вместе с третьими»; теперь «Сначала наши пути, затем пути третьих лиц».</translatorcomment>
+        <translation>Οι γραμμές ομαδοποιούνται ανά εργασία. Πρώτα οι δικές μας διαδρομές, μετά οι διαδρομές τρίτων· λιγότερα εργατικά σημαίνει φθηνότερα, όμως ο υπολειπόμενος κίνδυνος μετριέται χωριστά. Κάντε κλικ σε μια γραμμή για να δείτε τα βήματά της.</translation>
     </message>
     <message>
         <location filename="../ui/comparison.py" line="66"/>
@@ -703,7 +704,8 @@
     <message>
         <location filename="../ui/pages.py" line="107"/>
         <source>Waiting kinds have no labour cost and are not checks</source>
-        <translation>Τα είδη αναμονής δεν έχουν κόστος εργασίας και δεν είναι έλεγχοι</translation>
+        <translatorcomment>Строка под полем «Αναμονή» формы вида. Сверка: было «κόστος εργασίας» (стоимость работы) — «εργασία» в окне занято задачей, а столбец труда — «Εργατικά»; теперь «не имеют трудозатрат (εργατικά) и не проверки».</translatorcomment>
+        <translation>Τα είδη αναμονής δεν έχουν εργατικά και δεν είναι έλεγχοι</translation>
     </message>
     <message>
         <location filename="../ui/pages.py" line="111"/>
@@ -854,6 +856,7 @@
     <message>
         <location filename="../ui/pages.py" line="1234"/>
         <source>Reached when</source>
+        <translatorcomment>Шапка столбца срезов в «Λεξικό». Обратно: «Достигается, когда» — пара к «ορόσημο» (веха). Иначе: «Ισχύει όταν» (действует, когда).</translatorcomment>
         <translation>Επιτυγχάνεται όταν</translation>
     </message>
     <message>
@@ -922,7 +925,8 @@
     <message>
         <location filename="../edit.py" line="66"/>
         <source>kind {label} is a waiting kind, it has no labour cost</source>
-        <translation>το είδος {label} είναι είδος αναμονής, δεν έχει κόστος εργασίας</translation>
+        <translatorcomment>Замечание при вводе стоимости вида ожидания. Сверка: «κόστος εργασίας» заменено на «εργατικά», как в столбце труда.</translatorcomment>
+        <translation>το είδος {label} είναι είδος αναμονής, δεν έχει εργατικά</translation>
     </message>
     <message>
         <location filename="../edit.py" line="73"/>
@@ -1232,6 +1236,7 @@
     <message>
         <location filename="../edit.py" line="574"/>
         <source>the name {name} is the existence axis</source>
+        <translatorcomment>Замечание при вводе имени оси. Обратно: «имя {name} принадлежит оси существования» — то есть занято ею. Иначе: «είναι το όνομα του άξονα ύπαρξης».</translatorcomment>
         <translation>το όνομα {name} ανήκει στον άξονα ύπαρξης</translation>
     </message>
     <message>
@@ -1842,7 +1847,8 @@
     <message>
         <location filename="../ui/labour_scale.py" line="35"/>
         <source>Right of bar: Labour · total · Risk left, end</source>
-        <translation>Δεξιά της μπάρας: Εργατικά · σύνολο · Υπολειπόμενος κίνδυνος, τέλος</translation>
+        <translatorcomment>Пояснение под шкалой труда. Сверка: было «μπάρα» (разговорное «полоска»); в греческих Office и LibreOffice столбик диаграммы — «ράβδος» («ραβδόγραμμα»). Обратно: «Справа от полосы: Труд · всего · Остаточный риск, конец».</translatorcomment>
+        <translation>Δεξιά της ράβδου: Εργατικά · σύνολο · Υπολειπόμενος κίνδυνος, τέλος</translation>
     </message>
     <message>
         <location filename="../ui/labour_scale.py" line="149"/>
@@ -1874,7 +1880,7 @@
     <message>
         <location filename="../ui/labour_scale.py" line="154"/>
         <source>risk left still open</source>
-        <translatorcomment>Цвет полосы: проверки ещё не сделаны.</translatorcomment>
+        <translatorcomment>Цвет полосы: проверки ещё не сделаны. Обратно: «риск остаётся» — короче английского «остаточный риск ещё открыт». Иначе: «ανοιχτός κίνδυνος» (открытый риск). Легенда шкалы труда.</translatorcomment>
         <translation>ο κίνδυνος παραμένει</translation>
     </message>
     <message>
@@ -3069,23 +3075,23 @@
     <message>
         <location filename="../ui/comparison.py" line="294"/>
         <source>Not checked, {slice} (not reached): {what}</source>
-        <translatorcomment>Срез не наступил на этом пути: «δεν επιτεύχθηκε» (не достигнут).</translatorcomment>
-        <translation>Δεν ελέγχθηκε, {slice} (δεν επιτεύχθηκε): {what}</translation>
+        <translatorcomment>Срез не наступил на этом пути: «δεν επιτεύχθηκε» (не достигнут). Строка под шагами пути на вкладке «Σύγκριση». Сверка: было «Δεν ελέγχθηκε» (не проверен/-а/-о, ед. ч.), а {what} — перечень осей, их бывает несколько; теперь «Χωρίς έλεγχο» (без проверки), не зависит от числа и рода. Так же в трёх соседних строках.</translatorcomment>
+        <translation>Χωρίς έλεγχο, {slice} (δεν επιτεύχθηκε): {what}</translation>
     </message>
     <message>
         <location filename="../ui/comparison.py" line="296"/>
         <source>Not checked, {slice}: {what}</source>
-        <translation>Δεν ελέγχθηκε, {slice}: {what}</translation>
+        <translation>Χωρίς έλεγχο, {slice}: {what}</translation>
     </message>
     <message>
         <location filename="../ui/comparison.py" line="298"/>
         <source>Not checked (not reached): {what}</source>
-        <translation>Δεν ελέγχθηκε (δεν επιτεύχθηκε): {what}</translation>
+        <translation>Χωρίς έλεγχο (δεν επιτεύχθηκε): {what}</translation>
     </message>
     <message>
         <location filename="../ui/comparison.py" line="300"/>
         <source>Not checked: {what}</source>
-        <translation>Δεν ελέγχθηκε: {what}</translation>
+        <translation>Χωρίς έλεγχο: {what}</translation>
     </message>
 </context>
 <context>
