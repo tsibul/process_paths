@@ -171,3 +171,11 @@ def test_step_six_carries_the_remarks_in_russian(app, tmp_path):
     finally:
         i18n.apply_language(app, "en", tmp_path)
         store.close()
+
+
+@pytest.mark.parametrize("lang", ["en", "ru"])
+def test_file_prompt_marks_code_as_required(lang):
+    """The loader refuses a variant without a code, so prompt 5 says the field is required."""
+    text = prompts(lang)[4].text
+    assert 'variants: {"code"*' in text
+    assert len(text) <= FILE_PROMPT_LIMIT

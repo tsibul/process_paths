@@ -135,7 +135,7 @@ value. No ordinary axis has this name.
 kinds: {"name", "entity", "axis", "from", "to"} plus optional:
 requires [[entity, axis, value], ...] - must hold before; never the kind's own entity and
 axis: "from" already says it;
-check: true - confirms the result of an action; on an axis of the thing checked;
+check: true - confirms the result of an action; on the checked thing's axis;
 zero_weight: true with zero_weight_note - a step with no labour (draining).
 waiting: number > 0 with waiting_unit "hours"|"days" - waiting for someone: no cost, no check.
 from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
@@ -144,9 +144,10 @@ from != to. No two kinds with the same entity, axis, from and to. No kind duplic
 named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
 skips are counted when one group first holds. "final" is taken.
 
-variants: {"code" (mine if I gave them), "title", "side": "own"|"other", "task", "calls", "steps"}.
-Ways with the same task text are compared. calls - [kind, executor, instrument, scope]; each starts
-from the value the previous one left; all requires hold. A way without a check has no call for it.
+variants: {"code"* (mine if I gave them, otherwise A, B, ...), "title", "side": "own"|"other",
+"task", "calls", "steps"}. Ways with the same task text are compared. calls - [kind, executor,
+instrument, scope]; each starts from the value the previous one left; all requires hold. A way
+without a check has no call for it.
 steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the sum
 equals the number of calls.
 
