@@ -131,18 +131,21 @@ We go in six steps; I will give you a prompt for each. Rules for the whole conve
 My task: {task}</td><td dir="auto" data-label="Translation">Шаг 1. Задача.
 Моя задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">7</td><td data-label="English">Give the task one short name; all ways share it. List the ways to do it that you understood from my
-words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). Then
-add the usual ways I did not mention: only ways that really solve the task, always "other".
-End the title of each added way with "(added)" and keep it through our conversation and in the file;
-action names get no mark. An added way must differ from the others in its actions. In "Points to
-check" name each added way and ask which ways are missing or extra.
+words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). If my
+words give codes for the ways (T1, T2, T3, T4), keep exactly those; a way you add gets the next code
+of the series (T5). No codes given: A, B, C, ... Then add the usual ways I did not mention: only
+ways that really solve the task, always "other". End the title of each added way with "(added)" and
+keep it through our conversation and in the file; action names get no mark. An added way must differ
+from the others in its actions. In "Points to check" name each added way and ask which ways are
+missing or extra.
 ```</td><td dir="auto" data-label="Translation">Дай задаче одно короткое название; оно общее для всех путей. Перечисли пути её выполнения, которые
 ты понял из моих слов: короткое название, одна строка о том, что делается, и «свой» (мой) или
-«чужой» (чей-то ещё). Затем добавь обычные пути, о которых я не сказал: только те, что правда решают
-задачу, всегда «чужой». Название каждого добавленного пути заканчивай пометкой «(добавлен)» и
-сохраняй её весь разговор и в файле; у названий действий пометки нет. Добавленный путь должен
-отличаться от других действиями. В «Что проверить» назови каждый добавленный путь и спроси, каких
-путей не хватает и какие лишние.
+«чужой» (чей-то ещё). Если в моих словах есть коды путей (T1, T2, T3, T4), оставь именно их;
+добавленный путь получает следующий код ряда (T5). Кодов нет: A, B, C, ... Затем добавь обычные
+пути, о которых я не сказал: только те, что правда решают задачу, всегда «чужой». Название каждого
+добавленного пути заканчивай пометкой «(добавлен)» и сохраняй её весь разговор и в файле; у названий
+действий пометки нет. Добавленный путь должен отличаться от других действиями. В «Что проверить»
+назови каждый добавленный путь и спроси, каких путей не хватает и какие лишние.
 ```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">8</td><td data-label="English">## Prompt 2. Steps</td><td dir="auto" data-label="Translation">## Просьба 2. Шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">9</td><td data-label="English">Use it when the list of ways is agreed.</td><td dir="auto" data-label="Translation">Когда список путей согласован.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
@@ -284,11 +287,11 @@ name. First run each variant through the axes yourself. Then "Points to check":
 choices you made.</td><td dir="auto" data-label="Translation">```text
 Шаг 5. Файл.
 Запиши согласованное одним файлом Measure Twice: JSON, целиком, в одном блоке кода, на моём языке.
-Только действия, согласованные на шагах 2-4; без подготовки (достать или убрать инструмент),
+Только действия, согласованные на шагах 2-4; без подготовки,
 которой я не называл. Сначала сам прогони каждый путь по осям. Затем «Что проверить»: твои выборы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">20</td><td data-label="English">FORMAT
 A reference is the declared name letter for letter. Numbers are JSON numbers. Order matters.
-No name repeats in one list. Leave out unneeded optional fields.</td><td dir="auto" data-label="Translation">ФОРМАТ
+No name repeats in one list. Omit unneeded optional fields.</td><td dir="auto" data-label="Translation">ФОРМАТ
 Ссылка — объявленное название буква в букву. Числа — числами JSON. Порядок важен.
 В списке названия не повторяются. Лишних необязательных полей не пиши.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">21</td><td data-label="English">Top level (* required): format* = 1; name*; existence_axis* {"name","absent"};
@@ -321,15 +324,15 @@ from != to. Нет двух видов с одинаковыми entity, axis, f
 <tr><td class="num" data-label="№">24</td><td data-label="English">named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
 skips are counted when one group first holds. "final" is taken.</td><td dir="auto" data-label="Translation">named_slices (необязательно): {"имя": {"any": [{"states": [[сущность, ось, значение], ...]}]}} -
 пропуски считаются, когда впервые выполнится одна группа. "final" занято.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
-<tr><td class="num" data-label="№">25</td><td data-label="English">variants: {"code"* (mine if I gave them, otherwise A, B, ...), "title", "side": "own"|"other",
-"task", "calls", "steps"}. Ways with the same task text are compared. calls - [kind, executor,
-instrument, scope]; each starts from the value the previous one left; all requires hold. A way
-without a check has no call for it.
+<tr><td class="num" data-label="№">25</td><td data-label="English">variants: {"code"* (keep given; new: T5 after T4; none: A, B, C, ...), "title",
+"side": "own"|"other", "task", "calls", "steps"}. Ways with the same task are compared.
+calls - [kind, executor, instrument, scope]; each starts from the value the previous one left;
+all requires hold. A way without a check has no call for it.
 steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the sum
-equals the number of calls.</td><td dir="auto" data-label="Translation">variants: {"code"* (мои, если я их дал, иначе А, Б, ...), "title", "side": "own"|"other",
-"task", "calls", "steps"}. Сравниваются пути с одинаковым task. calls - [вид, исполнитель,
-инструмент, охват]; каждый начинает со значения, оставленного предыдущим; все requires
-выполнены. У пути без проверки нет вызова для неё.
+equals the number of calls.</td><td dir="auto" data-label="Translation">variants: {"code"* (данные оставь; новые: T5 после T4; нет: A, B, C, ...), "title",
+"side": "own"|"other", "task", "calls", "steps"}. Сравниваются пути с одинаковым task.
+calls - [вид, исполнитель, инструмент, охват]; каждый начинает со значения, оставленного
+предыдущим; все requires выполнены. У пути без проверки нет вызова для неё.
 steps - [{"text": шаг моими словами, "calls": сколько вызовов подряд}]; calls может быть 0;
 сумма равна числу вызовов.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">26</td><td data-label="English">normalization: kind_costs {kind: cost} for every kind (zero_weight, waiting: 0 or left out);
@@ -405,12 +408,12 @@ axis_skip_prices {сущность: {ось проверки: цена &gt; 0}} 
  "instruments": ["руки", "вантуз", "ведро", "ключ"],
  "scopes": ["работа"], "batch_scope": "работа",
  "variants": [
-  {"code": "А", "title": "Вантуз", "side": "own", "task": "Чистка раковины", "calls": [
+  {"code": "A", "title": "Вантуз", "side": "own", "task": "Чистка раковины", "calls": [
     ["Пробить вантузом", "Хозяин", "вантуз", "работа"],
     ["Проверить слив", "Хозяин", "руки", "работа"]],
    "steps": [{"text": "Пробить вантузом", "calls": 1},
     {"text": "Пустить воду, посмотреть слив", "calls": 1}]},
-  {"code": "Б", "title": "Мастер", "side": "other",
+  {"code": "B", "title": "Мастер", "side": "other",
    "task": "Чистка раковины", "calls": [
     ["Ждать мастера", "Хозяин", "руки", "работа"],
     ["Подставить ведро", "Хозяин", "ведро", "работа"],

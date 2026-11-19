@@ -264,7 +264,7 @@
   ["Wash", "Machine", "washing machine", "whole load"]
 ]}
 ```</td><td dir="auto" data-label="Translation">```json
-{"code": "Б", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
+{"code": "B", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
   ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
   ["Постирать", "Машина", "стиральная машина", "вся загрузка"]
 ]}
@@ -339,7 +339,7 @@
 7. Перед выдачей файла покажи человеку цепочки текстом: по каждому пути его задачу, шаги его словами, под каждым шагом его переходы; шаг без перехода пометь «нет перехода». Файл выдай только после того, как человек согласится с разбором.
 8. Сверь файл со списком в разделе 5.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">40</td><td data-label="English">## 5. Typical errors</td><td dir="auto" data-label="Translation">## 5. Типовые ошибки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
-<tr><td class="num" data-label="№">41</td><td data-label="English">The check gives its remarks in English; the names in them are as written in the file. The table retells the meaning of the remarks (the wording of the remarks is retold, except for those quoted in backticks). A file with incomplete normalization does not load.</td><td dir="auto" data-label="Translation">Замечания проверка выдаёт на английском; названия в них — как записаны в файле. В таблице смысл замечаний пересказан по-русски. Файл с неполной нормировкой не загружается.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">41</td><td data-label="English">The check gives its remarks in the language of the window; the names in them are as written in the file. The table retells the meaning of the remarks (the wording of the remarks is retold, except for those quoted in backticks). A file with incomplete normalization does not load.</td><td dir="auto" data-label="Translation">Замечания проверка выдаёт на языке окна; названия в них — как записаны в файле. В таблице смысл замечаний пересказан по-русски. Файл с неполной нормировкой не загружается.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 <tr><td class="num" data-label="№">42</td><td data-label="English">| Error | What the check says | What to do |
 |---|---|---|
 | A name in a reference differs from the declared one | unknown entity, axis, value, kind, executor, instrument or scope — with the place | Bring to one spelling |
@@ -551,7 +551,7 @@
     "постирано": {"any": [{"states": [["Бельё", "состояние", "постирано"]]}]}
   },
   "variants": [
-    {"code": "А", "title": "Аккуратная стирка", "side": "own", "task": "Постирать бельё", "calls": [
+    {"code": "A", "title": "Аккуратная стирка", "side": "own", "task": "Постирать бельё", "calls": [
       ["Проверить карманы", "Человек", "руки", "каждая вещь"],
       ["Разобрать по цветам", "Человек", "руки", "каждая вещь"],
       ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
@@ -569,7 +569,7 @@
       {"text": "Дождаться, пока высохнет", "calls": 1},
       {"text": "Убрать в шкаф", "calls": 1}
     ]},
-    {"code": "Б", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
+    {"code": "B", "title": "Быстрая стирка", "side": "other", "task": "Постирать бельё", "calls": [
       ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
       ["Постирать", "Машина", "стиральная машина", "вся загрузка"],
       ["Развесить", "Человек", "сушилка", "каждая вещь"],
@@ -582,7 +582,7 @@
       {"text": "Дождаться, пока высохнет", "calls": 1},
       {"text": "Убрать в шкаф", "calls": 1}
     ]},
-    {"code": "В", "title": "Стирка с проверкой карманов", "side": "other", "task": "Постирать бельё", "calls": [
+    {"code": "C", "title": "Стирка с проверкой карманов", "side": "other", "task": "Постирать бельё", "calls": [
       ["Проверить карманы", "Человек", "руки", "каждая вещь"],
       ["Запустить машину", "Человек", "стиральная машина", "вся загрузка"],
       ["Постирать", "Машина", "стиральная машина", "вся загрузка"],
@@ -631,10 +631,10 @@
 | B Quick wash | 3.4 | 2 | pockets, colors | 8 | pockets, colors | 8 |
 | C Wash with a pocket check | 5.4 | 3 | colors | 3 | colors | 3 |</td><td dir="auto" data-label="Translation">| Вариант | Вес | Срез «постирано» наступает после шага | Пропуски на нём | Сумма | Пропуски на конечном | Сумма |
 |---|---|---|---|---|---|---|
-| А Аккуратная стирка | 8,4 | 4 | нет | 0 | нет | 0 |
-| Б Быстрая стирка | 3,4 | 2 | карманы, цвета | 8 | карманы, цвета | 8 |
-| В Стирка с проверкой карманов | 5,4 | 3 | цвета | 3 | цвета | 3 |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
-<tr><td class="num" data-label="№">50</td><td data-label="English">Variant "B" is the lightest and has the largest sum of skips: the weight and the skips are shown side by side and are not converted into each other.</td><td dir="auto" data-label="Translation">Вариант «Б» самый лёгкий и с самой большой суммой пропусков: вес и пропуски показываются рядом и друг в друга не пересчитываются.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+| A Аккуратная стирка | 8,4 | 4 | нет | 0 | нет | 0 |
+| B Быстрая стирка | 3,4 | 2 | карманы, цвета | 8 | карманы, цвета | 8 |
+| C Стирка с проверкой карманов | 5,4 | 3 | цвета | 3 | цвета | 3 |</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">50</td><td data-label="English">Variant "B" is the lightest and has the largest sum of skips: the weight and the skips are shown side by side and are not converted into each other.</td><td dir="auto" data-label="Translation">Вариант «B» самый лёгкий и с самой большой суммой пропусков: вес и пропуски показываются рядом и друг в друга не пересчитываются.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
 </tbody>
 </table>
 </div>

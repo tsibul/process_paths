@@ -178,7 +178,7 @@ Before writing a variant, walk through it step by step yourself, keeping the sli
 
 ## 5. Typical errors
 
-The check gives its remarks in English; the names in them are as written in the file. The table retells the meaning of the remarks (the wording of the remarks is retold, except for those quoted in backticks). A file with incomplete normalization does not load.
+The check gives its remarks in the language of the window; the names in them are as written in the file. The table retells the meaning of the remarks (the wording of the remarks is retold, except for those quoted in backticks). A file with incomplete normalization does not load.
 
 | Error | What the check says | What to do |
 |---|---|---|

@@ -177,7 +177,7 @@ def test_prompt_four_scales_skip_price_to_the_fix():
 
 
 def test_prompt_one_requires_added_ways_to_differ_in_actions():
-    text = prompts()[0].text
+    text = " ".join(prompts()[0].text.split())
     assert "An added way must differ from the others in its actions." in text
 
 
@@ -189,7 +189,7 @@ def test_prompt_three_makes_a_leaving_part_absent_not_new():
 
 def test_prompt_five_keeps_way_codes_and_drops_paying_line():
     text = prompts()[4].text
-    assert '"code"* (mine if I gave them, otherwise A, B, ...)' in text
+    assert '"code"* (keep given; new: T5 after T4; none: A, B, C, ...)' in text
     assert "Paying is not labour: no kind for it." not in text
 
 
