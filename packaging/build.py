@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Build Measure Twice for the current system: the `.qm` files, the folder, its archive.
+"""Build Measure Twice for the current system: the `.qm` files, the icon, the folder, its archive.
 
 Run with the Python of the project's ``.venv``::
 
@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import platform
 import shutil
+import struct
 import subprocess
 import sys
 import tomllib
@@ -24,6 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 NAME = "measure_twice"
+ICON_SIZES = (16, 32, 48, 256)
 
 
 def lrelease_path(python: Path, system: str) -> Path:
@@ -68,6 +70,50 @@ def compile_qm(sources: Path, out: Path, tool: Path) -> list[Path]:
     return built
 
 
+def make_ico(svg: Path, out: Path, sizes: tuple[int, ...] = ICON_SIZES) -> Path:
+    """Draw the SVG icon at every size and write them as one `.ico` file.
+
+    Each picture is kept in the `.ico` as PNG. Qt draws and encodes them; the `.ico` directory
+    is written here, since the `ico` writer of Qt keeps only one picture per file.
+
+    :param svg: the icon.
+    :param out: the `.ico` file; its folder is made when absent.
+    :param sizes: the sizes in pixels, at most 256.
+    :return: the `.ico` file.
+    :rtype: Path
+    :raises ValueError: when the SVG cannot be read.
+    """
+    from PySide6.QtCore import QBuffer, QIODevice, Qt
+    from PySide6.QtGui import QImage, QPainter
+    from PySide6.QtSvg import QSvgRenderer
+
+    renderer = QSvgRenderer(str(svg))
+    if not renderer.isValid():
+        raise ValueError(f"Not a valid SVG: {svg}")
+    pictures = []
+    for size in sizes:
+        image = QImage(size, size, QImage.Format.Format_ARGB32)
+        image.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        renderer.render(painter)
+        painter.end()
+        buffer = QBuffer()
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+        image.save(buffer, "PNG")
+        pictures.append((size, bytes(buffer.data())))
+    header = struct.pack("<HHH", 0, 1, len(pictures))
+    offset = len(header) + 16 * len(pictures)
+    entries = b""
+    for size, png in pictures:
+        side = size % 256  # 0 stands for 256
+        entries += struct.pack("<BBBBHHII", side, side, 0, 0, 1, 32, len(png), offset)
+        offset += len(png)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(header + entries + b"".join(png for size, png in pictures))
+    return out
+
+
 def make_archive(folder: Path, base: Path, system: str) -> Path:
     """Pack the program folder; inside the archive it keeps its name.
 
@@ -83,13 +129,26 @@ def make_archive(folder: Path, base: Path, system: str) -> Path:
     return Path(made)
 
 
+def _make_ico_offscreen(svg: Path, out: Path) -> Path:
+    """:func:`make_ico` under a Qt application that needs no screen."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtGui import QGuiApplication
+
+    app = QGuiApplication.instance() or QGuiApplication([])
+    made = make_ico(svg, out)
+    del app
+    return made
+
+
 def main() -> int:
     """Build everything; the exit code of the first failed step, else 0."""
     python = Path(sys.executable)
     qm = ROOT / "build" / "qm"
     dist = ROOT / "dist"
+    ico = ROOT / "build" / "icon" / f"{NAME}.ico"
     compile_qm(ROOT / NAME / "i18n", qm, lrelease_path(python, sys.platform))
-    env = dict(os.environ, MEASURE_TWICE_QM=str(qm))
+    _make_ico_offscreen(ROOT / NAME / "data" / "icon.svg", ico)
+    env = dict(os.environ, MEASURE_TWICE_QM=str(qm), MEASURE_TWICE_ICO=str(ico))
     command = [
         str(python),
         "-m",

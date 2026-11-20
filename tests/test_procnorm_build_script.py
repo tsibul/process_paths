@@ -1,11 +1,14 @@
 """Tests of `packaging/build.py`: the `.qm` files, the archive, the tools of each system."""
 
 import importlib.util
+import os
 import tarfile
 import zipfile
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "packaging" / "build.py"
@@ -57,6 +60,30 @@ def test_compile_qm_makes_one_qm_per_ts(build, tmp_path):
     names = sorted(p.name for p in built)
     assert names == ["measure_twice_el.qm", "measure_twice_ru.qm"]
     assert all(p.stat().st_size > 0 for p in built)
+
+
+def test_ico_holds_every_size(build, tmp_path):
+    from PySide6.QtGui import QGuiApplication, QImageReader
+
+    app = QGuiApplication.instance() or QGuiApplication([])
+    svg = ROOT / "measure_twice" / "data" / "icon.svg"
+    ico = build.make_ico(svg, tmp_path / "icon" / "measure_twice.ico")
+    reader = QImageReader(str(ico), b"ico")
+    sizes = []
+    for i in range(reader.imageCount()):
+        reader.jumpToImage(i)
+        image = reader.read()
+        assert not image.isNull()
+        sizes.append(image.width())
+    assert app is not None
+    assert sorted(sizes) == [16, 32, 48, 256]
+
+
+def test_ico_needs_a_valid_svg(build, tmp_path):
+    bad = tmp_path / "bad.svg"
+    bad.write_text("not svg")
+    with pytest.raises(ValueError):
+        build.make_ico(bad, tmp_path / "x.ico")
 
 
 @pytest.mark.parametrize("system", ["linux", "win32"])
