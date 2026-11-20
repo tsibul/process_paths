@@ -2067,16 +2067,6 @@
         <translation>Περισσότερα ▾</translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="317"/>
-        <source>The language changes at the next start.</source>
-        <translation>Η γλώσσα θα αλλάξει στην επόμενη εκκίνηση.</translation>
-    </message>
-    <message>
-        <location filename="../ui/app.py" line="319"/>
-        <source>Restart now</source>
-        <translation>Επανεκκίνηση τώρα</translation>
-    </message>
-    <message>
         <location filename="../ui/app.py" line="740"/>
         <location filename="../ui/app.py" line="778"/>
         <source>Loaded {name}</source>

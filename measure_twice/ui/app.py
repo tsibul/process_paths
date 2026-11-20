@@ -50,6 +50,7 @@ from measure_twice.ui.tables import (
 )
 
 LAST = "last_project"
+_SHOWN: list["MainWindow"] = []  # the window built after a language change, kept alive
 ICON_FILE = Path(__file__).resolve().parent.parent / "data" / "icon.svg"
 NEW_NAME = "New project"
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
@@ -148,7 +149,6 @@ class MainWindow(QMainWindow):
         self._build_language(bar)
         self.panel_bar = bar
         head.addLayout(bar)
-        head.addWidget(self._build_restart())
         self.remarks_panel = RemarksPanel()
         head.addWidget(self.remarks_panel)
         lay.addLayout(head)
@@ -303,7 +303,6 @@ class MainWindow(QMainWindow):
 
     def _build_language(self, bar: QHBoxLayout) -> None:
         """The language switch at the end of the panel row: the code on view, names in the list."""
-        self.running_language = i18n.current()
         chosen = i18n.read_language(self.settings) if self.settings is not None else None
         self.language_menu = QMenu(self)
         for code, name in i18n.LANGUAGES.items():
@@ -312,33 +311,41 @@ class MainWindow(QMainWindow):
             action.setData(code)
             action.triggered.connect(lambda _=False, c=code: self.choose_language(c))
         self.language_button = self._menu_button(bar, "", self.language_menu)
-        self._show_language(chosen or self.running_language)
-
-    def _build_restart(self) -> QFrame:
-        """The line shown after a language is chosen: it applies from the next start."""
-        self.restart_row = QFrame()
-        row = QHBoxLayout(self.restart_row)
-        row.setContentsMargins(0, 8, 0, 0)
-        row.setSpacing(8)
-        self.restart_note = label(self.tr("The language changes at the next start."), "note")
-        row.addWidget(self.restart_note, 1)
-        self.restart_button = QPushButton(self.tr("Restart now"))
-        self.restart_button.clicked.connect(lambda: i18n.restart())
-        row.addWidget(self.restart_button)
-        self.restart_row.hide()
-        return self.restart_row
+        self._show_language(chosen or i18n.current())
 
     def _show_language(self, code: str) -> None:
         self.language_button.setText(f"{code.upper()} ▾")
         for action in self.language_menu.actions():
             action.setChecked(action.data() == code)
 
-    def choose_language(self, code: str) -> None:
-        """Keep the chosen language; the window keeps its language until the next start."""
+    def choose_language(self, code: str) -> "MainWindow":
+        """Keep the chosen language and show the window in it at once.
+
+        The window is built anew over the same store, in place of this one: the same project,
+        tab, size and place. Edits are already in the database, nothing waits to be saved.
+
+        :param code: the language code.
+        :return: the window shown now: this one when the language is the running one.
+        :rtype: MainWindow
+        """
         if self.settings is not None:
             i18n.write_language(self.settings, code)
-        self._show_language(code)
-        self.restart_row.setVisible(code != self.running_language)
+        if code == i18n.current():
+            self._show_language(code)
+            return self
+        i18n.apply_language(QApplication.instance(), code, i18n.BUILD)
+        new = MainWindow(self.store, self.settings)
+        if new.current_id != self.current_id:
+            new.refresh(self.current_id)
+        new.tabs.setCurrentIndex(self.tabs.currentIndex())
+        new.setGeometry(self.geometry())
+        new.setWindowState(self.windowState())
+        if self.isVisible():
+            new.show()  # before closing this one: the last window closed quits the program
+        _SHOWN[:] = [new]
+        self.close()
+        self.deleteLater()
+        return new
 
     @staticmethod
     def _item(menu: QMenu, text: str, slot) -> QAction:

@@ -2046,17 +2046,6 @@
         <translation>Ещё ▾</translation>
     </message>
     <message>
-        <location filename="../ui/app.py" line="312"/>
-        <source>The language changes at the next start.</source>
-        <translation>Язык сменится при следующем запуске.</translation>
-    </message>
-    <message>
-        <location filename="../ui/app.py" line="314"/>
-        <source>Restart now</source>
-        <translatorcomment>Короче «Перезапустить сейчас»; смысл тот же.</translatorcomment>
-        <translation>Перезапустить</translation>
-    </message>
-    <message>
         <location filename="../ui/app.py" line="735"/>
         <location filename="../ui/app.py" line="773"/>
         <source>Loaded {name}</source>
