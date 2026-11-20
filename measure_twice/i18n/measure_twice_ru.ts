@@ -1932,6 +1932,10 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>User guide</source>
+        <translation>Руководство</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="55"/>
         <source>Project files (*.json);;All files (*)</source>
         <translation>Файлы проектов (*.json);;Все файлы (*)</translation>
@@ -3169,6 +3173,13 @@
         <location filename="../ui/pages.py" line="978"/>
         <source>Delete</source>
         <translation>Удалить</translation>
+    </message>
+</context>
+<context>
+    <name>GuideDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
     </message>
 </context>
 </TS>

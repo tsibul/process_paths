@@ -36,6 +36,7 @@ from measure_twice.store import Store, default_path
 from measure_twice.ui.ai_scenario import AiScenarioDialog
 from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off, widen_popup
 from measure_twice.ui.comparison import ComparisonPage
+from measure_twice.ui.guide import TITLE as GUIDE_TITLE, GuideDialog
 from measure_twice.ui.pages import DictionaryPage, NormPage
 from measure_twice.ui.paste import PasteDialog
 from measure_twice.ui.remarks import RemarksPanel
@@ -387,8 +388,20 @@ class MainWindow(QMainWindow):
             self.more_menu, self.tr("Replace from file…"), self.on_load_over
         )
         self.delete_action = self._item(self.more_menu, self.tr("Delete…"), self.delete_project)
+        self.more_menu.addSeparator()
+        self.guide_action = self._item(
+            self.more_menu, translate("MainWindow", GUIDE_TITLE), self.show_guide
+        )
         self._wrap_hint(hint, self.more_menu)
         self.more_menu_button = self._menu_button(bar, self.tr("More ▾"), self.more_menu)
+
+    def show_guide(self) -> None:
+        """Open the user guide of the language of the window; it stays beside the window."""
+        dialog = GuideDialog(translate("MainWindow", GUIDE_TITLE), self)
+        dialog.setWindowModality(Qt.WindowModality.NonModal)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.guide_dialog = dialog
+        dialog.show()
 
     @staticmethod
     def _wrap_hint(hint: QLabel, menu: QMenu) -> None:

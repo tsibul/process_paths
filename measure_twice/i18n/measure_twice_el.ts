@@ -1950,6 +1950,10 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>User guide</source>
+        <translation>Οδηγός χρήσης</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="55"/>
         <source>Project files (*.json);;All files (*)</source>
         <translatorcomment>Фильтр окна выбора файла; «;;» и маски не трогать.</translatorcomment>
@@ -3189,6 +3193,13 @@
         <location filename="../ui/pages.py" line="979"/>
         <source>Delete</source>
         <translation>Διαγραφή</translation>
+    </message>
+</context>
+<context>
+    <name>GuideDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>Κλείσιμο</translation>
     </message>
 </context>
 </TS>
