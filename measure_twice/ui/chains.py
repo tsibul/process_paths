@@ -399,6 +399,15 @@ class StateHere(QWidget):
         row.addWidget(self.label, 1)
 
 
+def widen_popup(box: QComboBox) -> None:
+    """Make the open list of ``box`` wide enough for its longest name, the scroll bar beside it."""
+    view = box.view()
+    need = view.sizeHintForColumn(0) + 2 * view.frameWidth()
+    if box.count() > box.maxVisibleItems():
+        need += view.verticalScrollBar().sizeHint().width()
+    view.setMinimumWidth(need)
+
+
 class FitBox(QComboBox):
     """A list never narrower than its longest name with the arrow; open, no name in it is cut."""
 
@@ -416,11 +425,7 @@ class FitBox(QComboBox):
         return done
 
     def showPopup(self) -> None:  # noqa: N802 (Qt name)
-        view = self.view()
-        need = view.sizeHintForColumn(0) + 2 * view.frameWidth()
-        if self.count() > self.maxVisibleItems():
-            need += view.verticalScrollBar().sizeHint().width()
-        view.setMinimumWidth(max(view.minimumWidth(), need))
+        widen_popup(self)
         super().showPopup()
 
 

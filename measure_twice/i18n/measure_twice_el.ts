@@ -2021,9 +2021,9 @@
     </message>
     <message>
         <location filename="../ui/app.py" line="273"/>
-        <source>With AI…</source>
+        <source>✦ Add with AI</source>
         <translatorcomment>Решение заказчика: сокращение пишется «AI» латиницей во всех языках.</translatorcomment>
-        <translation>Με AI…</translation>
+        <translation>✦ Δημιουργία με AI</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="274"/>

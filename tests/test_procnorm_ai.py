@@ -282,9 +282,10 @@ def test_extract_nothing_found():
 # --- the entry button
 
 
-def test_ai_item_first_in_new_menu(win):
+def test_ai_button_before_new_menu(win):
+    assert win.ai_button.text() == "✦ Add with AI"
     texts = [a.text() for a in win.new_menu.actions()]
-    assert texts[0] == "With AI…"
+    assert texts[0] == "Paste AI answer…"
     assert texts[-1] == "Example"
     assert "Ask AI" not in texts
     assert "Paste answer" not in texts

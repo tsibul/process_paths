@@ -14,7 +14,8 @@ from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocume
 from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QApplication,
                                QComboBox, QFileDialog, QFrame, QHBoxLayout, QInputDialog,
                                QLabel, QMainWindow, QMenu, QMessageBox, QPushButton,
-                               QStackedWidget, QTabWidget, QVBoxLayout, QWidget, QWidgetAction)
+                               QSizePolicy, QStackedWidget, QStyle, QTabWidget, QVBoxLayout,
+                               QWidget, QWidgetAction)
 
 from measure_twice.calc import empty_steps, project_empty_steps
 from measure_twice import edit, i18n, report
@@ -33,7 +34,7 @@ from measure_twice.edit import (
 from measure_twice.project import Project, load_file, parse_text, read_project
 from measure_twice.store import Store, default_path
 from measure_twice.ui.ai_scenario import AiScenarioDialog
-from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off
+from measure_twice.ui.chains import NO_EXECUTOR_HINT, ChainsPage, new_is_off, widen_popup
 from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.pages import DictionaryPage, NormPage
 from measure_twice.ui.paste import PasteDialog
@@ -62,6 +63,8 @@ DIALOG_BUTTONS = (
     QT_TRANSLATE_NOOP("QGnomeTheme", "&OK"),
     QT_TRANSLATE_NOOP("QGnomeTheme", "&Cancel"),
 )
+AI_SHORT = "✦ AI"  # the AI button in a cramped row; the same in every language
+LEAST_PROJECTS = 220  # the project list is not made narrower for the full AI label, px
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = QT_TRANSLATE_NOOP("MainWindow", "Project files (*.json);;All files (*)")
 NO_JSON = QT_TRANSLATE_NOOP("MainWindow", "No JSON object found in the text.")
@@ -108,6 +111,63 @@ class WindowMenu(QMenu):
         x = max(left, min(self.x(), right - self.width()))
         if x != self.x():
             self.move(x, self.y())
+
+
+class ProjectBox(QComboBox):
+    """The project list: as wide as the row leaves it; a long name cut with an ellipsis.
+
+    The whole name is in the tooltip and in the open list.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.setMinimumContentsLength(10)
+        self.currentTextChanged.connect(self.setToolTip)
+
+    def event(self, e) -> bool:
+        done = super().event(e)
+        if e.type() == QEvent.Type.Polish:
+            self.setMinimumWidth(LEAST_PROJECTS)  # in place of the stylesheet's ``min-width``
+        return done
+
+    def initStyleOption(self, option) -> None:  # noqa: N802 (Qt name)
+        super().initStyleOption(option)
+        field = self.style().subControlRect(
+            QStyle.ComplexControl.CC_ComboBox, option,
+            QStyle.SubControl.SC_ComboBoxEditField, self,
+        )
+        option.currentText = self.fontMetrics().elidedText(
+            option.currentText, Qt.TextElideMode.ElideRight, field.width() - 2
+        )
+
+    def showPopup(self) -> None:  # noqa: N802 (Qt name)
+        widen_popup(self)
+        super().showPopup()
+
+
+class AiButton(QPushButton):
+    """`✦ Add with AI`; in a cramped row only `✦ AI`, the full label then in its tooltip."""
+
+    def __init__(self, full: str) -> None:
+        super().__init__(full)
+        self.full = full
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, self.sizePolicy().verticalPolicy())
+
+    def width_for(self, text: str) -> int:
+        """The width the button wants with ``text`` on it."""
+        metrics = self.fontMetrics()
+        return self.sizeHint().width() - metrics.horizontalAdvance(self.text()) \
+            + metrics.horizontalAdvance(text)
+
+    def minimumSizeHint(self):  # noqa: N802 (Qt name)
+        size = self.sizeHint()
+        size.setWidth(self.width_for(AI_SHORT))
+        return size
+
+    def set_short(self, short: bool) -> None:
+        self.setText(AI_SHORT if short else self.full)
+        self.setToolTip(self.full if short else "")
 
 
 class OfferTabs(QTabWidget):
@@ -166,7 +226,7 @@ class MainWindow(QMainWindow):
         bar = QHBoxLayout()
         bar.setSpacing(8)
         bar.addWidget(label(self.tr("<b>Comparing:</b>")))
-        self.projects = QComboBox()
+        self.projects = ProjectBox()
         self.projects.setItemDelegate(NoteDelegate(self.projects))
         self.projects.currentIndexChanged.connect(self._project_chosen)
         bar.addWidget(self.projects, 1)
@@ -299,9 +359,13 @@ class MainWindow(QMainWindow):
             self._set_dot(True)
 
     def _build_menus(self, bar: QHBoxLayout) -> None:
-        """The `+ New ▾` menu (making a project) and the `More ▾` menu (the open one)."""
+        """`✦ Add with AI`, the `+ New ▾` menu (making a project), `More ▾` (the open one)."""
+        self.ai_button = AiButton(self.tr("✦ Add with AI"))
+        self.ai_button.setProperty("primary", True)
+        self.ai_button.clicked.connect(lambda: self.on_ai())
+        bar.addWidget(self.ai_button)
+
         self.new_menu = WindowMenu(self)
-        self.ai_action = self._item(self.new_menu, self.tr("With AI…"), self.on_ai)
         self.paste_action = self._item(self.new_menu, self.tr("Paste AI answer…"), self.on_paste)
         self.load_action = self._item(self.new_menu, self.tr("From file…"), self.on_load)
         self.new_action = self._item(self.new_menu, self.tr("Empty"), self.on_new)
@@ -309,7 +373,6 @@ class MainWindow(QMainWindow):
         tip = self.tr("Add the {name} example").format(name=example_name(i18n.current()))
         self.example_action.setToolTip(tip)
         self.new_menu_button = self._menu_button(bar, self.tr("+ New ▾"), self.new_menu)
-        self.new_menu_button.setProperty("primary", True)
 
         self.more_menu = WindowMenu(self)
         self.save_action = self._item(self.more_menu, self.tr("Export to file…"), self.on_save)
@@ -338,6 +401,27 @@ class MainWindow(QMainWindow):
         margins = hint.contentsMargins()
         hint.setFixedWidth(widest + 40 + margins.left() + margins.right())
         hint.setFixedHeight(hint.heightForWidth(hint.width()))
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().resizeEvent(event)
+        self._fit_ai_label()
+
+    def showEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().showEvent(event)
+        self._fit_ai_label()
+
+    def _fit_ai_label(self) -> None:
+        """The full AI label while the project list keeps ``LEAST_PROJECTS`` beside it."""
+        bar = self.panel_bar
+        others = 0
+        for i in range(bar.count()):
+            widget = bar.itemAt(i).widget()
+            if widget is self.ai_button:
+                others += widget.width_for(widget.full)
+            elif widget is not None and widget is not self.projects:
+                others += widget.sizeHint().width()
+        others += bar.spacing() * (bar.count() - 1)
+        self.ai_button.set_short(bar.geometry().width() - others < LEAST_PROJECTS)
 
     def _build_language(self, bar: QHBoxLayout) -> None:
         """The language switch at the end of the panel row: the code on view, names in the list."""
@@ -436,6 +520,7 @@ class MainWindow(QMainWindow):
                                       NOTE_ROLE)
         self.projects.setCurrentIndex(ids.index(select) if select is not None else -1)
         self.projects.blockSignals(False)
+        self.projects.setToolTip(self.projects.currentText())
         self._open(select)
 
     def _update_note(self) -> None:

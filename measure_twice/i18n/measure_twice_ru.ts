@@ -2002,8 +2002,8 @@
     </message>
     <message>
         <location filename="../ui/app.py" line="268"/>
-        <source>With AI…</source>
-        <translation>С AI…</translation>
+        <source>✦ Add with AI</source>
+        <translation>✦ Создать с AI</translation>
     </message>
     <message>
         <location filename="../ui/app.py" line="269"/>

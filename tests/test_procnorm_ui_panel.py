@@ -16,7 +16,7 @@ from measure_twice.ui import app as app_module
 from measure_twice.ui.app import MainWindow
 from tests.test_procnorm_edit_delete import with_spares
 
-NEW_ITEMS = ["With AI…", "Paste AI answer…", "From file…", "Empty", "Example"]
+NEW_ITEMS = ["Paste AI answer…", "From file…", "Empty", "Example"]
 MORE_ITEMS = ["Export to file…", "Duplicate", "Replace from file…", "Delete…"]
 HINT = "The program keeps your projects by itself. This makes a file to send or archive."
 OLD_TEXTS = {"New", "Load", "Load over", "Save file", "Copy", "Delete",
@@ -62,12 +62,12 @@ def _bar(win) -> QHBoxLayout:
                 if lay.indexOf(win.projects) >= 0)
 
 
-def test_row_has_exactly_four_elements(win):
+def test_row_has_exactly_five_controls(win):
     bar = _bar(win)
     widgets = [bar.itemAt(i).widget() for i in range(bar.count())]
     controls = [w for w in widgets if isinstance(w, (QComboBox, QPushButton))]
-    assert controls == [win.projects, win.new_menu_button, win.more_menu_button,
-                        win.language_button]
+    assert controls == [win.projects, win.ai_button, win.new_menu_button,
+                        win.more_menu_button, win.language_button]
     assert win.new_menu_button.text() == "+ New ▾"
     assert win.more_menu_button.text() == "More ▾"
     assert win.new_menu_button.menu() is win.new_menu
@@ -95,7 +95,7 @@ def test_no_old_buttons_visible(win):
     texts = {b.text() for b in win.findChildren(QPushButton) if b.isVisible()}
     assert not texts & OLD_TEXTS
     for name in ("new_button", "load_button", "load_over_button", "save_button",
-                 "copy_button", "delete_button", "ai_button", "example_button"):
+                 "copy_button", "delete_button", "example_button"):
         assert not hasattr(win, name)
 
 
@@ -103,7 +103,7 @@ def test_more_items_grey_without_project(win):
     assert win.current_id is None
     for a in (win.save_action, win.copy_action, win.load_over_action, win.delete_action):
         assert not a.isEnabled()
-    for a in (win.ai_action, win.load_action, win.new_action, win.example_action):
+    for a in (win.load_action, win.new_action, win.example_action):
         assert a.isEnabled()
 
 
@@ -126,7 +126,7 @@ def test_with_ai_opens_scenario(win, monkeypatch):
         return app_module.AiScenarioDialog.DialogCode.Rejected
 
     monkeypatch.setattr(app_module.AiScenarioDialog, "exec", exec_)
-    win.ai_action.trigger()
+    win.ai_button.click()
     assert shown == [win.ai_scenario()]
 
 
@@ -203,7 +203,7 @@ def test_default_width_shows_whole_labels(win):
     win.example_action.trigger()
     QApplication.processEvents()
     assert win.width() == 1100
-    for b in (win.new_menu_button, win.more_menu_button):
+    for b in (win.ai_button, win.new_menu_button, win.more_menu_button):
         right = b.mapTo(win, b.rect().topRight()).x()
         assert right < win.width()
         assert b.width() >= b.sizeHint().width()
