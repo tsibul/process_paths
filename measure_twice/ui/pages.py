@@ -100,6 +100,7 @@ FORM_WORDS = ("kind", "named_slice")  # words added and changed in a form under 
 EDIT = "✎"
 WIDE = 1.4  # the name field of a parameter is this much wider: an executor list stands beside it
 CELL_PAD = 8  # horizontal padding of a table cell in the stylesheet, px
+NAME_WIDTH = 260  # widest name column of a dictionary table, px; a longer name is elided
 START_HINT = QT_TRANSLATE_NOOP(
     "DictionaryPage",
     "Start with entities, their axes and values. Then add kinds, executors, instruments "
@@ -917,13 +918,37 @@ class WordTable(Table):
         self.cellClicked.connect(self._clicked)
 
     def sizeHintForColumn(self, column: int) -> int:  # noqa: N802 (Qt name)
-        """As the table; an open input of a new word gets its whole width inside the cell
-        padding."""
+        """As the table; a column of names is no wider than ``NAME_WIDTH``, an open input of a
+        new word gets its whole width inside the cell padding."""
         width = super().sizeHintForColumn(column)
+        if self._names_in(column):
+            return min(width, NAME_WIDTH)
         editor = getattr(self, "_editor", None)  # the table fits itself before ``__init__`` ends
-        if editor is not None and column == self.columnCount() - 1:
+        if editor is not None:
             width = max(width, editor.sizeHint().width() + 2 * CELL_PAD)
         return width
+
+    def _names_in(self, column: int) -> bool:
+        """Whether the column holds word names: such a column is no wider than ``NAME_WIDTH``."""
+        for r in range(self.rowCount()):
+            it = self.item(r, column)
+            if it is not None and it.data(WORD) is not None:
+                return True
+        return False
+
+    def fit(self) -> None:
+        """As the table; a name cut by its column gets the full name in its tooltip."""
+        super().fit()
+        rename = self.tr("Double-click to rename")
+        for r in range(self.rowCount()):
+            for c in range(self.columnCount() - 1):
+                it = self.item(r, c)
+                data = it.data(WORD) if it is not None else None
+                if data is None:
+                    continue
+                name = data[1][-1] if isinstance(data[1], tuple) else data[1]
+                cut = self.sizeHintForIndex(self.model().index(r, c)).width() > self.columnWidth(c)
+                it.setToolTip(f"{name}\n{rename}" if cut else rename)
 
     def _cells(self, row: WordRow | AddRow) -> list[str]:
         if isinstance(row, WordRow):
@@ -1092,6 +1117,7 @@ class WordTable(Table):
         self.close_form()
         if self._editor is None:
             return
+        self._editor.hide()  # Qt deletes it later; it is not to stay shown till then
         self.removeCellWidget(self._editor_row, self.columnCount() - 1)
         self._editor = None
         self._editor_row = -1

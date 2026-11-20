@@ -171,11 +171,26 @@ class Table(QTableWidget):
     def set_rows(self, rows: list[list[str]]) -> None:
         """Replace all rows with texts."""
         self.setSortingEnabled(False)
+        self.drop_cell_widgets()
         self.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, text in enumerate(row):
                 self.setItem(r, c, item(text, c in self.numeric))
         self.fit()
+
+    def drop_cell_widgets(self) -> None:
+        """Take every widget out of its cell and hide it at once.
+
+        Qt deletes a removed or replaced cell widget later, from the event loop. Until then the
+        widget stays shown, and one made before the table was first laid out sits at the top left
+        of the viewport, over the first cell.
+        """
+        for r in range(self.rowCount()):
+            for c in range(self.columnCount()):
+                widget = self.cellWidget(r, c)
+                if widget is not None:
+                    widget.hide()
+                    self.removeCellWidget(r, c)
 
     def fit(self) -> None:
         """Size the table to its contents: full height; a horizontal scroll bar when too narrow."""
