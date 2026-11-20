@@ -11,15 +11,13 @@ runs `lrelease`.
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import (QCoreApplication, QLibraryInfo, QLocale, QProcess, QSettings,
-                            QTranslator)
+from PySide6.QtCore import QCoreApplication, QLibraryInfo, QLocale, QSettings, QTranslator
 
 from measure_twice.message import Message, Number
 
@@ -210,9 +208,3 @@ def remark(r) -> str:
     where = shown(r.where)
     text = shown(r.text)
     return f"{where}: {text}" if where else text
-
-
-def restart() -> None:
-    """Start the program again with the same command line and quit this one."""
-    QProcess.startDetached(sys.executable, sys.orig_argv[1:], os.getcwd())
-    QCoreApplication.quit()

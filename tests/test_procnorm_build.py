@@ -219,43 +219,6 @@ def test_spec_does_not_import_unused_qt_modules(qm_dir):
         assert module in kwargs["excludes"]
 
 
-class _Process:
-    started: list = []
-
-    @staticmethod
-    def startDetached(program, arguments, folder):
-        _Process.started.append((program, arguments, folder))
-        return True
-
-
-def _restart(monkeypatch, executable: str, orig_argv: list[str]) -> tuple:
-    _Process.started = []
-    monkeypatch.setattr(i18n, "QProcess", _Process)
-    monkeypatch.setattr(i18n, "QCoreApplication", SimpleNamespace(quit=lambda: None))
-    monkeypatch.setattr(sys, "executable", executable)
-    monkeypatch.setattr(sys, "orig_argv", orig_argv)
-    i18n.restart()
-    (started,) = _Process.started
-    return started
-
-
-def test_restart_from_the_build_starts_the_program_itself(monkeypatch, tmp_path):
-    # As measured in a PyInstaller build: `sys.executable` is the program, `sys.orig_argv` is
-    # its command line as typed, `sys.frozen` is set.
-    program = "/opt/measure_twice/measure_twice"
-    monkeypatch.setattr(sys, "frozen", True, raising=False)
-    monkeypatch.chdir(tmp_path)
-    started = _restart(monkeypatch, program, ["./measure_twice"])
-    assert started == (program, [], str(tmp_path))
-
-
-def test_restart_from_source_runs_the_module_again(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
-    python = "/project/.venv/bin/python"
-    started = _restart(monkeypatch, python, [python, "-m", "measure_twice"])
-    assert started == (python, ["-m", "measure_twice"], str(tmp_path))
-
-
 def test_frozen_program_reads_qm_next_to_the_code():
     assert i18n.qm_folder(frozen=True) == i18n.SOURCES
     assert i18n.qm_folder(frozen=False) != i18n.SOURCES

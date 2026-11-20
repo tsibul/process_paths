@@ -53,15 +53,7 @@ def store(tmp_path):
 
 
 @pytest.fixture
-def restarts(monkeypatch):
-    """Restarting only counts; the process stays."""
-    calls = []
-    monkeypatch.setattr(i18n, "restart", lambda: calls.append(1))
-    return calls
-
-
-@pytest.fixture
-def win(app, store, settings, restarts):
+def win(app, store, settings):
     settings.setValue(i18n.KEY, "en")
     w = MainWindow(store, settings)
     yield w
@@ -119,13 +111,12 @@ def qm(tmp_path, monkeypatch):
     return out
 
 
-def test_choosing_changes_the_language_at_once(win, settings, qm, restarts):
+def test_choosing_changes_the_language_at_once(win, settings, qm):
     new = _choose(win, "ru")
     assert settings.value(i18n.KEY) == "ru"
     assert i18n.current() == "ru"
     assert new.new_menu_button.text() == "[ru] + New ▾"
     assert new.language_button.text() == "RU ▾"
-    assert restarts == []
     new.close()
 
 
@@ -169,7 +160,7 @@ def test_window_without_settings_changes_language(app, store, qm):
     new.close()
 
 
-def test_right_to_left_language_turns_the_window(app, store, settings, restarts, tmp_path):
+def test_right_to_left_language_turns_the_window(app, store, settings, tmp_path):
     i18n.apply_language(app, "he", tmp_path)
     w = MainWindow(store, settings)
     assert w.layoutDirection() == Qt.LayoutDirection.RightToLeft
