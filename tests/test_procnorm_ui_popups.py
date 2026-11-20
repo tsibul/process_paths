@@ -1,6 +1,7 @@
 """Menus and popup lists: opaque, framed, with their own colours, inside the window."""
 
 import os
+from collections import Counter
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -79,8 +80,23 @@ def _window(app, store, tmp_path, palette: QPalette | None = None, width: int = 
     return w
 
 
+def _open_forms(w: MainWindow) -> None:
+    """Open the lists that live in cells and forms: the input row and the dictionary editors."""
+    w.tabs.setCurrentWidget(w.chains)
+    w.chains.table.open_input(("call", 1))
+    QApplication.processEvents()
+    w.tabs.setCurrentWidget(w.dictionary)
+    for table in w.dictionary.tables():
+        for kind, owner in list(table._adds):
+            if kind in ("variant_param", "executor"):
+                table.open_add(kind, owner)
+                QApplication.processEvents()
+                break
+
+
 def _popups(w: MainWindow) -> list[QWidget]:
     """Every menu of the window and the popup frame of every list in it."""
+    _open_forms(w)
     out: list[QWidget] = list(w.findChildren(QMenu))
     for c in w.findChildren(QComboBox):
         c.showPopup()
@@ -114,12 +130,45 @@ def test_menus_and_lists_opaque(system, store, tmp_path):
         w.close()
 
 
+def _most_common(img) -> str:
+    """The ground of a popup: its commonest colour, the tint of the chosen item aside."""
+    seen = Counter(img.pixelColor(x, y).name()
+                   for y in range(0, img.height(), 2) for x in range(0, img.width(), 2))
+    del seen[style.TINT.lower()]
+    return seen.most_common(1)[0][0]
+
+
+def test_popup_tokens_of_variant_3():
+    assert style.POPUP_BG == "#F5F6FF"
+    assert style.POPUP_BORDER == "#C7CBF5"
+
+
 def test_menu_background_explicit(system, store, tmp_path):
     w = _window(system, store, tmp_path, dark_palette())
     try:
         for m in (w.new_menu, w.more_menu, w.language_menu):
             img = _shown(m).grab().toImage()
-            assert img.pixelColor(img.width() // 2, 3).name() == style.BG.lower(), m
+            assert img.pixelColor(img.width() // 2, 3).name() == style.POPUP_BG.lower(), m
+    finally:
+        w.close()
+
+
+@pytest.mark.parametrize("dark", [False, True])
+def test_every_popup_tinted(system, store, tmp_path, dark):
+    w = _window(system, store, tmp_path, dark_palette() if dark else None)
+    try:
+        _open_forms(w)
+        for m in w.findChildren(QMenu):
+            assert _most_common(_shown(m).grab().toImage()) == style.POPUP_BG.lower(), m
+        boxes = w.findChildren(QComboBox)
+        assert len(boxes) >= 4  # the projects, the input row and a dictionary form
+        for c in boxes:
+            c.showPopup()
+            QApplication.processEvents()
+            img = c.view().window().grab().toImage()
+            c.hidePopup()
+            if c.count() > 1:  # a list of one shows only its chosen item
+                assert _most_common(img) == style.POPUP_BG.lower(), c
     finally:
         w.close()
 
