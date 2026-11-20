@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from html import escape
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QRect, QSize, Qt, Signal
 from PySide6.QtGui import (QColor, QFont, QFontMetrics, QPainter, QPen, QStandardItem,
                            QStandardItemModel)
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
@@ -47,6 +47,7 @@ STEP_COL = 32  # step number column, px
 RESERVED = 150  # the editing buttons right of Scope, px
 SLICE_ROW = 26  # height of a slice marker row, px
 INPUT_ROW = 42  # height of the input row of a new transition, px
+OPEN_WIDTH = 100000  # a width any row fits in one line, px
 SLACK = 4  # rounding room so a measured text does not wrap, px
 ROW_PAD = 14  # vertical padding and border of a row, px
 NO_TRANSITIONS = QT_TRANSLATE_NOOP("ChainsPage", "No transitions")
@@ -398,24 +399,54 @@ class StateHere(QWidget):
         row.addWidget(self.label, 1)
 
 
+class FitBox(QComboBox):
+    """A list never narrower than its longest name with the arrow; open, no name in it is cut."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        return self.sizeHint()
+
+    def event(self, e) -> bool:
+        done = super().event(e)
+        if e.type() == QEvent.Type.Polish:
+            self.setMinimumWidth(0)  # the stylesheet's ``min-width`` would let a layout cut it
+        return done
+
+    def showPopup(self) -> None:  # noqa: N802 (Qt name)
+        view = self.view()
+        need = view.sizeHintForColumn(0) + 2 * view.frameWidth()
+        if self.count() > self.maxVisibleItems():
+            need += view.verticalScrollBar().sizeHint().width()
+        view.setMinimumWidth(max(view.minimumWidth(), need))
+        super().showPopup()
+
+
 class InputRow(QWidget):
     """Four lists of a new transition: ``Kind``, ``Executor``, ``Instrument``, ``Scope``.
 
     ``actions`` holds ``Add`` and ``Cancel``; the table puts it in the buttons column.
     With ``allowed`` the list ``Kind`` has the allowed kinds first, then ``Not allowed here`` and
     the others in grey with their reason; those cannot be chosen.
+
+    Each list is as wide as its longest name with the arrow; when the four do not fit in one line
+    they go in two lines of two, or in four lines.
     """
 
     def __init__(self, choices: dict[str, list[str]], values: list[str],
                  allowed: dict[str, str | None] | None = None) -> None:
         super().__init__()
-        row = QHBoxLayout(self)
-        row.setContentsMargins(6, 4, 6, 4)
-        row.setSpacing(6)
+        self.grid = QGridLayout(self)
+        self.grid.setContentsMargins(6, 4, 6, 4)
+        self.grid.setHorizontalSpacing(6)
+        self.grid.setVerticalSpacing(4)
+        self._per_line = 0
         self.lists: dict[str, QComboBox] = {}
         self._reasons: dict[str, str] = {}
         for field_, value in zip(FIELDS, values):
-            box = QComboBox()
+            box = FitBox()
             box.setObjectName("pick")
             if field_ == "kind" and allowed is not None:
                 self._fill_kinds(box, allowed, value)
@@ -426,8 +457,8 @@ class InputRow(QWidget):
                 box.addItems(names)
                 box.setCurrentText(value)
             box.setToolTip(self._field_names()[field_])
-            row.addWidget(box, 2 if field_ == "kind" else 1)
             self.lists[field_] = box
+        self._place_lists(len(FIELDS))
         self.actions = QWidget()
         buttons = QHBoxLayout(self.actions)
         buttons.setContentsMargins(6, 0, 6, 0)
@@ -441,6 +472,48 @@ class InputRow(QWidget):
         buttons.addWidget(self.cancel_button)
         buttons.addStretch(1)
         self.add_button.setEnabled(bool(self.values()[0]))
+
+    def per_line(self, width: int) -> int:
+        """How many lists fit in one line of this width: 4, 2 or 1."""
+        boxes = list(self.lists.values())
+        margins = self.grid.contentsMargins()
+        room = width - margins.left() - margins.right()
+        gap = self.grid.horizontalSpacing()
+        for n in (4, 2):
+            lines = [boxes[i:i + n] for i in range(0, len(boxes), n)]
+            need = max(sum(b.minimumSizeHint().width() for b in line) + gap * (n - 1)
+                       for line in lines)
+            if need <= room:
+                return n
+        return 1
+
+    def _place_lists(self, n: int) -> None:
+        """Put the lists in lines of ``n``; ``Kind`` takes more of a full line."""
+        if n == self._per_line:
+            return
+        self._per_line = n
+        for box in self.lists.values():
+            self.grid.removeWidget(box)
+        for c in range(len(FIELDS)):
+            self.grid.setColumnStretch(c, 0)
+        for i, box in enumerate(self.lists.values()):
+            self.grid.addWidget(box, i // n, i % n)
+        for c in range(n):
+            self.grid.setColumnStretch(c, 2 if n == len(FIELDS) and c == 0 else 1)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt name)
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 (Qt name)
+        lines = -(-len(FIELDS) // self.per_line(width))
+        line = max(b.sizeHint().height() for b in self.lists.values())
+        margins = self.grid.contentsMargins()
+        return lines * line + (lines - 1) * self.grid.verticalSpacing() \
+            + margins.top() + margins.bottom()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        self._place_lists(self.per_line(event.size().width()))
+        super().resizeEvent(event)
 
     def _field_names(self) -> dict[str, str]:
         return {
@@ -725,7 +798,10 @@ class ChainTable(Table):
                     width = max(width, m.horizontalAdvance(it.text()) + pad)
             hh.setSectionResizeMode(c, QHeaderView.ResizeMode.Fixed)
             self.setColumnWidth(c, width)
-        for c, w in ((0, STEP_COL), (6, RESERVED)):
+        buttons = RESERVED
+        if "input" in self.kinds:  # Add and Cancel whole, in any language
+            buttons = max(buttons, self.input.actions.sizeHint().width() + 2 * PAD_X)
+        for c, w in ((0, STEP_COL), (6, buttons)):
             hh.setSectionResizeMode(c, QHeaderView.ResizeMode.Fixed)
             self.setColumnWidth(c, w)
         hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -748,7 +824,9 @@ class ChainTable(Table):
                 self.setRowHeight(r, SLICE_ROW)
                 continue
             if kind == "input":
-                self.setRowHeight(r, INPUT_ROW)
+                span = sum(self.columnWidth(c) for c in range(1, 6)) - 2 * PAD_X
+                more = self.input.heightForWidth(span) - self.input.heightForWidth(OPEN_WIDTH)
+                self.setRowHeight(r, INPUT_ROW + more)  # taller by the lines that wrapped
                 continue
             if kind == "state":
                 span = sum(self.columnWidth(c) for c in range(1, self.columnCount()))
@@ -847,7 +925,7 @@ class ChainsPage(Page):
         right = QVBoxLayout()
         right.setSpacing(0)
         head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 10, 8)
+        head.setContentsMargins(0, 0, 10, 4)
         head.setSpacing(6)
         self.code_edit = QLineEdit()
         self.code_edit.setObjectName("chainCode")
@@ -867,10 +945,12 @@ class ChainsPage(Page):
         self.delete_button.clicked.connect(lambda: self._edit("delete", ()))
         head.addWidget(self.copy_button, 0)
         head.addWidget(self.delete_button, 0)
-        self.meta = QLabel("")
-        self.meta.setObjectName("groupNote")
-        head.addWidget(self.meta, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         right.addLayout(head)
+        self.meta = QLabel("")  # on its own line under the title, wrapping in a narrow window
+        self.meta.setObjectName("groupNote")
+        self.meta.setWordWrap(True)
+        self.meta.setContentsMargins(0, 0, 10, 8)
+        right.addWidget(self.meta)
         right.addWidget(self._header_fields())
         self.table = ChainTable()
         self.table.edit.connect(self._edit)

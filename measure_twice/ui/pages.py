@@ -93,11 +93,13 @@ NAME_HINTS = {
     "executor": QT_TRANSLATE_NOOP("DictionaryPage", "executor name"),
     "instrument": QT_TRANSLATE_NOOP("DictionaryPage", "instrument name"),
     "scope": QT_TRANSLATE_NOOP("DictionaryPage", "scope name"),
-    "variant_param": QT_TRANSLATE_NOOP("DictionaryPage", "parameter name"),
+    "variant_param": QT_TRANSLATE_NOOP("DictionaryPage", "name"),  # short: the field is narrow
 }
 SPECIAL = "special"  # refusal key of the row with the existence axis and the batch scope
 FORM_WORDS = ("kind", "named_slice")  # words added and changed in a form under their row
 EDIT = "✎"
+WIDE = 1.4  # the name field of a parameter is this much wider: an executor list stands beside it
+CELL_PAD = 8  # horizontal padding of a table cell in the stylesheet, px
 START_HINT = QT_TRANSLATE_NOOP(
     "DictionaryPage",
     "Start with entities, their axes and values. Then add kinds, executors, instruments "
@@ -184,6 +186,14 @@ def _icon(text: str, tip: str) -> QPushButton:
     return b
 
 
+class WideField(QLineEdit):
+    """A name field wider than the others by ``WIDE``."""
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        hint = super().sizeHint()
+        return QSize(round(hint.width() * WIDE), hint.height())
+
+
 class AddEditor(QWidget):
     """The input of a new word: its name (and the first value of an axis, or the executor of a
     parameter), ``Add`` and ``Esc``. Enter submits, Esc cancels."""
@@ -197,7 +207,7 @@ class AddEditor(QWidget):
         lay = QHBoxLayout(self)
         lay.setContentsMargins(6, 2, 6, 2)
         lay.setSpacing(8)
-        self.name = QLineEdit()
+        self.name = WideField() if what == "variant_param" else QLineEdit()
         self.name.setObjectName("addField")
         self.name.setPlaceholderText(translate("DictionaryPage", NAME_HINTS[what]))
         self.name.returnPressed.connect(self.submitted)
@@ -905,6 +915,15 @@ class WordTable(Table):
         self._form: QWidget | None = None
         self._form_row = -1
         self.cellClicked.connect(self._clicked)
+
+    def sizeHintForColumn(self, column: int) -> int:  # noqa: N802 (Qt name)
+        """As the table; an open input of a new word gets its whole width inside the cell
+        padding."""
+        width = super().sizeHintForColumn(column)
+        editor = getattr(self, "_editor", None)  # the table fits itself before ``__init__`` ends
+        if editor is not None and column == self.columnCount() - 1:
+            width = max(width, editor.sizeHint().width() + 2 * CELL_PAD)
+        return width
 
     def _cells(self, row: WordRow | AddRow) -> list[str]:
         if isinstance(row, WordRow):
