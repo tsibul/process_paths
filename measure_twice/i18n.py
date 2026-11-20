@@ -4,7 +4,9 @@
 """Languages of the window: the stored choice, building and loading `.qm`, the direction.
 
 The sources of translations are ``measure_twice/i18n/measure_twice_<lang>.ts``; the `.qm` files
-are built from them into a temporary folder and never kept in the repository.
+are built from them into a temporary folder and never kept in the repository. A frozen program
+(the PyInstaller build) carries the `.qm` files built beforehand next to the sources and never
+runs `lrelease`.
 """
 
 from __future__ import annotations
@@ -30,7 +32,26 @@ LANGUAGES = {
     "el": "Ελληνικά",
 }
 SOURCES = Path(__file__).parent / "i18n"
-BUILD = Path(tempfile.gettempdir()) / "measure_twice_qm"
+
+
+def _frozen() -> bool:
+    """Whether the program runs from the PyInstaller build."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def qm_folder(frozen: bool | None = None) -> Path:
+    """The folder of the `.qm` files.
+
+    :param frozen: whether the program runs from the build; the real state when absent.
+    :return: the folder of the sources in the build, else a temporary folder.
+    :rtype: Path
+    """
+    if frozen is None:
+        frozen = _frozen()
+    return SOURCES if frozen else Path(tempfile.gettempdir()) / "measure_twice_qm"
+
+
+BUILD = qm_folder()
 
 _current = SOURCE
 _translators: list[QTranslator] = []
@@ -66,14 +87,22 @@ def _lrelease() -> str | None:
     return shutil.which("pyside6-lrelease")
 
 
-def build_qm(sources: Path = SOURCES, out: Path = BUILD) -> list[Path]:
+def build_qm(sources: Path = SOURCES, out: Path = BUILD,
+             frozen: bool | None = None) -> list[Path]:
     """Build the `.qm` files from the `.ts` sources.
 
     :param sources: the folder with ``measure_twice_<lang>.ts``.
     :param out: the folder for the `.qm` files; made when absent.
-    :return: the built files; none without sources or without `lrelease`.
+    :param frozen: whether the program runs from the build, where the `.qm` files are ready in
+        ``out`` and nothing is built; the real state when absent.
+    :return: the built files (in the build, the ready ones); none without sources or without
+        `lrelease`.
     :rtype: list[Path]
     """
+    if frozen is None:
+        frozen = _frozen()
+    if frozen:
+        return sorted(out.glob("measure_twice_*.qm")) if out.is_dir() else []
     ts_files = sorted(sources.glob("measure_twice_*.ts")) if sources.is_dir() else []
     tool = _lrelease()
     if not ts_files or tool is None:
