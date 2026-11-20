@@ -250,3 +250,27 @@ def test_sort_follows_new_numbers(win):
     _type(win, "kind_costs", "Запустить машину", "40")  # 4 → 40 on the whole load: +3.60 for every one
     assert [c.cell(x, "Labour · total") for x in c.codes()] == ["12.00", "7.00", "9.00"]
     assert c.tree.header().sortIndicatorSection() == c.headers().index("Labour · total")
+
+
+def test_number_typed_in_cell_kept_on_language_change(win, store, monkeypatch, tmp_path):
+    # The editor is still open with a typed number when another language is chosen.
+    from measure_twice import i18n
+
+    monkeypatch.setattr(i18n, "BUILD", tmp_path)
+    t = win.norm.number_table("kind_costs")
+    it = win.norm.number_item("kind_costs", WASH)
+    t.setCurrentItem(it)
+    t.editItem(it)
+    QApplication.processEvents()
+    editor = t.viewport().findChild(QLineEdit)
+    editor.selectAll()
+    editor.setText("4")
+    pid = win.current_id
+    try:
+        new = win.choose_language("ru")
+        QApplication.processEvents()
+        assert str(_stored_cost(store, pid, WASH)) == "4"
+        assert new.norm.number_item("kind_costs", WASH).text() == "4"
+        new.close()
+    finally:
+        i18n.apply_language(QApplication.instance(), "en", tmp_path)

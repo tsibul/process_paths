@@ -11,10 +11,10 @@ from pathlib import Path
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSettings, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
-from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout,
-                               QInputDialog, QLabel, QMainWindow, QMenu, QMessageBox,
-                               QPushButton, QStackedWidget, QTabWidget, QVBoxLayout, QWidget,
-                               QWidgetAction)
+from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QApplication,
+                               QComboBox, QFileDialog, QFrame, QHBoxLayout, QInputDialog,
+                               QLabel, QMainWindow, QMenu, QMessageBox, QPushButton,
+                               QStackedWidget, QTabWidget, QVBoxLayout, QWidget, QWidgetAction)
 
 from measure_twice.calc import empty_steps, project_empty_steps
 from measure_twice import edit, i18n, report
@@ -333,6 +333,7 @@ class MainWindow(QMainWindow):
         if code == i18n.current():
             self._show_language(code)
             return self
+        self._finish_typing()
         i18n.apply_language(QApplication.instance(), code, i18n.BUILD)
         new = MainWindow(self.store, self.settings)
         if new.current_id != self.current_id:
@@ -346,6 +347,26 @@ class MainWindow(QMainWindow):
         self.close()
         self.deleteLater()
         return new
+
+    def _finish_typing(self) -> None:
+        """Hand the cell being typed in to its table, so it is written before the window goes.
+
+        The editor is the widget on the viewport of a table that holds the focus or a part of it.
+        """
+        editor = self.focusWidget()
+        while editor is not None and editor.parent() is not None:
+            view = editor.parent().parent()
+            if isinstance(view, QAbstractItemView) and editor.parent() is view.viewport():
+                break
+            editor = editor.parent()
+        else:
+            return
+        if view.state() != QAbstractItemView.State.EditingState:
+            return
+        delegate = view.itemDelegateForIndex(view.currentIndex())
+        delegate.commitData.emit(editor)
+        delegate.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.NoHint)
+        QApplication.processEvents()  # the tables pass a committed value on by a zero timer
 
     @staticmethod
     def _item(menu: QMenu, text: str, slot) -> QAction:
