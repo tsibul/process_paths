@@ -4,8 +4,10 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+import sys
 import tomllib
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -44,13 +46,18 @@ class _Recorder:
     """Stands for a class of PyInstaller: keeps the arguments of every call."""
 
     calls: dict[str, list] = {}
+    # What the analysis finds: (name in the build, source, type), as PyInstaller lists them.
+    found: dict[str, list] = {"binaries": [], "datas": []}
 
     def __init__(self, name: str):
         self.name = name
 
     def __call__(self, *args, **kwargs):
         self.calls.setdefault(self.name, []).append((args, kwargs))
-        return MagicMock()  # has every attribute the spec reads, such as `a.pure`
+        if self.name == "Analysis":
+            found = {key: list(value) for key, value in self.found.items()}
+            return SimpleNamespace(pure=[], scripts=[], **found)
+        return MagicMock()
 
 
 def _run_spec(qm_dir: Path) -> dict[str, list]:
@@ -112,6 +119,101 @@ def test_spec_builds_a_folder_with_qtcharts(qm_dir):
     assert "COLLECT" in calls  # a folder, not one file
     (args, kwargs), = calls["Analysis"]
     assert "PySide6.QtCharts" in kwargs["hiddenimports"]
+
+
+# Files of a Linux and of a Windows analysis: kept ones, then unused Qt parts.
+KEPT = [
+    "PySide6/Qt/lib/libQt6Charts.so.6",
+    "PySide6/Qt/lib/libQt6Widgets.so.6",
+    "PySide6/Qt/lib/libQt6DBus.so.6",
+    "PySide6/Qt/plugins/platforms/libqxcb.so",
+    "PySide6/Qt/plugins/platforms/libqwayland.so",
+    "PySide6/Qt/plugins/platforms/libqoffscreen.so",
+    "PySide6/Qt/plugins/platforminputcontexts/libibusplatforminputcontextplugin.so",
+    "PySide6/Qt/plugins/imageformats/libqjpeg.so",
+    "PySide6/Qt/translations/qtbase_ru.qm",
+    "PySide6/Qt6Charts.dll",
+    "PySide6/plugins/platforms/qwindows.dll",
+    "PySide6/translations/qtbase_el.qm",
+    "measure_twice/i18n/measure_twice_ru.qm",
+    "libpython3.14.so.1.0",
+]
+UNUSED = [
+    "PySide6/Qt/lib/libQt6Qml.so.6",
+    "PySide6/Qt/lib/libQt6QmlModels.so.6",
+    "PySide6/Qt/lib/libQt6Quick.so.6",
+    "PySide6/Qt/lib/libQt6VirtualKeyboard.so.6",
+    "PySide6/Qt/lib/libQt6Pdf.so.6",
+    "PySide6/Qt/lib/libQt6Network.so.6",
+    "PySide6/Qt/lib/libQt6EglFSDeviceIntegration.so.6",
+    "PySide6/Qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.so",
+    "PySide6/Qt/plugins/imageformats/libqpdf.so",
+    "PySide6/Qt/plugins/platforms/libqvnc.so",
+    "PySide6/Qt/plugins/platforms/libqeglfs.so",
+    "PySide6/Qt/plugins/egldeviceintegrations/libqeglfs-kms-egldevice-integration.so",
+    "PySide6/Qt/plugins/networkinformation/libqnetworkmanager.so",
+    "PySide6/Qt/plugins/tls/libqopensslbackend.so",
+    "PySide6/Qt/plugins/generic/libqtuiotouchplugin.so",
+    "PySide6/Qt/translations/qtdeclarative_ru.qm",
+    "PySide6/Qt6Quick.dll",
+    "PySide6/plugins/imageformats/qpdf.dll",
+    "PySide6/translations/qt_help_el.qm",
+]
+
+
+def test_spec_leaves_out_unused_qt_parts(qm_dir):
+    entries = [(name, "/src/" + name, "BINARY") for name in KEPT + UNUSED]
+    _Recorder.found = {"binaries": entries, "datas": []}
+    try:
+        calls = _run_spec(qm_dir)
+    finally:
+        _Recorder.found = {"binaries": [], "datas": []}
+    (args, kwargs), = calls["COLLECT"]
+    collected = [entry[0] for part in args if isinstance(part, list) for entry in part]
+    assert collected == KEPT
+
+
+def test_spec_does_not_import_unused_qt_modules(qm_dir):
+    (args, kwargs), = _run_spec(qm_dir)["Analysis"]
+    for module in ("PySide6.QtNetwork", "PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtPdf"):
+        assert module in kwargs["excludes"]
+
+
+class _Process:
+    started: list = []
+
+    @staticmethod
+    def startDetached(program, arguments, folder):
+        _Process.started.append((program, arguments, folder))
+        return True
+
+
+def _restart(monkeypatch, executable: str, orig_argv: list[str]) -> tuple:
+    _Process.started = []
+    monkeypatch.setattr(i18n, "QProcess", _Process)
+    monkeypatch.setattr(i18n, "QCoreApplication", SimpleNamespace(quit=lambda: None))
+    monkeypatch.setattr(sys, "executable", executable)
+    monkeypatch.setattr(sys, "orig_argv", orig_argv)
+    i18n.restart()
+    (started,) = _Process.started
+    return started
+
+
+def test_restart_from_the_build_starts_the_program_itself(monkeypatch, tmp_path):
+    # As measured in a PyInstaller build: `sys.executable` is the program, `sys.orig_argv` is
+    # its command line as typed, `sys.frozen` is set.
+    program = "/opt/measure_twice/measure_twice"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.chdir(tmp_path)
+    started = _restart(monkeypatch, program, ["./measure_twice"])
+    assert started == (program, [], str(tmp_path))
+
+
+def test_restart_from_source_runs_the_module_again(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    python = "/project/.venv/bin/python"
+    started = _restart(monkeypatch, python, [python, "-m", "measure_twice"])
+    assert started == (python, ["-m", "measure_twice"], str(tmp_path))
 
 
 def test_frozen_program_reads_qm_next_to_the_code():
