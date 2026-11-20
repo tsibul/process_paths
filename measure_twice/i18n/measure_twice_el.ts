@@ -1954,6 +1954,22 @@
         <translation>Οδηγός χρήσης</translation>
     </message>
     <message>
+        <source>Theme</source>
+        <translation>Θέμα</translation>
+    </message>
+    <message>
+        <source>As in the system</source>
+        <translation>Όπως στο σύστημα</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Ανοιχτό</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Σκούρο</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="55"/>
         <source>Project files (*.json);;All files (*)</source>
         <translatorcomment>Фильтр окна выбора файла; «;;» и маски не трогать.</translatorcomment>

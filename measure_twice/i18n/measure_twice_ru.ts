@@ -1936,6 +1936,22 @@
         <translation>Руководство</translation>
     </message>
     <message>
+        <source>Theme</source>
+        <translation>Тема</translation>
+    </message>
+    <message>
+        <source>As in the system</source>
+        <translation>Как в системе</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Светлая</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Тёмная</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="55"/>
         <source>Project files (*.json);;All files (*)</source>
         <translation>Файлы проектов (*.json);;Все файлы (*)</translation>
