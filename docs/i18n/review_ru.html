@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measure Twice — русский перевод: окно</title>
+<style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      font: 16px/1.4 system-ui, sans-serif;
+      overflow-wrap: anywhere;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 12px;
+    }
+
+    .box {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #8884;
+      padding: 6px 8px;
+      text-align: start;
+      vertical-align: top;
+      white-space: pre-wrap;
+    }
+
+    th {
+      background: #8882;
+    }
+
+    td.num {
+      color: #888;
+      white-space: nowrap;
+    }
+
+    td.empty {
+      background: #fc03;
+    }
+
+    @media (max-width: 600px) {
+      thead {
+        display: none;
+      }
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      tr {
+        border: 1px solid #8886;
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+
+      td {
+        border: 0;
+        border-bottom: 1px solid #8884;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        color: #888;
+      }
+
+      td.note:empty {
+        display: none;
+      }
+    }
+</style>
+</head>
+<body>
+<h1>Measure Twice — русский перевод: окно</h1>
+<div class="box">
+<table>
+<thead><tr><th>№</th><th>English</th><th>Translation</th><th>Comment</th></tr></thead>
+<tbody>
+<tr><td class="num" data-label="№">1</td><td data-label="English">first value</td><td dir="auto" data-label="Translation">первое значение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">2</td><td data-label="English">Every variant takes this executor for the parameter</td><td dir="auto" data-label="Translation">Все варианты получают этого исполнителя для параметра</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">3</td><td data-label="English">Add</td><td dir="auto" data-label="Translation">Добавить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">4</td><td data-label="English">Esc</td><td dir="auto" data-label="Translation">Esc</td><td class="note" dir="auto" data-label="Comment">Название клавиши на кнопке; не переводится.</td></tr>
+<tr><td class="num" data-label="№">5</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">6</td><td data-label="English">Add a process with AI</td><td dir="auto" data-label="Translation">Добавить процесс с AI</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">7</td><td data-label="English">✓ Copied. Paste it into your AI chat.</td><td dir="auto" data-label="Translation">✓ Скопировано. Вставьте в чат с AI.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">8</td><td data-label="English">Prompt copied</td><td dir="auto" data-label="Translation">Просьба скопирована</td><td class="note" dir="auto" data-label="Comment">«Просьба» — слово проекта для prompt; в программах также «запрос», «промпт».</td></tr>
+<tr><td class="num" data-label="№">9</td><td data-label="English">Show prompt again</td><td dir="auto" data-label="Translation">Показать просьбу снова</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">10</td><td data-label="English">Hide prompt</td><td dir="auto" data-label="Translation">Скрыть просьбу</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">11</td><td data-label="English">Paste the AI’s answer</td><td dir="auto" data-label="Translation">Вставьте ответ AI</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">12</td><td data-label="English">Describe the job in one or two sentences, then copy the prompt into your AI chat.</td><td dir="auto" data-label="Translation">Опишите работу одним-двумя предложениями, затем скопируйте просьбу в чат с AI.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">13</td><td data-label="English">Use it when you have agreed on the list of ways.</td><td dir="auto" data-label="Translation">Когда договорились о списке путей.</td><td class="note" dir="auto" data-label="Comment">Подсказка шага сценария; «Используйте, когда…» сокращено.</td></tr>
+<tr><td class="num" data-label="№">14</td><td data-label="English">Use it when you have agreed on the steps of each way.</td><td dir="auto" data-label="Translation">Когда договорились о шагах каждого пути.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">15</td><td data-label="English">Use it when you have agreed on the actions and the checks.</td><td dir="auto" data-label="Translation">Когда договорились о действиях и проверках.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">16</td><td data-label="English">Use it when you have agreed who does what and how long it takes.</td><td dir="auto" data-label="Translation">Когда договорились, кто что делает и сколько это занимает.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">17</td><td data-label="English">The program found problems in the file. Copy this prompt into the same chat.</td><td dir="auto" data-label="Translation">Программа нашла ошибки в файле. Скопируйте эту просьбу в тот же чат.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">18</td><td data-label="English">Not accepted: %n remark</td><td dir="auto" data-label="Translation">Не принято: %n замечание | Не принято: %n замечания | Не принято: %n замечаний</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">19</td><td data-label="English">Close</td><td dir="auto" data-label="Translation">Закрыть</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">20</td><td data-label="English">%n character left</td><td dir="auto" data-label="Translation">Остался %n знак | Осталось %n знака | Осталось %n знаков</td><td class="note" dir="auto" data-label="Comment">Иначе: «символ» — так чаще в счётчиках.</td></tr>
+<tr><td class="num" data-label="№">21</td><td data-label="English">Load file</td><td dir="auto" data-label="Translation">Загрузить файл</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">22</td><td data-label="English">Back to step {n}</td><td dir="auto" data-label="Translation">Назад к шагу {n}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">23</td><td data-label="English">cost of {kind}</td><td dir="auto" data-label="Translation">стоимость {kind}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">24</td><td data-label="English">coefficient of executor {name}</td><td dir="auto" data-label="Translation">коэффициент исполнителя {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">25</td><td data-label="English">coefficient of scope {name}</td><td dir="auto" data-label="Translation">коэффициент охвата {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">26</td><td data-label="English">check price of {entity}/{axis}</td><td dir="auto" data-label="Translation">цена проверки {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">27</td><td data-label="English">Error at transition {number}: {reason}</td><td dir="auto" data-label="Translation">Ошибка в переходе {number}: {reason}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">28</td><td data-label="English">Not set: {items}</td><td dir="auto" data-label="Translation">Не задано: {items}</td><td class="note" dir="auto" data-label="Comment">Перечень чисел нормировки, которых не хватает.</td></tr>
+<tr><td class="num" data-label="№">29</td><td data-label="English">{number} d</td><td dir="auto" data-label="Translation">{number} дн.</td><td class="note" dir="auto" data-label="Comment">Дни ожидания, кратко.</td></tr>
+<tr><td class="num" data-label="№">30</td><td data-label="English">{number} h</td><td dir="auto" data-label="Translation">{number} ч</td><td class="note" dir="auto" data-label="Comment">Часы ожидания, кратко.</td></tr>
+<tr><td class="num" data-label="№">31</td><td data-label="English">No transitions</td><td dir="auto" data-label="Translation">Нет переходов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">32</td><td data-label="English">Steps not given</td><td dir="auto" data-label="Translation">Шаги не заданы</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">33</td><td data-label="English">Move up</td><td dir="auto" data-label="Translation">Переместить вверх</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">34</td><td data-label="English">Move down</td><td dir="auto" data-label="Translation">Переместить вниз</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">35</td><td data-label="English">Remove</td><td dir="auto" data-label="Translation">Удалить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">36</td><td data-label="English">Add transition below</td><td dir="auto" data-label="Translation">Добавить переход ниже</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">37</td><td data-label="English">variants with the same task are compared</td><td dir="auto" data-label="Translation">сравниваются варианты с одной задачей</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">38</td><td data-label="English">Entities and initial state</td><td dir="auto" data-label="Translation">Сущности и начальное состояние</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">39</td><td data-label="English">no box ticked = entities of the transitions</td><td dir="auto" data-label="Translation">ничего не отмечено = сущности переходов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">40</td><td data-label="English">as in dictionary: {}</td><td dir="auto" data-label="Translation">как в справочнике: {}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">41</td><td data-label="English">Not allowed here</td><td dir="auto" data-label="Translation">Здесь невозможен</td><td class="note" dir="auto" data-label="Comment">О виде перехода в списке: здесь он невозможен. Иначе: «Здесь недопустим» — ближе к «not allowed».</td></tr>
+<tr><td class="num" data-label="№">42</td><td data-label="English">State here:</td><td dir="auto" data-label="Translation">Состояние здесь:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">43</td><td data-label="English">Add an executor on the Dictionary tab first: every new path needs one for each variant parameter.</td><td dir="auto" data-label="Translation">Сначала добавьте исполнителя на вкладке «Справочник»: новому пути он нужен для каждого параметра варианта.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">44</td><td data-label="English">Initial-state changes of {} were cleared.</td><td dir="auto" data-label="Translation">Изменения начального состояния {} сброшены.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">45</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">46</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">47</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">48</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">49</td><td data-label="English">%n transition</td><td dir="auto" data-label="Translation">%n переход | %n перехода | %n переходов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">50</td><td data-label="English">%n step</td><td dir="auto" data-label="Translation">%n шаг | %n шага | %n шагов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">51</td><td data-label="English">slice “{name}” reached</td><td dir="auto" data-label="Translation">наступил срез «{name}»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">52</td><td data-label="English">Code</td><td dir="auto" data-label="Translation">Код</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">53</td><td data-label="English">Title</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">54</td><td data-label="English">Copy</td><td dir="auto" data-label="Translation">Копировать</td><td class="note" dir="auto" data-label="Comment">Кнопка создаёт копию варианта, не в буфер. Иначе: «Копия» или «Создать копию».</td></tr>
+<tr><td class="num" data-label="№">55</td><td data-label="English">Delete</td><td dir="auto" data-label="Translation">Удалить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">56</td><td data-label="English">New</td><td dir="auto" data-label="Translation">Новый</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">57</td><td data-label="English">Add a variant</td><td dir="auto" data-label="Translation">Добавить вариант</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">58</td><td data-label="English">Side</td><td dir="auto" data-label="Translation">Сторона</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">59</td><td data-label="English">Task</td><td dir="auto" data-label="Translation">Задача</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">60</td><td data-label="English">task</td><td dir="auto" data-label="Translation">задача</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">61</td><td data-label="English">Out of comparison</td><td dir="auto" data-label="Translation">Вне сравнения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">62</td><td data-label="English">reason</td><td dir="auto" data-label="Translation">причина</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">63</td><td data-label="English">Paths</td><td dir="auto" data-label="Translation">Пути</td><td class="note" dir="auto" data-label="Comment">В программе way, path и пути — одно понятие: «путь».</td></tr>
+<tr><td class="num" data-label="№">64</td><td data-label="English">Task: {task}</td><td dir="auto" data-label="Translation">Задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">65</td><td data-label="English">Copy chart</td><td dir="auto" data-label="Translation">Копировать график</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">66</td><td data-label="English">Copied chart</td><td dir="auto" data-label="Translation">График скопирован</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">67</td><td data-label="English">end</td><td dir="auto" data-label="Translation">конец</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">68</td><td data-label="English">Price you gave to each check this way does not do.</td><td dir="auto" data-label="Translation">Цены, назначенные вами проверкам, которых этот путь не делает.</td><td class="note" dir="auto" data-label="Comment">Подсказка столбца «Остаточный риск».</td></tr>
+<tr><td class="num" data-label="№">69</td><td data-label="English">No comparable variant</td><td dir="auto" data-label="Translation">Не с чем сравнить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">70</td><td data-label="English">Not compared: no other variant has the same task</td><td dir="auto" data-label="Translation">Не сравнивается: ни у одного другого варианта нет такой задачи</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">71</td><td data-label="English">Out of comparison</td><td dir="auto" data-label="Translation">Вне сравнения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">72</td><td data-label="English">Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left is counted separately. Click a row to see its steps.</td><td dir="auto" data-label="Translation">Строки сгруппированы по задачам. Сначала наши, затем чужие; меньше труда — дешевле, но остаточный риск считается отдельно. Щёлкните строку, чтобы увидеть её шаги.</td><td class="note" dir="auto" data-label="Comment">Иначе: «Сначала свои, затем чужие» — как в документах проекта.</td></tr>
+<tr><td class="num" data-label="№">73</td><td data-label="English">#</td><td dir="auto" data-label="Translation">№</td><td class="note" dir="auto" data-label="Comment">Номер шага в таблице.</td></tr>
+<tr><td class="num" data-label="№">74</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">75</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">76</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">77</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">78</td><td data-label="English">Cost</td><td dir="auto" data-label="Translation">Стоимость</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">79</td><td data-label="English">Scope ×</td><td dir="auto" data-label="Translation">Охват ×</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">80</td><td data-label="English">Executor ×</td><td dir="auto" data-label="Translation">Исполнитель ×</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">81</td><td data-label="English">Labour</td><td dir="auto" data-label="Translation">Труд</td><td class="note" dir="auto" data-label="Comment">Иначе: «Трудозатраты» — привычнее, но длиннее.</td></tr>
+<tr><td class="num" data-label="№">82</td><td data-label="English">Risk left</td><td dir="auto" data-label="Translation">Остаточный риск</td><td class="note" dir="auto" data-label="Comment">Термин программы; дословно «осталось риска». Синоним: «непокрытый риск».</td></tr>
+<tr><td class="num" data-label="№">83</td><td data-label="English">Changes</td><td dir="auto" data-label="Translation">Изменения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">84</td><td data-label="English">Task: {task}</td><td dir="auto" data-label="Translation">Задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">85</td><td data-label="English">%n variant</td><td dir="auto" data-label="Translation">%n вариант | %n варианта | %n вариантов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">86</td><td data-label="English">Comparison</td><td dir="auto" data-label="Translation">Сравнение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">87</td><td data-label="English">Side:</td><td dir="auto" data-label="Translation">Сторона:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">88</td><td data-label="English">All</td><td dir="auto" data-label="Translation">Все</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">89</td><td data-label="English">Export table (Markdown)</td><td dir="auto" data-label="Translation">Выгрузить таблицу (Markdown)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">90</td><td data-label="English">Export table (CSV)</td><td dir="auto" data-label="Translation">Выгрузить таблицу (CSV)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">91</td><td data-label="English">Copy table</td><td dir="auto" data-label="Translation">Копировать таблицу</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">92</td><td data-label="English">Report (PDF)…</td><td dir="auto" data-label="Translation">Отчёт (PDF)…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">93</td><td data-label="English">Waiting</td><td dir="auto" data-label="Translation">Ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">94</td><td data-label="English">Labour + waiting</td><td dir="auto" data-label="Translation">Труд + ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">95</td><td data-label="English">total</td><td dir="auto" data-label="Translation">всего</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">96</td><td data-label="English">Code</td><td dir="auto" data-label="Translation">Код</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">97</td><td data-label="English">Title</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">98</td><td data-label="English">Side</td><td dir="auto" data-label="Translation">Сторона</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">99</td><td data-label="English">Steps</td><td dir="auto" data-label="Translation">Шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">100</td><td data-label="English">Uncounted errors (shown, never counted):</td><td dir="auto" data-label="Translation">Ошибки без оси (показаны, в счёт не идут):</td><td class="note" dir="auto" data-label="Comment">Слово проекта «ошибки без оси»; дословно «неучтённые ошибки».</td></tr>
+<tr><td class="num" data-label="№">101</td><td data-label="English">Reason: {reason}</td><td dir="auto" data-label="Translation">Причина: {reason}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">102</td><td data-label="English">Copied table</td><td dir="auto" data-label="Translation">Таблица скопирована</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">103</td><td data-label="English">Remove the condition</td><td dir="auto" data-label="Translation">Удалить условие</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">104</td><td data-label="English">not set</td><td dir="auto" data-label="Translation">не задано</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">105</td><td data-label="English">Changes are saved at once. To keep the old numbers, copy the project.</td><td dir="auto" data-label="Translation">Изменения сохраняются сразу. Чтобы сохранить прежние числа, создайте копию проекта.</td><td class="note" dir="auto" data-label="Comment">Повтор «сохраняются… сохранить». Иначе: «Чтобы не потерять прежние числа…».</td></tr>
+<tr><td class="num" data-label="№">106</td><td data-label="English">batch scope</td><td dir="auto" data-label="Translation">охват на пачку</td><td class="note" dir="auto" data-label="Comment">Охват, который считается «на пачку».</td></tr>
+<tr><td class="num" data-label="№">107</td><td data-label="English">Double-click a name to rename it.</td><td dir="auto" data-label="Translation">Дважды щёлкните название, чтобы переименовать.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">108</td><td data-label="English">+ Add kind</td><td dir="auto" data-label="Translation">+ Добавить вид</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">109</td><td data-label="English">+ Add slice</td><td dir="auto" data-label="Translation">+ Добавить срез</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">110</td><td data-label="English">+ Add entity</td><td dir="auto" data-label="Translation">+ Добавить сущность</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">111</td><td data-label="English">+ Add axis</td><td dir="auto" data-label="Translation">+ Добавить ось</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">112</td><td data-label="English">+ Add value</td><td dir="auto" data-label="Translation">+ Добавить значение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">113</td><td data-label="English">+ Add executor</td><td dir="auto" data-label="Translation">+ Добавить исполнителя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">114</td><td data-label="English">+ Add instrument</td><td dir="auto" data-label="Translation">+ Добавить инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">115</td><td data-label="English">+ Add scope</td><td dir="auto" data-label="Translation">+ Добавить охват</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">116</td><td data-label="English">+ Add parameter</td><td dir="auto" data-label="Translation">+ Добавить параметр</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">117</td><td data-label="English">entity name</td><td dir="auto" data-label="Translation">название сущности</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">118</td><td data-label="English">axis name</td><td dir="auto" data-label="Translation">название оси</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">119</td><td data-label="English">value</td><td dir="auto" data-label="Translation">значение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">120</td><td data-label="English">executor name</td><td dir="auto" data-label="Translation">имя исполнителя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">121</td><td data-label="English">instrument name</td><td dir="auto" data-label="Translation">название инструмента</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">122</td><td data-label="English">scope name</td><td dir="auto" data-label="Translation">название охвата</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">123</td><td data-label="English">parameter name</td><td dir="auto" data-label="Translation">название параметра</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">124</td><td data-label="English">Start with entities, their axes and values. Then add kinds, executors, instruments and scopes. Add variants on the Step chains tab.</td><td dir="auto" data-label="Translation">Начните с сущностей, их осей и значений. Затем добавьте виды, исполнителей, инструменты и охваты. Варианты добавляются на вкладке «Цепочки шагов».</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">125</td><td data-label="English">Zero weight clears the cost of this kind.</td><td dir="auto" data-label="Translation">Вес 0 обнуляет стоимость этого вида.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">126</td><td data-label="English">Waiting kinds have no labour cost and are not checks</td><td dir="auto" data-label="Translation">У видов ожидания нет стоимости труда, и они не бывают проверками</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">127</td><td data-label="English">Labour per hour of waiting (in your cost unit)</td><td dir="auto" data-label="Translation">Труд за час ожидания (в вашей единице стоимости)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">128</td><td data-label="English">0 = waiting is shown but not added to labour</td><td dir="auto" data-label="Translation">0 = ожидание видно, но не входит в труд</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">129</td><td data-label="English">a check changes the axis it checks; a check not done is priced</td><td dir="auto" data-label="Translation">проверка меняет ось, которую проверяет; у несделанной проверки есть цена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">130</td><td data-label="English">A row is either a state (entity, axis, value) or a parameter (parameter, executor).</td><td dir="auto" data-label="Translation">Строка — либо состояние (сущность, ось, значение), либо параметр (параметр, исполнитель).</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">131</td><td data-label="English">all rows must hold</td><td dir="auto" data-label="Translation">должны выполняться все строки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">132</td><td data-label="English">Dictionary</td><td dir="auto" data-label="Translation">Справочник</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">133</td><td data-label="English">ENTITY → AXES → VALUES</td><td dir="auto" data-label="Translation">СУЩНОСТЬ → ОСИ → ЗНАЧЕНИЯ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">134</td><td data-label="English">Entity</td><td dir="auto" data-label="Translation">Сущность</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">135</td><td data-label="English">Axis</td><td dir="auto" data-label="Translation">Ось</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">136</td><td data-label="English">Value</td><td dir="auto" data-label="Translation">Значение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">137</td><td data-label="English">Inherits from</td><td dir="auto" data-label="Translation">Наследует от</td><td class="note" dir="auto" data-label="Comment">Иначе: «Наследуется от» или «Берётся из».</td></tr>
+<tr><td class="num" data-label="№">138</td><td data-label="English">TRANSITION KINDS</td><td dir="auto" data-label="Translation">ВИДЫ ПЕРЕХОДОВ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">139</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">140</td><td data-label="English">Axis: from → to</td><td dir="auto" data-label="Translation">Ось: из → в</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">141</td><td data-label="English">Condition</td><td dir="auto" data-label="Translation">Условие</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">142</td><td data-label="English">Check</td><td dir="auto" data-label="Translation">Проверка</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">143</td><td data-label="English">Zero weight</td><td dir="auto" data-label="Translation">Вес 0</td><td class="note" dir="auto" data-label="Comment">Как в документах: «вес 0». Синоним: «нулевой вес».</td></tr>
+<tr><td class="num" data-label="№">144</td><td data-label="English">EXECUTORS</td><td dir="auto" data-label="Translation">ИСПОЛНИТЕЛИ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">145</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">146</td><td data-label="English">INSTRUMENTS</td><td dir="auto" data-label="Translation">ИНСТРУМЕНТЫ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">147</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">148</td><td data-label="English">SCOPES</td><td dir="auto" data-label="Translation">ОХВАТЫ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">149</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">150</td><td data-label="English">VARIANT PARAMETERS</td><td dir="auto" data-label="Translation">ПАРАМЕТРЫ ВАРИАНТОВ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">151</td><td data-label="English">Parameter</td><td dir="auto" data-label="Translation">Параметр</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">152</td><td data-label="English">NAMED SLICES</td><td dir="auto" data-label="Translation">ИМЕНОВАННЫЕ СРЕЗЫ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">153</td><td data-label="English">Slice</td><td dir="auto" data-label="Translation">Срез</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">154</td><td data-label="English">Reached when</td><td dir="auto" data-label="Translation">Наступает, когда</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">155</td><td data-label="English">Existence axis:</td><td dir="auto" data-label="Translation">Ось существования:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">156</td><td data-label="English">absent value:</td><td dir="auto" data-label="Translation">значение «нет»:</td><td class="note" dir="auto" data-label="Comment">Значение оси существования, когда сущности нет. Иначе: «значение отсутствия:» — чтобы не читалось как значение со словом «нет».</td></tr>
+<tr><td class="num" data-label="№">157</td><td data-label="English">Batch scope:</td><td dir="auto" data-label="Translation">Охват на пачку:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">158</td><td data-label="English">%n path has errors after this change: {codes}. Fix them on the Step chains tab.</td><td dir="auto" data-label="Translation">После этой правки ошибки в %n пути: {codes}. Исправьте их на вкладке «Цепочки шагов». | После этой правки ошибки в %n путях: {codes}. Исправьте их на вкладке «Цепочки шагов». | После этой правки ошибки в %n путях: {codes}. Исправьте их на вкладке «Цепочки шагов».</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">159</td><td data-label="English">and {count} more</td><td dir="auto" data-label="Translation">и ещё {count}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">160</td><td data-label="English">or</td><td dir="auto" data-label="Translation">или</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">161</td><td data-label="English">and</td><td dir="auto" data-label="Translation">и</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">162</td><td data-label="English">unknown table: {table}</td><td dir="auto" data-label="Translation">неизвестная таблица: {table}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">163</td><td data-label="English">key must be (entity, axis)</td><td dir="auto" data-label="Translation">ключ должен быть парой (сущность, ось)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">164</td><td data-label="English">key must be a name</td><td dir="auto" data-label="Translation">ключ должен быть названием</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">165</td><td data-label="English">kind {label} has zero weight, its cost is always 0</td><td dir="auto" data-label="Translation">у вида {label} вес 0, его стоимость всегда 0</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">166</td><td data-label="English">kind {label} is a waiting kind, it has no labour cost</td><td dir="auto" data-label="Translation">вид {label} — ожидание, у него нет стоимости труда</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">167</td><td data-label="English">{name}: not a number: {text}</td><td dir="auto" data-label="Translation">{name}: не число: {text}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">168</td><td data-label="English">{name}: price must be above zero</td><td dir="auto" data-label="Translation">{name}: цена должна быть больше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">169</td><td data-label="English">{name}: must not be below zero</td><td dir="auto" data-label="Translation">{name}: не может быть меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">170</td><td data-label="English">not a number: {text}</td><td dir="auto" data-label="Translation">не число: {text}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">171</td><td data-label="English">must not be below zero</td><td dir="auto" data-label="Translation">не может быть меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">172</td><td data-label="English">no such variant</td><td dir="auto" data-label="Translation">нет такого варианта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">173</td><td data-label="English">cannot add after transition {after}, the variant has {n}</td><td dir="auto" data-label="Translation">нельзя добавить после перехода {after}: в варианте их {n}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">174</td><td data-label="English">a transition is (kind, executor, instrument, scope)</td><td dir="auto" data-label="Translation">переход — это (вид, исполнитель, инструмент, охват)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">175</td><td data-label="English">no such step: {step}</td><td dir="auto" data-label="Translation">нет такого шага: {step}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">176</td><td data-label="English">transition {after} is not at step {step}</td><td dir="auto" data-label="Translation">переход {after} не в шаге {step}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">177</td><td data-label="English">no such transition: {number}</td><td dir="auto" data-label="Translation">нет такого перехода: {number}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">178</td><td data-label="English">move by -1 or +1</td><td dir="auto" data-label="Translation">сдвиг только на -1 или +1</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">179</td><td data-label="English">transition {number} cannot move up</td><td dir="auto" data-label="Translation">переход {number} нельзя поднять выше</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">180</td><td data-label="English">transition {number} cannot move down</td><td dir="auto" data-label="Translation">переход {number} нельзя опустить ниже</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">181</td><td data-label="English">variant code is taken: {name}</td><td dir="auto" data-label="Translation">код варианта занят: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">182</td><td data-label="English">code and title must not be empty</td><td dir="auto" data-label="Translation">код и название не могут быть пустыми</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">183</td><td data-label="English">variant code is taken: {new_code}</td><td dir="auto" data-label="Translation">код варианта занят: {new_code}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">184</td><td data-label="English">side must be "own" or "other"</td><td dir="auto" data-label="Translation">side должно быть "own" или "other"</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">185</td><td data-label="English">{key} must be a text</td><td dir="auto" data-label="Translation">{key} должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">186</td><td data-label="English">entities must be a list of texts</td><td dir="auto" data-label="Translation">entities должно быть списком текстов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">187</td><td data-label="English">add variant</td><td dir="auto" data-label="Translation">добавление варианта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">188</td><td data-label="English">code and title must be texts</td><td dir="auto" data-label="Translation">код и название должны быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">189</td><td data-label="English">variant code is taken: {code}</td><td dir="auto" data-label="Translation">код варианта занят: {code}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">190</td><td data-label="English">entity {name}</td><td dir="auto" data-label="Translation">сущность {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">191</td><td data-label="English">axis {name}</td><td dir="auto" data-label="Translation">ось {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">192</td><td data-label="English">value {name}</td><td dir="auto" data-label="Translation">значение {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">193</td><td data-label="English">kind {name}</td><td dir="auto" data-label="Translation">вид {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">194</td><td data-label="English">executor {name}</td><td dir="auto" data-label="Translation">исполнитель {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">195</td><td data-label="English">instrument {name}</td><td dir="auto" data-label="Translation">инструмент {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">196</td><td data-label="English">scope {name}</td><td dir="auto" data-label="Translation">охват {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">197</td><td data-label="English">variant param {name}</td><td dir="auto" data-label="Translation">параметр варианта {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">198</td><td data-label="English">named slice {name}</td><td dir="auto" data-label="Translation">именованный срез {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">199</td><td data-label="English">no such entity</td><td dir="auto" data-label="Translation">нет такой сущности</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">200</td><td data-label="English">no such axis</td><td dir="auto" data-label="Translation">нет такой оси</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">201</td><td data-label="English">no such value</td><td dir="auto" data-label="Translation">нет такого значения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">202</td><td data-label="English">no such kind</td><td dir="auto" data-label="Translation">нет такого вида</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">203</td><td data-label="English">no such executor</td><td dir="auto" data-label="Translation">нет такого исполнителя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">204</td><td data-label="English">no such instrument</td><td dir="auto" data-label="Translation">нет такого инструмента</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">205</td><td data-label="English">no such scope</td><td dir="auto" data-label="Translation">нет такого охвата</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">206</td><td data-label="English">no such variant param</td><td dir="auto" data-label="Translation">нет такого параметра варианта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">207</td><td data-label="English">no such named slice</td><td dir="auto" data-label="Translation">нет такого именованного среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">208</td><td data-label="English">kind name is taken: {name}</td><td dir="auto" data-label="Translation">название вида занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">209</td><td data-label="English">executor name is taken: {name}</td><td dir="auto" data-label="Translation">имя исполнителя занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">210</td><td data-label="English">instrument name is taken: {name}</td><td dir="auto" data-label="Translation">название инструмента занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">211</td><td data-label="English">scope name is taken: {name}</td><td dir="auto" data-label="Translation">название охвата занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">212</td><td data-label="English">variant param name is taken: {name}</td><td dir="auto" data-label="Translation">название параметра варианта занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">213</td><td data-label="English">add entity</td><td dir="auto" data-label="Translation">добавление сущности</td><td class="note" dir="auto" data-label="Comment">Где случилась ошибка правки: «добавление сущности: …».</td></tr>
+<tr><td class="num" data-label="№">214</td><td data-label="English">add axis</td><td dir="auto" data-label="Translation">добавление оси</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">215</td><td data-label="English">add value</td><td dir="auto" data-label="Translation">добавление значения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">216</td><td data-label="English">add executor</td><td dir="auto" data-label="Translation">добавление исполнителя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">217</td><td data-label="English">add instrument</td><td dir="auto" data-label="Translation">добавление инструмента</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">218</td><td data-label="English">add scope</td><td dir="auto" data-label="Translation">добавление охвата</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">219</td><td data-label="English">add variant param</td><td dir="auto" data-label="Translation">добавление параметра варианта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">220</td><td data-label="English">name must be (entity, axis)</td><td dir="auto" data-label="Translation">название должно быть парой (сущность, ось)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">221</td><td data-label="English">name must be (entity, axis, value)</td><td dir="auto" data-label="Translation">название должно быть тройкой (сущность, ось, значение)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">222</td><td data-label="English">entity name is taken: {name}</td><td dir="auto" data-label="Translation">название сущности занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">223</td><td data-label="English">axis name is taken: {name}</td><td dir="auto" data-label="Translation">название оси занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">224</td><td data-label="English">the name {name} is the existence axis</td><td dir="auto" data-label="Translation">название {name} занято осью существования</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">225</td><td data-label="English">value is taken: {e}/{a}={name}</td><td dir="auto" data-label="Translation">значение занято: {e}/{a}={name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">226</td><td data-label="English">the name {final} is reserved for the final slice</td><td dir="auto" data-label="Translation">название {final} зарезервировано для конечного среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">227</td><td data-label="English">named slice name is taken: {name}</td><td dir="auto" data-label="Translation">название именованного среза занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">228</td><td data-label="English">unknown kind of word: {what}</td><td dir="auto" data-label="Translation">неизвестный тип слова: {what}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">229</td><td data-label="English">name must be a text</td><td dir="auto" data-label="Translation">название должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">230</td><td data-label="English">name must not be empty</td><td dir="auto" data-label="Translation">название не может быть пустым</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">231</td><td data-label="English">variant {code}, call {number}</td><td dir="auto" data-label="Translation">вариант {code}, переход {number}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">232</td><td data-label="English">batch scope</td><td dir="auto" data-label="Translation">охват на пачку</td><td class="note" dir="auto" data-label="Comment">Охват, который считается «на пачку».</td></tr>
+<tr><td class="num" data-label="№">233</td><td data-label="English">variant {code}, parameter {param}</td><td dir="auto" data-label="Translation">вариант {code}, параметр {param}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">234</td><td data-label="English">slice {name}</td><td dir="auto" data-label="Translation">срез {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">235</td><td data-label="English">variant {code}, entities</td><td dir="auto" data-label="Translation">вариант {code}, сущности</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">236</td><td data-label="English">variant {code}, initial</td><td dir="auto" data-label="Translation">вариант {code}, начальное состояние</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">237</td><td data-label="English">kind {name}, from</td><td dir="auto" data-label="Translation">вид {name}, «из»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">238</td><td data-label="English">kind {name}, to</td><td dir="auto" data-label="Translation">вид {name}, «в»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">239</td><td data-label="English">kind {name}, condition</td><td dir="auto" data-label="Translation">вид {name}, условие</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">240</td><td data-label="English">axis {entity}/{axis}, inherit</td><td dir="auto" data-label="Translation">ось {entity}/{axis}, наследование</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">241</td><td data-label="English">existence axis</td><td dir="auto" data-label="Translation">ось существования</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">242</td><td data-label="English">initial value of {entity}/{axis}</td><td dir="auto" data-label="Translation">начальное значение {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">243</td><td data-label="English">{name} is used and cannot be deleted:
+{places}</td><td dir="auto" data-label="Translation">{name} используется, удалить нельзя:
+{places}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">244</td><td data-label="English">name is empty</td><td dir="auto" data-label="Translation">название пустое</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">245</td><td data-label="English">name must be text</td><td dir="auto" data-label="Translation">название должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">246</td><td data-label="English">variant parameter name is taken: {name}</td><td dir="auto" data-label="Translation">название параметра варианта занято: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">247</td><td data-label="English">the variants need an executor for the new variant parameter</td><td dir="auto" data-label="Translation">вариантам нужен исполнитель для нового параметра варианта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">248</td><td data-label="English">no such executor: {executor}</td><td dir="auto" data-label="Translation">нет такого исполнителя: {executor}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">249</td><td data-label="English">cannot add this kind of word: {what}</td><td dir="auto" data-label="Translation">такое слово добавить нельзя: {what}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">250</td><td data-label="English">no such entity: {entity}</td><td dir="auto" data-label="Translation">нет такой сущности: {entity}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">251</td><td data-label="English">axis name is taken: {entity}/{axis}</td><td dir="auto" data-label="Translation">название оси занято: {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">252</td><td data-label="English">axis {entity}/{axis} needs its first value</td><td dir="auto" data-label="Translation">оси {entity}/{axis} нужно первое значение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">253</td><td data-label="English">no such axis: {entity}/{axis}</td><td dir="auto" data-label="Translation">нет такой оси: {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">254</td><td data-label="English">value name is taken: {entity}/{axis}={value}</td><td dir="auto" data-label="Translation">название значения занято: {entity}/{axis}={value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">255</td><td data-label="English">cannot move up</td><td dir="auto" data-label="Translation">выше поднять нельзя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">256</td><td data-label="English">cannot move down</td><td dir="auto" data-label="Translation">ниже опустить нельзя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">257</td><td data-label="English">unknown kind of word or wrong name: {what}</td><td dir="auto" data-label="Translation">неизвестный тип слова или неверное название: {what}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">258</td><td data-label="English">move word</td><td dir="auto" data-label="Translation">перемещение слова</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">259</td><td data-label="English">no such word</td><td dir="auto" data-label="Translation">нет такого слова</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">260</td><td data-label="English">no such scope: {scope}</td><td dir="auto" data-label="Translation">нет такого охвата: {scope}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">261</td><td data-label="English">name and value must be texts, not empty</td><td dir="auto" data-label="Translation">название и значение должны быть непустым текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">262</td><td data-label="English">the structure must be a dictionary</td><td dir="auto" data-label="Translation">структура должна быть словарём</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">263</td><td data-label="English">unknown fields: {fields}</td><td dir="auto" data-label="Translation">неизвестные поля: {fields}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">264</td><td data-label="English">{field} must be a text</td><td dir="auto" data-label="Translation">{field} должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">265</td><td data-label="English">requires must be a list of triples</td><td dir="auto" data-label="Translation">requires должно быть списком троек</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">266</td><td data-label="English">{flag} must be true or false</td><td dir="auto" data-label="Translation">{flag} должно быть true или false</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">267</td><td data-label="English">zero_weight_note must be a text</td><td dir="auto" data-label="Translation">zero_weight_note должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">268</td><td data-label="English">kind name must be a text, not empty</td><td dir="auto" data-label="Translation">название вида должно быть непустым текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">269</td><td data-label="English">no such kind: {name}</td><td dir="auto" data-label="Translation">нет такого вида: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">270</td><td data-label="English">add kind</td><td dir="auto" data-label="Translation">добавление вида</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">271</td><td data-label="English">set kind</td><td dir="auto" data-label="Translation">изменение вида</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">272</td><td data-label="English">a group must be a list of rows</td><td dir="auto" data-label="Translation">группа должна быть списком строк</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">273</td><td data-label="English">a row must be three texts or two texts: {row}</td><td dir="auto" data-label="Translation">строка должна состоять из трёх или двух текстов: {row}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">274</td><td data-label="English">empty group</td><td dir="auto" data-label="Translation">пустая группа</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">275</td><td data-label="English">slice name must be a text, not empty</td><td dir="auto" data-label="Translation">название среза должно быть непустым текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">276</td><td data-label="English">a slice needs at least one group</td><td dir="auto" data-label="Translation">у среза должна быть хотя бы одна группа</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">277</td><td data-label="English">no such named slice: {name}</td><td dir="auto" data-label="Translation">нет такого именованного среза: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">278</td><td data-label="English">add slice</td><td dir="auto" data-label="Translation">добавление среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">279</td><td data-label="English">set slice</td><td dir="auto" data-label="Translation">изменение среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">280</td><td data-label="English">not set</td><td dir="auto" data-label="Translation">не задано</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">281</td><td data-label="English">{number} (not reached)</td><td dir="auto" data-label="Translation">{number} (не наступил)</td><td class="note" dir="auto" data-label="Comment">Срез не наступил на этом пути.</td></tr>
+<tr><td class="num" data-label="№">282</td><td data-label="English">Waiting</td><td dir="auto" data-label="Translation">Ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">283</td><td data-label="English">Labour + waiting</td><td dir="auto" data-label="Translation">Труд + ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">284</td><td data-label="English">Ours</td><td dir="auto" data-label="Translation">Наши</td><td class="note" dir="auto" data-label="Comment">Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</td></tr>
+<tr><td class="num" data-label="№">285</td><td data-label="English">Theirs</td><td dir="auto" data-label="Translation">Чужие</td><td class="note" dir="auto" data-label="Comment">Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</td></tr>
+<tr><td class="num" data-label="№">286</td><td data-label="English">No comparable variant</td><td dir="auto" data-label="Translation">Не с чем сравнить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">287</td><td data-label="English">Not compared: no other variant has the same task</td><td dir="auto" data-label="Translation">Не сравнивается: ни у одного другого варианта нет такой задачи</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">288</td><td data-label="English">Out of comparison</td><td dir="auto" data-label="Translation">Вне сравнения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">289</td><td data-label="English">Group</td><td dir="auto" data-label="Translation">Группа</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">290</td><td data-label="English">Reason</td><td dir="auto" data-label="Translation">Причина</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">291</td><td data-label="English">Uncounted errors</td><td dir="auto" data-label="Translation">Ошибки без оси</td><td class="note" dir="auto" data-label="Comment">Слово проекта «ошибки без оси»; дословно «неучтённые ошибки».</td></tr>
+<tr><td class="num" data-label="№">292</td><td data-label="English">Details</td><td dir="auto" data-label="Translation">Подробности</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">293</td><td data-label="English">Labour · {executor}</td><td dir="auto" data-label="Translation">Труд · {executor}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">294</td><td data-label="English">Risk left, {slice}</td><td dir="auto" data-label="Translation">Остаточный риск, {slice}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">295</td><td data-label="English">end</td><td dir="auto" data-label="Translation">конец</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">296</td><td data-label="English">Code</td><td dir="auto" data-label="Translation">Код</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">297</td><td data-label="English">Title</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">298</td><td data-label="English">Side</td><td dir="auto" data-label="Translation">Сторона</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">299</td><td data-label="English">Steps</td><td dir="auto" data-label="Translation">Шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">300</td><td data-label="English">Labour · total</td><td dir="auto" data-label="Translation">Труд · всего</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">301</td><td data-label="English">Task: {task}</td><td dir="auto" data-label="Translation">Задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">302</td><td data-label="English">%n variants</td><td dir="auto" data-label="Translation">%n вариант | %n варианта | %n вариантов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">303</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">304</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">305</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">306</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">307</td><td data-label="English">Cost</td><td dir="auto" data-label="Translation">Стоимость</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">308</td><td data-label="English">Scope coef.</td><td dir="auto" data-label="Translation">Коэф. охвата</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">309</td><td data-label="English">Executor coef.</td><td dir="auto" data-label="Translation">Коэф. исполнителя</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">310</td><td data-label="English">Labour</td><td dir="auto" data-label="Translation">Труд</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">311</td><td data-label="English">Change</td><td dir="auto" data-label="Translation">Изменение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">312</td><td data-label="English">Compare steps</td><td dir="auto" data-label="Translation">Сравнить шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">313</td><td data-label="English">Add</td><td dir="auto" data-label="Translation">ОК</td><td class="note" dir="auto" data-label="Comment">Кнопка в узкой колонке рядом с «Отмена»; «Добавить» не помещается. ОК — кириллицей, как в русской Windows; если место есть — лучше «Добавить».</td></tr>
+<tr><td class="num" data-label="№">314</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">315</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">316</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">317</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">318</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">319</td><td data-label="English">kind name</td><td dir="auto" data-label="Translation">название вида</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">320</td><td data-label="English">Name</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">321</td><td data-label="English">Entity</td><td dir="auto" data-label="Translation">Сущность</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">322</td><td data-label="English">Axis</td><td dir="auto" data-label="Translation">Ось</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">323</td><td data-label="English">From</td><td dir="auto" data-label="Translation">Из</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">324</td><td data-label="English">To</td><td dir="auto" data-label="Translation">В</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">325</td><td data-label="English">+ Add condition</td><td dir="auto" data-label="Translation">+ Добавить условие</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">326</td><td data-label="English">Condition</td><td dir="auto" data-label="Translation">Условие</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">327</td><td data-label="English">Check</td><td dir="auto" data-label="Translation">Проверка</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">328</td><td data-label="English">Zero weight</td><td dir="auto" data-label="Translation">Вес 0</td><td class="note" dir="auto" data-label="Comment">Как в документах: «вес 0». Синоним: «нулевой вес».</td></tr>
+<tr><td class="num" data-label="№">329</td><td data-label="English">note</td><td dir="auto" data-label="Translation">примечание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">330</td><td data-label="English">none</td><td dir="auto" data-label="Translation">нет</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">331</td><td data-label="English">Waiting</td><td dir="auto" data-label="Translation">Ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">332</td><td data-label="English">Add</td><td dir="auto" data-label="Translation">Добавить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">333</td><td data-label="English">Apply</td><td dir="auto" data-label="Translation">Применить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">334</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">335</td><td data-label="English">hours</td><td dir="auto" data-label="Translation">часы</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">336</td><td data-label="English">days</td><td dir="auto" data-label="Translation">дни</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">337</td><td data-label="English">To rename the kind, double-click its name in the table</td><td dir="auto" data-label="Translation">Чтобы переименовать вид, дважды щёлкните его название в таблице</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">338</td><td data-label="English">Right of bar: Labour · total · Risk left, end</td><td dir="auto" data-label="Translation">Справа от полосы: Труд · всего · Остаточный риск, конец</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">339</td><td data-label="English">{executor} step</td><td dir="auto" data-label="Translation">шаг: {executor}</td><td class="note" dir="auto" data-label="Comment">Подпись легенды шкалы труда: шаг, который делает этот исполнитель.</td></tr>
+<tr><td class="num" data-label="№">340</td><td data-label="English">zero-labour step</td><td dir="auto" data-label="Translation">шаг без труда</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">341</td><td data-label="English">check step</td><td dir="auto" data-label="Translation">шаг-проверка</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">342</td><td data-label="English">slice “{name}”</td><td dir="auto" data-label="Translation">срез «{name}»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">343</td><td data-label="English">named</td><td dir="auto" data-label="Translation">именованный</td><td class="note" dir="auto" data-label="Comment">Подставляется вместо имени среза, когда имён нет: срез «именованный».</td></tr>
+<tr><td class="num" data-label="№">344</td><td data-label="English">risk left still open</td><td dir="auto" data-label="Translation">риск ещё остаётся</td><td class="note" dir="auto" data-label="Comment">Цвет полосы: проверки ещё не сделаны.</td></tr>
+<tr><td class="num" data-label="№">345</td><td data-label="English">all checked</td><td dir="auto" data-label="Translation">всё проверено</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">346</td><td data-label="English">Labour by step</td><td dir="auto" data-label="Translation">Труд по шагам</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">347</td><td data-label="English">Labour</td><td dir="auto" data-label="Translation">Труд</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">348</td><td data-label="English">Labour + waiting by step</td><td dir="auto" data-label="Translation">Труд + ожидание по шагам</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">349</td><td data-label="English">Labour + waiting</td><td dir="auto" data-label="Translation">Труд + ожидание</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">350</td><td data-label="English">Checks done by step</td><td dir="auto" data-label="Translation">Сделанные проверки по шагам</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">351</td><td data-label="English">Price of checks done</td><td dir="auto" data-label="Translation">Цена сделанных</td><td class="note" dir="auto" data-label="Comment">Подпись оси графика «Сделанные проверки по шагам»; «Цена сделанных проверок» и «Цена выполненных проверок» на оси обрезаются, «проверок» ясно из заголовка.</td></tr>
+<tr><td class="num" data-label="№">352</td><td data-label="English">Step</td><td dir="auto" data-label="Translation">Шаг</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">353</td><td data-label="English">Project files (*.json);;All files (*)</td><td dir="auto" data-label="Translation">Файлы проектов (*.json);;Все файлы (*)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">354</td><td data-label="English">No JSON object found in the text.</td><td dir="auto" data-label="Translation">В тексте не найден объект JSON.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">355</td><td data-label="English">The program keeps your projects by itself. This makes a file to send or archive.</td><td dir="auto" data-label="Translation">Программа хранит проекты сама. Здесь создаётся файл для отправки или архива.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">356</td><td data-label="English">&lt;b&gt;Comparing:&lt;/b&gt;</td><td dir="auto" data-label="Translation">&lt;b&gt;Сравниваем:&lt;/b&gt;</td><td class="note" dir="auto" data-label="Comment">Подпись перед списком проектов; «Сравнение:» совпало бы с вкладкой.</td></tr>
+<tr><td class="num" data-label="№">357</td><td data-label="English">Dictionary</td><td dir="auto" data-label="Translation">Справочник</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">358</td><td data-label="English">Normalization &amp;&amp; variants</td><td dir="auto" data-label="Translation">Нормировка и варианты</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">359</td><td data-label="English">Comparison</td><td dir="auto" data-label="Translation">Сравнение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">360</td><td data-label="English">Step chains</td><td dir="auto" data-label="Translation">Цепочки шагов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">361</td><td data-label="English">Show step chains</td><td dir="auto" data-label="Translation">Показать цепочки шагов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">362</td><td data-label="English">Not now</td><td dir="auto" data-label="Translation">Не сейчас</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">363</td><td data-label="English">&lt;b&gt;{name} loaded: %n path.&lt;/b&gt; Check how your steps were split into transitions before you compare.</td><td dir="auto" data-label="Translation">&lt;b&gt;Проект «{name}» загружен: %n путь.&lt;/b&gt; Перед сравнением проверьте, как шаги разложены на переходы. | &lt;b&gt;Проект «{name}» загружен: %n пути.&lt;/b&gt; Перед сравнением проверьте, как шаги разложены на переходы. | &lt;b&gt;Проект «{name}» загружен: %n путей.&lt;/b&gt; Перед сравнением проверьте, как шаги разложены на переходы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">364</td><td data-label="English">%n step has no transitions.</td><td dir="auto" data-label="Translation">%n шаг без переходов. | %n шага без переходов. | %n шагов без переходов.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">365</td><td data-label="English">With AI…</td><td dir="auto" data-label="Translation">С AI…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">366</td><td data-label="English">Paste AI answer…</td><td dir="auto" data-label="Translation">Вставить ответ AI…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">367</td><td data-label="English">From file…</td><td dir="auto" data-label="Translation">Из файла…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">368</td><td data-label="English">Empty</td><td dir="auto" data-label="Translation">Пустой</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">369</td><td data-label="English">Example</td><td dir="auto" data-label="Translation">Пример</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">370</td><td data-label="English">Add the {name} example</td><td dir="auto" data-label="Translation">Добавить пример «{name}»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">371</td><td data-label="English">+ New ▾</td><td dir="auto" data-label="Translation">+ Создать ▾</td><td class="note" dir="auto" data-label="Comment">Меню: с AI, вставка ответа, из файла, пустой, пример.</td></tr>
+<tr><td class="num" data-label="№">372</td><td data-label="English">Export to file…</td><td dir="auto" data-label="Translation">Выгрузить в файл…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">373</td><td data-label="English">Duplicate</td><td dir="auto" data-label="Translation">Создать копию</td><td class="note" dir="auto" data-label="Comment">Копия проекта целиком; синоним «Дублировать».</td></tr>
+<tr><td class="num" data-label="№">374</td><td data-label="English">Replace from file…</td><td dir="auto" data-label="Translation">Заменить из файла…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">375</td><td data-label="English">Delete…</td><td dir="auto" data-label="Translation">Удалить…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">376</td><td data-label="English">More ▾</td><td dir="auto" data-label="Translation">Ещё ▾</td><td class="note" dir="auto" data-label="Comment">Меню прочих действий с проектом.</td></tr>
+<tr><td class="num" data-label="№">377</td><td data-label="English">The language changes at the next start.</td><td dir="auto" data-label="Translation">Язык сменится при следующем запуске.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">378</td><td data-label="English">Restart now</td><td dir="auto" data-label="Translation">Перезапустить</td><td class="note" dir="auto" data-label="Comment">Короче «Перезапустить сейчас»; смысл тот же.</td></tr>
+<tr><td class="num" data-label="№">379</td><td data-label="English">Loaded {name}</td><td dir="auto" data-label="Translation">Загружено: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">380</td><td data-label="English">Loaded {name} over the project</td><td dir="auto" data-label="Translation">Загружено поверх проекта: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">381</td><td data-label="English">Added {name}</td><td dir="auto" data-label="Translation">Добавлено: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">382</td><td data-label="English">Example is already in the list</td><td dir="auto" data-label="Translation">Пример уже есть в списке</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">383</td><td data-label="English">Created {name}</td><td dir="auto" data-label="Translation">Создано: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">384</td><td data-label="English">Saved {name}</td><td dir="auto" data-label="Translation">Сохранено: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">385</td><td data-label="English">Delete the project “{name}”? This cannot be undone.</td><td dir="auto" data-label="Translation">Удалить проект «{name}»? Это действие нельзя отменить.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">386</td><td data-label="English">Project name</td><td dir="auto" data-label="Translation">Название проекта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">387</td><td data-label="English">Project name:</td><td dir="auto" data-label="Translation">Название проекта:</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">388</td><td data-label="English">Load project file</td><td dir="auto" data-label="Translation">Загрузить файл проекта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">389</td><td data-label="English">Load over the selected project</td><td dir="auto" data-label="Translation">Загрузить поверх выбранного проекта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">390</td><td data-label="English">Save project file</td><td dir="auto" data-label="Translation">Сохранить файл проекта</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">391</td><td data-label="English">Cannot write the file: {error}</td><td dir="auto" data-label="Translation">Не удалось записать файл: {error}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">392</td><td data-label="English">Markdown (*.md)</td><td dir="auto" data-label="Translation">Markdown (*.md)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">393</td><td data-label="English">CSV (*.csv)</td><td dir="auto" data-label="Translation">CSV (*.csv)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">394</td><td data-label="English">Export comparison</td><td dir="auto" data-label="Translation">Выгрузить сравнение</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">395</td><td data-label="English">Exported {name}</td><td dir="auto" data-label="Translation">Выгружено: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">396</td><td data-label="English">Save PDF report</td><td dir="auto" data-label="Translation">Сохранить отчёт PDF</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">397</td><td data-label="English">PDF (*.pdf)</td><td dir="auto" data-label="Translation">PDF (*.pdf)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">398</td><td data-label="English">Cannot write the report: {error}</td><td dir="auto" data-label="Translation">Не удалось записать отчёт: {error}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">399</td><td data-label="English">Normalization (numbers only)</td><td dir="auto" data-label="Translation">Нормировка (только числа)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">400</td><td data-label="English">TRANSITION KINDS — COST</td><td dir="auto" data-label="Translation">ВИДЫ ПЕРЕХОДОВ — СТОИМОСТЬ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">401</td><td data-label="English">Kind</td><td dir="auto" data-label="Translation">Вид</td><td class="note" dir="auto" data-label="Comment">Короткое «вид» вместо «вид перехода».</td></tr>
+<tr><td class="num" data-label="№">402</td><td data-label="English">Cost</td><td dir="auto" data-label="Translation">Стоимость</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">403</td><td data-label="English">CHECK PRICES</td><td dir="auto" data-label="Translation">ЦЕНЫ ПРОВЕРОК</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">404</td><td data-label="English">Entity</td><td dir="auto" data-label="Translation">Сущность</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">405</td><td data-label="English">Check axis</td><td dir="auto" data-label="Translation">Ось проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">406</td><td data-label="English">Check price</td><td dir="auto" data-label="Translation">Цена проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">407</td><td data-label="English">EXECUTOR COEFFICIENTS</td><td dir="auto" data-label="Translation">КОЭФФИЦИЕНТЫ ИСПОЛНИТЕЛЕЙ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">408</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">409</td><td data-label="English">SCOPE COEFFICIENTS</td><td dir="auto" data-label="Translation">КОЭФФИЦИЕНТЫ ОХВАТОВ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">410</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">411</td><td data-label="English">UNCOUNTED ERRORS</td><td dir="auto" data-label="Translation">ОШИБКИ БЕЗ ОСИ</td><td class="note" dir="auto" data-label="Comment">Слово проекта «ошибки без оси»; дословно «неучтённые ошибки».</td></tr>
+<tr><td class="num" data-label="№">412</td><td data-label="English">Group</td><td dir="auto" data-label="Translation">Группа</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">413</td><td data-label="English">Error</td><td dir="auto" data-label="Translation">Ошибка</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">414</td><td data-label="English">Variants</td><td dir="auto" data-label="Translation">Варианты</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">415</td><td data-label="English">Code</td><td dir="auto" data-label="Translation">Код</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">416</td><td data-label="English">Title</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">417</td><td data-label="English">Side</td><td dir="auto" data-label="Translation">Сторона</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">418</td><td data-label="English">Calls</td><td dir="auto" data-label="Translation">Переходы</td><td class="note" dir="auto" data-label="Comment">Поле calls файла: переходы варианта по порядку.</td></tr>
+<tr><td class="num" data-label="№">419</td><td data-label="English">Out of comparison</td><td dir="auto" data-label="Translation">Вне сравнения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">420</td><td data-label="English">Instrument</td><td dir="auto" data-label="Translation">Инструмент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">421</td><td data-label="English">Batch size: {size}</td><td dir="auto" data-label="Translation">Размер пачки: {size}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">422</td><td data-label="English">%n number not set</td><td dir="auto" data-label="Translation">%n число не задано | %n числа не заданы | %n чисел не задано</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">423</td><td data-label="English">{code} · {title} — calls</td><td dir="auto" data-label="Translation">{code} · {title} — переходы</td><td class="note" dir="auto" data-label="Comment">Поле calls файла: переходы варианта по порядку.</td></tr>
+<tr><td class="num" data-label="№">424</td><td data-label="English">Paste AI answer</td><td dir="auto" data-label="Translation">Вставить ответ AI</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">425</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">426</td><td data-label="English">Load</td><td dir="auto" data-label="Translation">Загрузить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">427</td><td data-label="English">error</td><td dir="auto" data-label="Translation">ошибка</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">428</td><td data-label="English">%n step without transitions</td><td dir="auto" data-label="Translation">%n шаг без переходов | %n шага без переходов | %n шагов без переходов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">429</td><td data-label="English">waiting needs a number above 0 and the unit hours or days</td><td dir="auto" data-label="Translation">у ожидания должно быть число больше 0 и единица hours или days</td><td class="note" dir="auto" data-label="Comment">hours и days — слова файла, не переводятся.</td></tr>
+<tr><td class="num" data-label="№">430</td><td data-label="English">entity {name}</td><td dir="auto" data-label="Translation">сущность {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">431</td><td data-label="English">{where}, axis {name}</td><td dir="auto" data-label="Translation">{where}, ось {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">432</td><td data-label="English">kind {name}</td><td dir="auto" data-label="Translation">вид {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">433</td><td data-label="English">named slice {name}</td><td dir="auto" data-label="Translation">именованный срез {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">434</td><td data-label="English">variant {code}</td><td dir="auto" data-label="Translation">вариант {code}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">435</td><td data-label="English">{where}, step {number}</td><td dir="auto" data-label="Translation">{where}, шаг {number}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">436</td><td data-label="English">{where}, call {number}</td><td dir="auto" data-label="Translation">{where}, переход {number}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">437</td><td data-label="English">number expected</td><td dir="auto" data-label="Translation">ожидается число</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">438</td><td data-label="English">text expected</td><td dir="auto" data-label="Translation">ожидается текст</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">439</td><td data-label="English">list expected</td><td dir="auto" data-label="Translation">ожидается список</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">440</td><td data-label="English">{field} must be a text</td><td dir="auto" data-label="Translation">{field} должно быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">441</td><td data-label="English">unknown {entity}/{axis}={value}</td><td dir="auto" data-label="Translation">неизвестно {entity}/{axis}={value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">442</td><td data-label="English">unknown executor {name}</td><td dir="auto" data-label="Translation">неизвестный исполнитель {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">443</td><td data-label="English">unknown variant parameter {name}</td><td dir="auto" data-label="Translation">неизвестный параметр варианта {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">444</td><td data-label="English">the name {name} is reserved for the final slice</td><td dir="auto" data-label="Translation">название {name} зарезервировано для конечного среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">445</td><td data-label="English">list of names expected</td><td dir="auto" data-label="Translation">ожидается список названий</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">446</td><td data-label="English">unknown field {field}</td><td dir="auto" data-label="Translation">неизвестное поле {field}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">447</td><td data-label="English">object expected</td><td dir="auto" data-label="Translation">ожидается объект</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">448</td><td data-label="English">field {field} is missing</td><td dir="auto" data-label="Translation">нет поля {field}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">449</td><td data-label="English">list of [{names}] expected</td><td dir="auto" data-label="Translation">ожидается список [{names}]</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">450</td><td data-label="English">steps must be a list</td><td dir="auto" data-label="Translation">steps должно быть списком</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">451</td><td data-label="English">calls must be an integer, 0 or more</td><td dir="auto" data-label="Translation">calls должно быть целым числом, 0 или больше</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">452</td><td data-label="English">steps cover %n calls, the variant has {count}</td><td dir="auto" data-label="Translation">steps включают %n переход, а в варианте их {count} | steps включают %n перехода, а в варианте их {count} | steps включают %n переходов, а в варианте их {count}</td><td class="note" dir="auto" data-label="Comment">steps и calls — поля файла, оставлены как есть: замечание читает и модель.</td></tr>
+<tr><td class="num" data-label="№">453</td><td data-label="English">must be {format}</td><td dir="auto" data-label="Translation">должно быть {format}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">454</td><td data-label="English">name and absent must be texts</td><td dir="auto" data-label="Translation">name и absent должны быть текстом</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">455</td><td data-label="English">axes: list expected</td><td dir="auto" data-label="Translation">axes: ожидается список</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">456</td><td data-label="English">{field} must be true or false</td><td dir="auto" data-label="Translation">{field} должно быть true или false</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">457</td><td data-label="English">zero_weight_note needs zero_weight true and a text</td><td dir="auto" data-label="Translation">для zero_weight_note нужны zero_weight true и текст</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">458</td><td data-label="English">"any": non-empty list of groups expected</td><td dir="auto" data-label="Translation">"any": ожидается непустой список групп</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">459</td><td data-label="English">empty group</td><td dir="auto" data-label="Translation">пустая группа</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">460</td><td data-label="English">side must be "own" or "other"</td><td dir="auto" data-label="Translation">side должно быть "own" или "other"</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">461</td><td data-label="English">object {parameter: executor} expected</td><td dir="auto" data-label="Translation">ожидается объект {parameter: executor}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">462</td><td data-label="English">object {entity: {axis: value}} expected</td><td dir="auto" data-label="Translation">ожидается объект {entity: {axis: value}}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">463</td><td data-label="English">out_of_comparison must be a reason text</td><td dir="auto" data-label="Translation">out_of_comparison должно быть текстом причины</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">464</td><td data-label="English">list of texts expected</td><td dir="auto" data-label="Translation">ожидается список текстов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">465</td><td data-label="English">entity repeats: {name}</td><td dir="auto" data-label="Translation">сущность повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">466</td><td data-label="English">axis repeats: {name}</td><td dir="auto" data-label="Translation">ось повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">467</td><td data-label="English">no values</td><td dir="auto" data-label="Translation">нет значений</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">468</td><td data-label="English">value repeats: {name}</td><td dir="auto" data-label="Translation">значение повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">469</td><td data-label="English">unknown inherit source {entity}/{axis}</td><td dir="auto" data-label="Translation">неизвестный источник наследования {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">470</td><td data-label="English">existence axis lacks the value {value}</td><td dir="auto" data-label="Translation">у оси существования нет значения {value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">471</td><td data-label="English">kind repeats: {name}</td><td dir="auto" data-label="Translation">вид повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">472</td><td data-label="English">executor repeats: {name}</td><td dir="auto" data-label="Translation">исполнитель повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">473</td><td data-label="English">instrument repeats: {name}</td><td dir="auto" data-label="Translation">инструмент повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">474</td><td data-label="English">scope repeats: {name}</td><td dir="auto" data-label="Translation">охват повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">475</td><td data-label="English">{scope} is not among the scopes</td><td dir="auto" data-label="Translation">{scope} нет среди охватов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">476</td><td data-label="English">unknown entity {name}</td><td dir="auto" data-label="Translation">неизвестная сущность {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">477</td><td data-label="English">unknown axis {entity}/{axis}</td><td dir="auto" data-label="Translation">неизвестная ось {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">478</td><td data-label="English">unknown value {entity}/{axis}={value}</td><td dir="auto" data-label="Translation">неизвестное значение {entity}/{axis}={value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">479</td><td data-label="English">from equals to</td><td dir="auto" data-label="Translation">«из» совпадает с «в»</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">480</td><td data-label="English">condition: unknown {entity}/{axis}={value}</td><td dir="auto" data-label="Translation">условие: неизвестно {entity}/{axis}={value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">481</td><td data-label="English">condition on its own axis</td><td dir="auto" data-label="Translation">условие на собственную ось</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">482</td><td data-label="English">a waiting kind cannot be a check</td><td dir="auto" data-label="Translation">вид ожидания не может быть проверкой</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">483</td><td data-label="English">variant parameter repeats: {name}</td><td dir="auto" data-label="Translation">параметр варианта повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">484</td><td data-label="English">variant code repeats: {name}</td><td dir="auto" data-label="Translation">код варианта повторяется: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">485</td><td data-label="English">variant parameter {name} not set</td><td dir="auto" data-label="Translation">параметр варианта {name} не задан</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">486</td><td data-label="English">parameter {name}: unknown executor {executor}</td><td dir="auto" data-label="Translation">параметр {name}: неизвестный исполнитель {executor}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">487</td><td data-label="English">unknown kind {name}</td><td dir="auto" data-label="Translation">неизвестный вид {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">488</td><td data-label="English">unknown instrument {name}</td><td dir="auto" data-label="Translation">неизвестный инструмент {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">489</td><td data-label="English">unknown scope {name}</td><td dir="auto" data-label="Translation">неизвестный охват {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">490</td><td data-label="English">kind {name} is a waiting kind, its cost must be 0 or absent</td><td dir="auto" data-label="Translation">вид {name} — ожидание, его стоимость должна быть 0 или не задана</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">491</td><td data-label="English">kind {name} has zero_weight, its cost must be 0 or absent</td><td dir="auto" data-label="Translation">у вида {name} есть zero_weight, его стоимость должна быть 0 или не задана</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">492</td><td data-label="English">kind without cost: {name}</td><td dir="auto" data-label="Translation">вид без стоимости: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">493</td><td data-label="English">cost of unknown kind: {name}</td><td dir="auto" data-label="Translation">стоимость неизвестного вида: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">494</td><td data-label="English">kind {name}: cost below zero</td><td dir="auto" data-label="Translation">вид {name}: стоимость меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">495</td><td data-label="English">{name} costs 0; a kind without labour needs zero_weight</td><td dir="auto" data-label="Translation">{name} стоит 0; виду без труда нужен zero_weight</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">496</td><td data-label="English">executor without coefficient: {name}</td><td dir="auto" data-label="Translation">исполнитель без коэффициента: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">497</td><td data-label="English">coefficient of unknown executor: {name}</td><td dir="auto" data-label="Translation">коэффициент неизвестного исполнителя: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">498</td><td data-label="English">executor {name}: coefficient below zero</td><td dir="auto" data-label="Translation">исполнитель {name}: коэффициент меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">499</td><td data-label="English">scope without coefficient: {name}</td><td dir="auto" data-label="Translation">охват без коэффициента: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">500</td><td data-label="English">coefficient of unknown scope: {name}</td><td dir="auto" data-label="Translation">коэффициент неизвестного охвата: {name}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">501</td><td data-label="English">scope {name}: coefficient below zero</td><td dir="auto" data-label="Translation">охват {name}: коэффициент меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">502</td><td data-label="English">check axis without check price: {entity}/{axis}</td><td dir="auto" data-label="Translation">ось проверки без цены проверки: {entity}/{axis}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">503</td><td data-label="English">{entity}/{axis} is not a check axis</td><td dir="auto" data-label="Translation">{entity}/{axis} — не ось проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">504</td><td data-label="English">{entity}/{axis}: price must be above zero</td><td dir="auto" data-label="Translation">{entity}/{axis}: цена должна быть больше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">505</td><td data-label="English">must be above zero</td><td dir="auto" data-label="Translation">должно быть больше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">506</td><td data-label="English">must not be below zero</td><td dir="auto" data-label="Translation">не может быть меньше нуля</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">507</td><td data-label="English">same change of state: {kind} = {other}</td><td dir="auto" data-label="Translation">одинаковая смена состояния: {kind} = {other}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">508</td><td data-label="English">kind {name} repeats the chain {chain}</td><td dir="auto" data-label="Translation">вид {name} повторяет цепочку {chain}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">509</td><td data-label="English">task is required</td><td dir="auto" data-label="Translation">нужна задача</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">510</td><td data-label="English">not valid JSON: line {line}, column {column}: {reason}</td><td dir="auto" data-label="Translation">неверный JSON: строка {line}, столбец {column}: {reason}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">511</td><td data-label="English">cannot read: {reason}</td><td dir="auto" data-label="Translation">не удалось прочитать: {reason}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">512</td><td data-label="English">%n way</td><td dir="auto" data-label="Translation">%n путь | %n пути | %n путей</td><td class="note" dir="auto" data-label="Comment">Серый столбец списка проектов: «3 пути · 18 нояб. 14:32».</td></tr>
+<tr><td class="num" data-label="№">513</td><td data-label="English">Nothing was stored. Fix the file and load it again.</td><td dir="auto" data-label="Translation">Ничего не сохранено. Исправьте файл и загрузите его снова.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">514</td><td data-label="English">Nothing was stored. Enter a name and try again.</td><td dir="auto" data-label="Translation">Ничего не сохранено. Введите название и попробуйте снова.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">515</td><td data-label="English">Copy remarks</td><td dir="auto" data-label="Translation">Копировать замечания</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">516</td><td data-label="English">Close</td><td dir="auto" data-label="Translation">Закрыть</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">517</td><td data-label="English">{count} — {name} was not loaded</td><td dir="auto" data-label="Translation">{count} — файл {name} не загружен</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">518</td><td data-label="English">{count} — the project was not created</td><td dir="auto" data-label="Translation">{count} — проект не создан</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">519</td><td data-label="English">%n remark(s)</td><td dir="auto" data-label="Translation">%n замечание | %n замечания | %n замечаний</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">520</td><td data-label="English">Answer</td><td dir="auto" data-label="Translation">Ответ</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">521</td><td data-label="English">Steps</td><td dir="auto" data-label="Translation">Шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">522</td><td data-label="English">Assumptions</td><td dir="auto" data-label="Translation">Допущения</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">523</td><td data-label="English">Task: {task}</td><td dir="auto" data-label="Translation">Задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">524</td><td data-label="English">Risk left is in the same unit as labour.</td><td dir="auto" data-label="Translation">Остаточный риск выражен в той же единице, что и труд.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">525</td><td data-label="English">Reason: {reason}</td><td dir="auto" data-label="Translation">Причина: {reason}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">526</td><td data-label="English">Executor coefficients</td><td dir="auto" data-label="Translation">Коэффициенты исполнителей</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">527</td><td data-label="English">Scope coefficients</td><td dir="auto" data-label="Translation">Коэффициенты охватов</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">528</td><td data-label="English">Check prices</td><td dir="auto" data-label="Translation">Цены проверок</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">529</td><td data-label="English">Check price is added to Risk left when a way does not do the check.</td><td dir="auto" data-label="Translation">Цена проверки прибавляется к остаточному риску, если путь не делает эту проверку.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">530</td><td data-label="English">Labour per hour of waiting: {value}</td><td dir="auto" data-label="Translation">Труд за час ожидания: {value}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">531</td><td data-label="English">Coefficient</td><td dir="auto" data-label="Translation">Коэффициент</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">532</td><td data-label="English">Executor</td><td dir="auto" data-label="Translation">Исполнитель</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">533</td><td data-label="English">Scope</td><td dir="auto" data-label="Translation">Охват</td><td class="note" dir="auto" data-label="Comment">Слово проекта «охват»: сколько вещей за раз (каждая, пачка).</td></tr>
+<tr><td class="num" data-label="№">534</td><td data-label="English">Entity</td><td dir="auto" data-label="Translation">Сущность</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">535</td><td data-label="English">Check axis</td><td dir="auto" data-label="Translation">Ось проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">536</td><td data-label="English">Check price</td><td dir="auto" data-label="Translation">Цена проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">537</td><td data-label="English">Report (PDF)</td><td dir="auto" data-label="Translation">Отчёт (PDF)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">538</td><td data-label="English">Pages</td><td dir="auto" data-label="Translation">Страницы</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">539</td><td data-label="English">Ways (on every page)</td><td dir="auto" data-label="Translation">Пути (на всех страницах)</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">540</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">541</td><td data-label="English">Save PDF…</td><td dir="auto" data-label="Translation">Сохранить PDF…</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">542</td><td data-label="English">Ours</td><td dir="auto" data-label="Translation">Наши</td><td class="note" dir="auto" data-label="Comment">Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</td></tr>
+<tr><td class="num" data-label="№">543</td><td data-label="English">Theirs</td><td dir="auto" data-label="Translation">Чужие</td><td class="note" dir="auto" data-label="Comment">Сторона пути. Предлагаю «Свои» / «Чужие»: так в документах проекта («сначала свои, затем чужие»), и это привычная пара; «Наши» — тоже верно.</td></tr>
+<tr><td class="num" data-label="№">544</td><td data-label="English">own</td><td dir="auto" data-label="Translation">наш</td><td class="note" dir="auto" data-label="Comment">Сторона в таблице вариантов; в файле остаётся own.</td></tr>
+<tr><td class="num" data-label="№">545</td><td data-label="English">other</td><td dir="auto" data-label="Translation">чужой</td><td class="note" dir="auto" data-label="Comment">Сторона в таблице вариантов; в файле остаётся other.</td></tr>
+<tr><td class="num" data-label="№">546</td><td data-label="English">slice name</td><td dir="auto" data-label="Translation">название среза</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">547</td><td data-label="English">Name</td><td dir="auto" data-label="Translation">Название</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">548</td><td data-label="English">+ Add group</td><td dir="auto" data-label="Translation">+ Добавить группу</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">549</td><td data-label="English">Add</td><td dir="auto" data-label="Translation">Добавить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">550</td><td data-label="English">Apply</td><td dir="auto" data-label="Translation">Применить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">551</td><td data-label="English">Cancel</td><td dir="auto" data-label="Translation">Отмена</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">552</td><td data-label="English">To rename the slice, double-click its name in the table</td><td dir="auto" data-label="Translation">Чтобы переименовать срез, дважды щёлкните его название в таблице</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">553</td><td data-label="English">or</td><td dir="auto" data-label="Translation">или</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">554</td><td data-label="English">Remove the group</td><td dir="auto" data-label="Translation">Удалить группу</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">555</td><td data-label="English">+ Add row</td><td dir="auto" data-label="Translation">+ Добавить строку</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">556</td><td data-label="English">Group {number}</td><td dir="auto" data-label="Translation">Группа {number}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">557</td><td data-label="English">Remove the row</td><td dir="auto" data-label="Translation">Удалить строку</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">558</td><td data-label="English">Copy prompt</td><td dir="auto" data-label="Translation">Копировать просьбу</td><td class="note" dir="auto" data-label="Comment">«Просьба» — слово проекта для prompt; синонимы: «запрос», «промпт».</td></tr>
+<tr><td class="num" data-label="№">559</td><td data-label="English">Next step</td><td dir="auto" data-label="Translation">Следующий шаг</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">560</td><td data-label="English">Risk left: {count}</td><td dir="auto" data-label="Translation">Остаточный риск: {count}</td><td class="note" dir="auto" data-label="Comment">В ячейке цепочки; при нехватке места — «Ост. риск».</td></tr>
+<tr><td class="num" data-label="№">561</td><td data-label="English">Not checked, {slice} (not reached): {what}</td><td dir="auto" data-label="Translation">Не проверено, {slice} (не наступил): {what}</td><td class="note" dir="auto" data-label="Comment">Срез не наступил на этом пути.</td></tr>
+<tr><td class="num" data-label="№">562</td><td data-label="English">Not checked, {slice}: {what}</td><td dir="auto" data-label="Translation">Не проверено, {slice}: {what}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">563</td><td data-label="English">Not checked (not reached): {what}</td><td dir="auto" data-label="Translation">Не проверено (не наступил): {what}</td><td class="note" dir="auto" data-label="Comment">Срез не наступил на этом пути.</td></tr>
+<tr><td class="num" data-label="№">564</td><td data-label="English">Not checked: {what}</td><td dir="auto" data-label="Translation">Не проверено: {what}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">565</td><td data-label="English">Back to table</td><td dir="auto" data-label="Translation">Назад к таблице</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">566</td><td data-label="English">Double-click to rename</td><td dir="auto" data-label="Translation">Дважды щёлкните, чтобы переименовать</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">567</td><td data-label="English">Edit</td><td dir="auto" data-label="Translation">Изменить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">568</td><td data-label="English">Move up</td><td dir="auto" data-label="Translation">Переместить вверх</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">569</td><td data-label="English">Move down</td><td dir="auto" data-label="Translation">Переместить вниз</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">570</td><td data-label="English">Delete</td><td dir="auto" data-label="Translation">Удалить</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>

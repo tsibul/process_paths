@@ -1,7 +1,11 @@
 # Copyright (C) 2026 Ilia Tsigelnitskii
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The texts for an AI chat: the request, the six prompts; the JSON object taken out of its answer."""
+"""The texts for an AI chat: the request, the six prompts; the JSON object taken out of its answer.
+
+The texts are in the language of the window, which the window passes in; a language without its
+files gets the English ones.
+"""
 
 from __future__ import annotations
 
@@ -9,24 +13,59 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-INSTRUCTIONS_FILE = Path(__file__).parent / "data" / "ai_instructions_en.md"
-PROMPTS_FILE = Path(__file__).parent / "data" / "ai_prompts_en.md"
+DATA = Path(__file__).parent / "data"
+SOURCE = "en"  # the language of the files that are always there
+INSTRUCTIONS_FILE = DATA / "ai_instructions_en.md"
+PROMPTS_FILE = DATA / "ai_prompts_en.md"
 # No prompt the program hands out is longer, the filled-in text counted.
 PROMPT_LIMIT = 6000
 TASK = "{task}"
 REMARKS = "{remarks}"
+# The last line of prompt 6 when not all remarks fit, by language.
+MORE = {
+    "en": "and {n} more",
+    "ru": "и ещё {n}",
+    "el": "και {n} ακόμη",
+}
 
 # A fenced block: an optional language word on the opening line, the content, the closing fence.
 _FENCE = re.compile(r"```([A-Za-z]*)[ \t]*\r?\n(.*?)```", re.DOTALL)
 
 
-def instructions() -> str:
+def _file(kind: str, lang: str) -> Path:
+    """The packaged file ``ai_<kind>_<lang>.md``, the English one when it is absent."""
+    path = DATA / f"ai_{kind}_{lang}.md"
+    return path if path.exists() else DATA / f"ai_{kind}_{SOURCE}.md"
+
+
+def instructions_file(lang: str = SOURCE) -> Path:
+    """The instructions file of a language.
+
+    :param lang: the window language.
+    :return: ``ai_instructions_<lang>.md``, or the English one when the language has none.
+    :rtype: Path
+    """
+    return _file("instructions", lang)
+
+
+def prompts_file(lang: str = SOURCE) -> Path:
+    """The prompts file of a language.
+
+    :param lang: the window language.
+    :return: ``ai_prompts_<lang>.md``, or the English one when the language has none.
+    :rtype: Path
+    """
+    return _file("prompts", lang)
+
+
+def instructions(lang: str = SOURCE) -> str:
     """The instructions for the AI chat: the input format description.
 
+    :param lang: the window language.
     :return: the text of the packaged instructions file.
     :rtype: str
     """
-    return INSTRUCTIONS_FILE.read_text(encoding="utf-8")
+    return instructions_file(lang).read_text(encoding="utf-8")
 
 
 def request_text(description: str) -> str:
@@ -40,9 +79,10 @@ def request_text(description: str) -> str:
     return f"{head}\n\nMy process:\n{description}"
 
 
-# A prompt: its heading, the note under it, then its ``text`` block.
+# A prompt: its heading (``## <word> N. <name>``, the word in the language of the file), the note
+# under it, then its ``text`` block.
 _PROMPT = re.compile(
-    r"^## Prompt (\d+)\. (.+?)[ \t]*\r?\n(.*?)^```text[ \t]*\r?\n(.*?)^```",
+    r"^## \S+ (\d+)\. (.+?)[ \t]*\r?\n(.*?)^```text[ \t]*\r?\n(.*?)^```",
     re.DOTALL | re.MULTILINE,
 )
 
@@ -66,7 +106,8 @@ class Prompt:
 def parse_prompts(text: str) -> list[Prompt]:
     """The prompts of a prompts file.
 
-    :param text: the file text: headings ``## Prompt N. <name>``, a note, a ``text`` block.
+    :param text: the file text: headings ``## Prompt N. <name>`` (``Prompt`` in the language of
+        the file), a note, a ``text`` block.
     :return: the prompts in file order.
     :rtype: list[Prompt]
     """
@@ -78,65 +119,71 @@ def parse_prompts(text: str) -> list[Prompt]:
     return found
 
 
-def prompts() -> list[Prompt]:
+def prompts(lang: str = SOURCE) -> list[Prompt]:
     """The six prompts of the packaged prompts file.
 
+    :param lang: the window language.
     :return: the prompts in step order.
     :rtype: list[Prompt]
     """
-    return parse_prompts(PROMPTS_FILE.read_text(encoding="utf-8"))
+    return parse_prompts(prompts_file(lang).read_text(encoding="utf-8"))
 
 
-def task_limit() -> int:
+def task_limit(lang: str = SOURCE) -> int:
     """How long the task may be for prompt 1 to stay within ``PROMPT_LIMIT``.
 
+    :param lang: the window language.
     :return: the number of characters.
     :rtype: int
     """
-    return PROMPT_LIMIT - (len(prompts()[0].text) - len(TASK))
+    return PROMPT_LIMIT - (len(prompts(lang)[0].text) - len(TASK))
 
 
-def task_prompt(task: str) -> str:
+def task_prompt(task: str, lang: str = SOURCE) -> str:
     """Prompt 1 with the person's task.
 
     :param task: one or two sentences about the task.
+    :param lang: the window language.
     :return: the prompt text with ``{task}`` replaced.
     :rtype: str
     """
-    return prompts()[0].text.replace(TASK, task)
+    return prompts(lang)[0].text.replace(TASK, task)
 
 
-def fit_remarks(remarks: list[str], room: int) -> list[str]:
+def fit_remarks(remarks: list[str], room: int, lang: str = SOURCE) -> list[str]:
     """Whole remarks in order, as many as fit, and ``and N more`` for the rest.
 
     :param remarks: the remark lines.
     :param room: the characters there are for the lines joined by line breaks.
+    :param lang: the window language: the language of ``and N more``.
     :return: the lines to write.
     :rtype: list[str]
     """
     if len("\n".join(remarks)) <= room:
         return list(remarks)
+    more = MORE.get(lang, MORE[SOURCE])
     used = 0
     kept = 0
     for line in remarks:
-        tail = f"and {len(remarks) - kept - 1} more"
+        tail = more.format(n=len(remarks) - kept - 1)
         if used + len(line) + 1 + len(tail) > room:
             break
         used += len(line) + 1
         kept += 1
-    return remarks[:kept] + [f"and {len(remarks) - kept} more"]
+    return remarks[:kept] + [more.format(n=len(remarks) - kept)]
 
 
-def remarks_prompt(remarks: list[str]) -> str:
+def remarks_prompt(remarks: list[str], lang: str = SOURCE) -> str:
     """Prompt 6 with the load remarks, within ``PROMPT_LIMIT``.
 
-    :param remarks: the remark lines.
+    :param remarks: the remark lines, in the window language.
+    :param lang: the window language.
     :return: the prompt text with ``{remarks}`` replaced, one remark per line.
     :rtype: str
     """
-    text = prompts()[5].text
+    text = prompts(lang)[5].text
     room = PROMPT_LIMIT - (len(text) - len(REMARKS))
-    return text.replace(REMARKS, "\n".join(fit_remarks(remarks, room)))
+    return text.replace(REMARKS, "\n".join(fit_remarks(remarks, room, lang)))
 
 
 def _fenced(text: str) -> str | None:

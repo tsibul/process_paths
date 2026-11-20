@@ -28,6 +28,7 @@ from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from pathlib import Path
 
+from measure_twice.message import QT_TRANSLATE_NOOP, Message, joined, translate
 from process_paths.analysis import decomposable_kinds, duplicate_kinds
 from process_paths.engine import TransitionError, run_variant, variant_entities
 from process_paths.model import (Axis, Call, Entity, Executor, Kind, Model, NamedSlice, SliceGroup,
@@ -50,15 +51,40 @@ STEP_FIELDS = {"text", "calls"}
 NORM_FIELDS = {"batch_size", "kind_costs", "executor_coefficients", "scope_coefficients",
                "axis_skip_prices", "uncounted_errors", "labour_per_waiting_hour"}
 WAITING_UNITS = {"hours": 1, "days": 24}
-BAD_WAITING = "waiting needs a number above 0 and the unit hours or days"
+BAD_WAITING = QT_TRANSLATE_NOOP(
+    "Project",
+    "waiting needs a number above 0 and the unit hours or days",
+)
+
+# Places in the file.
+ENTITY = QT_TRANSLATE_NOOP("Project", "entity {name}")
+AXIS = QT_TRANSLATE_NOOP("Project", "{where}, axis {name}")
+KIND = QT_TRANSLATE_NOOP("Project", "kind {name}")
+NAMED_SLICE = QT_TRANSLATE_NOOP("Project", "named slice {name}")
+VARIANT = QT_TRANSLATE_NOOP("Project", "variant {code}")
+STEP = QT_TRANSLATE_NOOP("Project", "{where}, step {number}")
+CALL = QT_TRANSLATE_NOOP("Project", "{where}, call {number}")
+NUMBER_EXPECTED = QT_TRANSLATE_NOOP("Project", "number expected")
+TEXT_EXPECTED = QT_TRANSLATE_NOOP("Project", "text expected")
+LIST_EXPECTED = QT_TRANSLATE_NOOP("Project", "list expected")
+MUST_BE_TEXT = QT_TRANSLATE_NOOP("Project", "{field} must be a text")
+UNKNOWN = QT_TRANSLATE_NOOP("Project", "unknown {entity}/{axis}={value}")
+UNKNOWN_EXECUTOR = QT_TRANSLATE_NOOP("Project", "unknown executor {name}")
+UNKNOWN_PARAMETER = QT_TRANSLATE_NOOP("Project", "unknown variant parameter {name}")
+RESERVED = QT_TRANSLATE_NOOP("Project", "the name {name} is reserved for the final slice")
+
+
+def field_of(where: str, name: str) -> Message:
+    """The place of a field of a place: ``place, field``; the field is a key of the file."""
+    return joined(", ", [where, name])
 
 
 @dataclass(frozen=True)
 class Remark:
     """One remark of the check.
 
-    :ivar where: place in the file.
-    :ivar text: what is wrong.
+    :ivar where: place in the file; a :class:`~measure_twice.message.Message` or a plain key.
+    :ivar text: what is wrong; a :class:`~measure_twice.message.Message`.
     """
 
     where: str
@@ -183,7 +209,7 @@ def _is_text(v: object) -> bool:
 
 def _text_list(r: _Remarks, where: str, v: object) -> bool:
     if not isinstance(v, list) or not all(_is_text(x) for x in v):
-        r.add(where, "list of names expected")
+        r.add(where, QT_TRANSLATE_NOOP("Project", "list of names expected"))
         return False
     return True
 
@@ -191,12 +217,13 @@ def _text_list(r: _Remarks, where: str, v: object) -> bool:
 def _unknown_fields(r: _Remarks, where: str, obj: dict, allowed: set[str]) -> None:
     for k in obj:
         if k not in allowed:
-            r.add(where, f"unknown field {k!r}")
+            r.add(where, QT_TRANSLATE_NOOP("Project", "unknown field {field}").format(
+                field=repr(k)))
 
 
 def _obj(r: _Remarks, where: str, v: object) -> bool:
     if not isinstance(v, dict):
-        r.add(where, "object expected")
+        r.add(where, QT_TRANSLATE_NOOP("Project", "object expected"))
         return False
     return True
 
@@ -205,7 +232,8 @@ def _required(r: _Remarks, where: str, obj: dict, keys: tuple[str, ...]) -> bool
     ok = True
     for k in keys:
         if k not in obj:
-            r.add(where, f"field {k!r} is missing")
+            r.add(where, QT_TRANSLATE_NOOP("Project", "field {field} is missing").format(
+                field=repr(k)))
             ok = False
     return ok
 
@@ -213,7 +241,9 @@ def _required(r: _Remarks, where: str, obj: dict, keys: tuple[str, ...]) -> bool
 def _triples(r: _Remarks, where: str, v: object, size: int) -> None:
     if not isinstance(v, list) or any(
             not isinstance(t, list) or len(t) != size or not all(isinstance(x, str) for x in t) for t in v):
-        r.add(where, f"list of [{', '.join(['name'] * size)}] expected")
+        names = ", ".join(["name"] * size)
+        r.add(where, QT_TRANSLATE_NOOP("Project", "list of [{names}] expected").format(
+            names=names))
 
 
 def _numbers_map(r: _Remarks, where: str, v: object) -> None:
@@ -221,7 +251,7 @@ def _numbers_map(r: _Remarks, where: str, v: object) -> None:
         return
     for k, x in v.items():
         if not _is_number(x):
-            r.add(f"{where} {k!r}", "number expected")
+            r.add(f"{where} {k!r}", NUMBER_EXPECTED)
 
 
 def _good_waiting(k: dict) -> bool:
@@ -241,12 +271,12 @@ def _waiting(data: dict) -> dict[str, tuple[Decimal, str]]:
 def _check_steps(r: _Remarks, w: str, v: dict) -> None:
     steps = v["steps"]
     if not isinstance(steps, list):
-        r.add(w, "steps must be a list")
+        r.add(w, QT_TRANSLATE_NOOP("Project", "steps must be a list"))
         return
     ok = True
     total = 0
     for i, s in enumerate(steps, 1):
-        ws = f"{w}, step {i}"
+        ws = STEP.format(where=w, number=i)
         if not _obj(r, ws, s):
             ok = False
             continue
@@ -254,15 +284,16 @@ def _check_steps(r: _Remarks, w: str, v: dict) -> None:
         _unknown_fields(r, ws, s, STEP_FIELDS)
         _required(r, ws, s, ("text", "calls"))
         if "text" in s and not _is_text(s["text"]):
-            r.add(ws, "text must be a text")
+            r.add(ws, MUST_BE_TEXT.format(field="text"))
         if "calls" in s:
             if isinstance(s["calls"], int) and not isinstance(s["calls"], bool) and s["calls"] >= 0:
                 total += s["calls"]
             else:
-                r.add(ws, "calls must be an integer, 0 or more")
+                r.add(ws, QT_TRANSLATE_NOOP("Project", "calls must be an integer, 0 or more"))
         ok = ok and len(r) == n
     if ok and isinstance(v.get("calls"), list) and total != len(v["calls"]):
-        r.add(w, f"steps cover {total} calls, the variant has {len(v['calls'])}")
+        text = translate("Project", "steps cover %n calls, the variant has {count}", "", total)
+        r.add(w, text.format(count=len(v["calls"])))
 
 
 def _check_structure(data: object, r: _Remarks) -> None:
@@ -273,129 +304,138 @@ def _check_structure(data: object, r: _Remarks) -> None:
     _required(r, "file", data, ("format", "name", "existence_axis", "entities", "kinds", "executors",
                                 "instruments", "scopes", "batch_scope", "variants", "normalization"))
     if "format" in data and data["format"] != FORMAT:
-        r.add("format", f"must be {FORMAT}", soft=True)
+        r.add("format", QT_TRANSLATE_NOOP("Project", "must be {format}").format(format=FORMAT),
+              soft=True)
     if "name" in data and not _is_text(data["name"]):
-        r.add("name", "text expected", soft=True)
+        r.add("name", TEXT_EXPECTED, soft=True)
     if "description" in data and not isinstance(data["description"], str):
-        r.add("description", "text expected", soft=True)
+        r.add("description", TEXT_EXPECTED, soft=True)
     ex = data.get("existence_axis")
     if ex is not None and _obj(r, "existence_axis", ex):
         _unknown_fields(r, "existence_axis", ex, {"name", "absent"})
         if _required(r, "existence_axis", ex, ("name", "absent")):
             if not _is_text(ex["name"]) or not _is_text(ex["absent"]):
-                r.add("existence_axis", "name and absent must be texts")
+                r.add("existence_axis",
+                      QT_TRANSLATE_NOOP("Project", "name and absent must be texts"))
     for i, e in enumerate(data.get("entities", []) if isinstance(data.get("entities"), list) else [], 1):
-        w = f"entity {i}"
+        w = ENTITY.format(name=i)
         if not _obj(r, w, e):
             continue
         if _is_text(e.get("name")):
-            w = f"entity {e['name']}"
+            w = ENTITY.format(name=e["name"])
         _unknown_fields(r, w, e, ENTITY_FIELDS)
         if not _required(r, w, e, ("name", "axes")):
             continue
         if not _is_text(e["name"]):
-            r.add(w, "name must be a text")
+            r.add(w, MUST_BE_TEXT.format(field="name"))
         if not isinstance(e["axes"], list):
-            r.add(w, "axes: list expected")
+            r.add(w, QT_TRANSLATE_NOOP("Project", "axes: list expected"))
             continue
         for j, a in enumerate(e["axes"], 1):
-            wa = f"{w}, axis {j}"
+            wa = AXIS.format(where=w, name=j)
             if not _obj(r, wa, a):
                 continue
             if _is_text(a.get("name")):
-                wa = f"{w}, axis {a['name']}"
+                wa = AXIS.format(where=w, name=a["name"])
             _unknown_fields(r, wa, a, AXIS_FIELDS)
             if not _required(r, wa, a, ("name", "values")):
                 continue
             if not _is_text(a["name"]):
-                r.add(wa, "name must be a text")
-            _text_list(r, f"{wa}, values", a["values"])
+                r.add(wa, MUST_BE_TEXT.format(field="name"))
+            _text_list(r, field_of(wa, "values"), a["values"])
             if "inherit" in a:
-                _triples(r, f"{wa}, inherit", a["inherit"], 2)
+                _triples(r, field_of(wa, "inherit"), a["inherit"], 2)
     if not isinstance(data.get("entities", []), list):
-        r.add("entities", "list expected")
+        r.add("entities", LIST_EXPECTED)
     if isinstance(data.get("kinds"), list):
         for i, k in enumerate(data["kinds"], 1):
-            w = f"kind {i}"
+            w = KIND.format(name=i)
             if not _obj(r, w, k):
                 continue
             if _is_text(k.get("name")):
-                w = f"kind {k['name']}"
+                w = KIND.format(name=k["name"])
             _unknown_fields(r, w, k, KIND_FIELDS)
             if _required(r, w, k, ("name", "entity", "axis", "from", "to")):
                 for f in ("name", "entity", "axis", "from", "to"):
                     if not _is_text(k[f]):
-                        r.add(w, f"{f} must be a text")
+                        r.add(w, MUST_BE_TEXT.format(field=f))
             if "requires" in k:
-                _triples(r, f"{w}, requires", k["requires"], 3)
+                _triples(r, field_of(w, "requires"), k["requires"], 3)
             for f in ("check", "zero_weight"):
                 if f in k and not isinstance(k[f], bool):
-                    r.add(w, f"{f} must be true or false")
+                    r.add(w, QT_TRANSLATE_NOOP("Project", "{field} must be true or false").format(
+                        field=f))
             if "zero_weight_note" in k and (not _is_text(k["zero_weight_note"])
                                             or k.get("zero_weight") is not True):
-                r.add(w, "zero_weight_note needs zero_weight true and a text", soft=True)
+                text = QT_TRANSLATE_NOOP("Project",
+                                         "zero_weight_note needs zero_weight true and a text")
+                r.add(w, text, soft=True)
             if ("waiting" in k or "waiting_unit" in k) and not _good_waiting(k):
                 r.add(w, BAD_WAITING)
     elif "kinds" in data:
-        r.add("kinds", "list expected")
+        r.add("kinds", LIST_EXPECTED)
     for f in ("executors", "instruments", "scopes"):
         if f in data:
             _text_list(r, f, data[f])
     if "batch_scope" in data and not _is_text(data["batch_scope"]):
-        r.add("batch_scope", "text expected")
+        r.add("batch_scope", TEXT_EXPECTED)
     if "variant_params" in data:
         _text_list(r, "variant_params", data["variant_params"])
     ns = data.get("named_slices", {})
     if _obj(r, "named_slices", ns):
         for name, spec in ns.items():
-            w = f"named slice {name}"
+            w = NAMED_SLICE.format(name=name)
             if not _obj(r, w, spec):
                 continue
             _unknown_fields(r, w, spec, {"any"})
             groups = spec.get("any")
             if not isinstance(groups, list) or not groups:
-                r.add(w, "\"any\": non-empty list of groups expected")
+                r.add(w, QT_TRANSLATE_NOOP("Project", "\"any\": non-empty list of groups expected"))
                 continue
             for g in groups:
                 if not _obj(r, w, g):
                     continue
                 _unknown_fields(r, w, g, {"states", "params"})
-                _triples(r, f"{w}, states", g.get("states", []), 3)
-                _triples(r, f"{w}, params", g.get("params", []), 2)
+                _triples(r, field_of(w, "states"), g.get("states", []), 3)
+                _triples(r, field_of(w, "params"), g.get("params", []), 2)
                 if not g.get("states") and not g.get("params"):
-                    r.add(w, "empty group")
+                    r.add(w, QT_TRANSLATE_NOOP("Project", "empty group"))
     if isinstance(data.get("variants"), list):
         for i, v in enumerate(data["variants"], 1):
-            w = f"variant {i}"
+            w = VARIANT.format(code=i)
             if not _obj(r, w, v):
                 continue
             if _is_text(v.get("code")):
-                w = f"variant {v['code']}"
+                w = VARIANT.format(code=v["code"])
             _unknown_fields(r, w, v, VARIANT_FIELDS)
             if _required(r, w, v, ("code", "title", "calls")):
                 for f in ("code", "title"):
                     if not _is_text(v[f]):
-                        r.add(w, f"{f} must be a text", soft=(f == "title"))
-                _triples(r, f"{w}, calls", v["calls"], 4)
+                        r.add(w, MUST_BE_TEXT.format(field=f), soft=(f == "title"))
+                _triples(r, field_of(w, "calls"), v["calls"], 4)
             if "side" in v and v["side"] not in SIDES:
-                r.add(w, "side must be \"own\" or \"other\"", soft=True)
+                r.add(w, QT_TRANSLATE_NOOP("Project", "side must be \"own\" or \"other\""),
+                      soft=True)
             if "params" in v and (not isinstance(v["params"], dict)
                                   or not all(isinstance(x, str) for x in v["params"].values())):
-                r.add(f"{w}, params", "object {parameter: executor} expected")
+                r.add(field_of(w, "params"),
+                      QT_TRANSLATE_NOOP("Project", "object {parameter: executor} expected"))
             if "entities" in v:
-                _text_list(r, f"{w}, entities", v["entities"])
+                _text_list(r, field_of(w, "entities"), v["entities"])
             if "initial" in v and (not isinstance(v["initial"], dict) or not all(
                     isinstance(a, dict) and all(isinstance(x, str) for x in a.values())
                     for a in v["initial"].values())):
-                r.add(f"{w}, initial", "object {entity: {axis: value}} expected")
+                r.add(field_of(w, "initial"),
+                      QT_TRANSLATE_NOOP("Project", "object {entity: {axis: value}} expected"))
             if "task" in v and not _is_text(v["task"]):
-                r.add(w, "task must be a text", soft=True)
+                r.add(w, MUST_BE_TEXT.format(field="task"), soft=True)
             if "steps" in v:
                 _softly(r, _check_steps, w, v)
             if "out_of_comparison" in v and not _is_text(v["out_of_comparison"]):
-                r.add(w, "out_of_comparison must be a reason text", soft=True)
+                r.add(w, QT_TRANSLATE_NOOP("Project", "out_of_comparison must be a reason text"),
+                      soft=True)
     elif "variants" in data:
-        r.add("variants", "list expected")
+        r.add("variants", LIST_EXPECTED)
     n = data.get("normalization")
     if n is not None and _obj(r, "normalization", n):
         _unknown_fields(r, "normalization", n, NORM_FIELDS)
@@ -409,14 +449,15 @@ def _check_structure(data: object, r: _Remarks) -> None:
             for en, axes in sp.items():
                 _numbers_map(r, f"normalization, axis_skip_prices, {en}", axes)
         if "batch_size" in n and not _is_number(n["batch_size"]):
-            r.add("normalization, batch_size", "number expected")
+            r.add("normalization, batch_size", NUMBER_EXPECTED)
         if "labour_per_waiting_hour" in n and not _is_number(n["labour_per_waiting_hour"]):
-            r.add("normalization, labour_per_waiting_hour", "number expected")
+            r.add("normalization, labour_per_waiting_hour", NUMBER_EXPECTED)
         ue = n.get("uncounted_errors", {})
         if _obj(r, "normalization, uncounted_errors", ue):
             for g, texts in ue.items():
                 if not isinstance(texts, list) or not all(isinstance(t, str) for t in texts):
-                    r.add(f"normalization, uncounted_errors, {g}", "list of texts expected")
+                    r.add(f"normalization, uncounted_errors, {g}",
+                          QT_TRANSLATE_NOOP("Project", "list of texts expected"))
 
 
 def _build_model(data: dict) -> Model:
@@ -443,11 +484,15 @@ def _build_model(data: dict) -> Model:
                  variant_params=list(data.get("variant_params", [])), named_slices=slices)
 
 
-def _repeats(r: _Remarks, where: str, names: list[str], what: str) -> None:
+def _repeats(r: _Remarks, where: str, names: list[str], what: Message) -> None:
+    """A remark on every name met again.
+
+    :param what: the template of the remark with ``{name}``.
+    """
     seen: set[str] = set()
     for n in names:
         if n in seen:
-            r.add(where, f"{what} repeats: {n}")
+            r.add(where, what.format(name=n))
         seen.add(n)
 
 
@@ -486,80 +531,90 @@ def _check_dictionary(model: Model, r: _Remarks,
     """
     broken = _Broken()
     names = [e.name for e in model.entities]
-    _repeats(r, "entities", names, "entity")
+    _repeats(r, "entities", names, QT_TRANSLATE_NOOP("Project", "entity repeats: {name}"))
     broken.entities = _repeated(names)
     for e in model.entities:
-        w = f"entity {e.name}"
+        w = ENTITY.format(name=e.name)
         axis_names = [a.name for a in e.axes]
-        _repeats(r, w, axis_names, "axis")
+        _repeats(r, w, axis_names, QT_TRANSLATE_NOOP("Project", "axis repeats: {name}"))
         broken.axes |= {(e.name, a) for a in _repeated(axis_names)}
         for a in e.axes:
             before = len(r)
+            wa = AXIS.format(where=w, name=a.name)
             if not a.values:
-                r.add(f"{w}, axis {a.name}", "no values")
-            _repeats(r, f"{w}, axis {a.name}", list(a.values), "value")
+                r.add(wa, QT_TRANSLATE_NOOP("Project", "no values"))
+            _repeats(r, wa, list(a.values), QT_TRANSLATE_NOOP("Project", "value repeats: {name}"))
             for se, sa in a.inherit:
                 if se in broken.entities:
                     broken.axes.add((e.name, a.name))
                 elif not _value_ok(model, se, sa):
-                    r.add(f"{w}, axis {a.name}", f"unknown inherit source {se}/{sa}")
+                    text = QT_TRANSLATE_NOOP("Project", "unknown inherit source {entity}/{axis}")
+                    r.add(wa, text.format(entity=se, axis=sa))
             if len(r) > before:
                 broken.axes.add((e.name, a.name))
         ex = e.axis(model.existence_axis)
         if ex is not None and model.absent_value not in ex.values:
-            r.add(w, f"existence axis lacks the value {model.absent_value!r}")
+            text = QT_TRANSLATE_NOOP("Project", "existence axis lacks the value {value}")
+            r.add(w, text.format(value=repr(model.absent_value)))
             broken.axes.add((e.name, ex.name))
     kind_names = [k.name for k in model.kinds]
-    _repeats(r, "kinds", kind_names, "kind")
+    _repeats(r, "kinds", kind_names, QT_TRANSLATE_NOOP("Project", "kind repeats: {name}"))
     broken.kinds = _repeated(kind_names)
-    _repeats(r, "executors", [x.name for x in model.executors], "executor")
-    _repeats(r, "instruments", model.instruments, "instrument")
-    _repeats(r, "scopes", model.scopes, "scope")
+    _repeats(r, "executors", [x.name for x in model.executors],
+             QT_TRANSLATE_NOOP("Project", "executor repeats: {name}"))
+    _repeats(r, "instruments", model.instruments,
+             QT_TRANSLATE_NOOP("Project", "instrument repeats: {name}"))
+    _repeats(r, "scopes", model.scopes, QT_TRANSLATE_NOOP("Project", "scope repeats: {name}"))
     if model.batch_scope not in model.scopes:
-        r.add("batch_scope", f"{model.batch_scope!r} is not among the scopes")
+        text = QT_TRANSLATE_NOOP("Project", "{scope} is not among the scopes")
+        r.add("batch_scope", text.format(scope=repr(model.batch_scope)))
     for k in model.kinds:
-        w = f"kind {k.name}"
+        w = KIND.format(name=k.name)
         before = len(r)
         ent = model.entity(k.entity)
         ax = ent.axis(k.axis) if ent else None
         if broken.axis(k.entity, k.axis):
             broken.kinds.add(k.name)
         elif ent is None:
-            r.add(w, f"unknown entity {k.entity}")
+            r.add(w, QT_TRANSLATE_NOOP("Project", "unknown entity {name}").format(name=k.entity))
         elif ax is None:
-            r.add(w, f"unknown axis {k.entity}/{k.axis}")
+            r.add(w, QT_TRANSLATE_NOOP("Project", "unknown axis {entity}/{axis}").format(
+                entity=k.entity, axis=k.axis))
         else:
             for v in (k.source, k.target):
                 if v not in ax.values:
-                    r.add(w, f"unknown value {k.entity}/{k.axis}={v}")
+                    text = QT_TRANSLATE_NOOP("Project", "unknown value {entity}/{axis}={value}")
+                    r.add(w, text.format(entity=k.entity, axis=k.axis, value=v))
         if k.source == k.target:
-            r.add(w, "from equals to")
+            r.add(w, QT_TRANSLATE_NOOP("Project", "from equals to"))
         for re_, ra, rv in k.requires:
             if broken.axis(re_, ra):
                 broken.kinds.add(k.name)
             elif not _value_ok(model, re_, ra, rv):
-                r.add(w, f"condition: unknown {re_}/{ra}={rv}")
+                text = QT_TRANSLATE_NOOP("Project", "condition: unknown {entity}/{axis}={value}")
+                r.add(w, text.format(entity=re_, axis=ra, value=rv))
             if (re_, ra) == (k.entity, k.axis):
-                r.add(w, "condition on its own axis")
+                r.add(w, QT_TRANSLATE_NOOP("Project", "condition on its own axis"))
         if k.check and waiting and k.name in waiting:
-            r.add(w, "a waiting kind cannot be a check")
+            r.add(w, QT_TRANSLATE_NOOP("Project", "a waiting kind cannot be a check"))
         if len(r) > before:
             broken.kinds.add(k.name)
-    _repeats(r, "variant_params", model.variant_params, "variant parameter")
+    _repeats(r, "variant_params", model.variant_params,
+             QT_TRANSLATE_NOOP("Project", "variant parameter repeats: {name}"))
     execs = {x.name for x in model.executors}
     for ns in model.named_slices:
-        w = f"named slice {ns.name}"
+        w = NAMED_SLICE.format(name=ns.name)
         if ns.name == FINAL:
-            r.add(w, f"the name {FINAL!r} is reserved for the final slice")
+            r.add(w, RESERVED.format(name=repr(FINAL)))
         for g in ns.groups:
             for e, a, v in g.states:
                 if not broken.axis(e, a) and not _value_ok(model, e, a, v):
-                    r.add(w, f"unknown {e}/{a}={v}")
+                    r.add(w, UNKNOWN.format(entity=e, axis=a, value=v))
             for p, x in g.params:
                 if p not in model.variant_params:
-                    r.add(w, f"unknown variant parameter {p}")
+                    r.add(w, UNKNOWN_PARAMETER.format(name=p))
                 if x not in execs:
-                    r.add(w, f"unknown executor {x}")
+                    r.add(w, UNKNOWN_EXECUTOR.format(name=x))
     return broken
 
 
@@ -576,36 +631,40 @@ def _check_variant_names(model: Model, broken: _Broken, r: _Remarks) -> set[str]
     :return: codes of variants with a remark.
     """
     bad: set[str] = set()
-    _repeats(r, "variants", [v.code for v in model.variants], "variant code")
+    _repeats(r, "variants", [v.code for v in model.variants],
+             QT_TRANSLATE_NOOP("Project", "variant code repeats: {name}"))
     execs = {x.name for x in model.executors}
     for v in model.variants:
-        w = f"variant {v.code}"
+        w = VARIANT.format(code=v.code)
         before = len(r)
         for p in model.variant_params:
             if p not in v.params:
-                r.add(w, f"variant parameter {p} not set")
+                r.add(w, QT_TRANSLATE_NOOP("Project", "variant parameter {name} not set").format(
+                    name=p))
         for p, x in v.params.items():
             if p not in model.variant_params:
-                r.add(w, f"unknown variant parameter {p}")
+                r.add(w, UNKNOWN_PARAMETER.format(name=p))
             elif x not in execs:
-                r.add(w, f"parameter {p}: unknown executor {x}")
+                text = QT_TRANSLATE_NOOP("Project", "parameter {name}: unknown executor {executor}")
+                r.add(w, text.format(name=p, executor=x))
         for n in v.entities:
             if model.entity(n) is None:
-                r.add(w, f"unknown entity {n}")
+                r.add(w, QT_TRANSLATE_NOOP("Project", "unknown entity {name}").format(name=n))
         for en, axes in v.initial.items():
             for an, val in axes.items():
                 if not broken.axis(en, an) and not _value_ok(model, en, an, val):
-                    r.add(f"{w}, initial", f"unknown {en}/{an}={val}")
+                    r.add(field_of(w, "initial"), UNKNOWN.format(entity=en, axis=an, value=val))
         for i, c in enumerate(v.calls, 1):
-            wc = f"{w}, call {i}"
+            wc = CALL.format(where=w, number=i)
             if model.kind(c.kind) is None:
-                r.add(wc, f"unknown kind {c.kind}")
+                r.add(wc, QT_TRANSLATE_NOOP("Project", "unknown kind {name}").format(name=c.kind))
             if c.executor not in execs:
-                r.add(wc, f"unknown executor {c.executor}")
+                r.add(wc, UNKNOWN_EXECUTOR.format(name=c.executor))
             if c.instrument not in model.instruments:
-                r.add(wc, f"unknown instrument {c.instrument}")
+                text = QT_TRANSLATE_NOOP("Project", "unknown instrument {name}")
+                r.add(wc, text.format(name=c.instrument))
             if c.scope not in model.scopes:
-                r.add(wc, f"unknown scope {c.scope}")
+                r.add(wc, QT_TRANSLATE_NOOP("Project", "unknown scope {name}").format(name=c.scope))
         if len(r) > before:
             bad.add(v.code)
     return bad
@@ -632,37 +691,62 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
             continue
         if k.name in waiting:
             if k.name in costs and costs[k.name] != 0:
-                r.add(f"{w}, kind_costs",
-                      f"kind {k.name} is a waiting kind, its cost must be 0 or absent")
+                text = QT_TRANSLATE_NOOP(
+                    "Project",
+                    "kind {name} is a waiting kind, its cost must be 0 or absent",
+                )
+                r.add(f"{w}, kind_costs", text.format(name=k.name))
         elif k.zero_weight:
             if k.name in costs and costs[k.name] != 0:
-                r.add(f"{w}, kind_costs", f"kind {k.name} has zero_weight, its cost must be 0 or absent")
+                text = QT_TRANSLATE_NOOP(
+                    "Project",
+                    "kind {name} has zero_weight, its cost must be 0 or absent",
+                )
+                r.add(f"{w}, kind_costs", text.format(name=k.name))
         elif strict and k.name not in costs:
-            r.add(f"{w}, kind_costs", f"kind without cost: {k.name}")
+            text = QT_TRANSLATE_NOOP("Project", "kind without cost: {name}")
+            r.add(f"{w}, kind_costs", text.format(name=k.name))
     for name, x in costs.items():
         if name not in kinds:
-            r.add(f"{w}, kind_costs", f"cost of unknown kind: {name}")
+            text = QT_TRANSLATE_NOOP("Project", "cost of unknown kind: {name}")
+            r.add(f"{w}, kind_costs", text.format(name=name))
         elif name in broken.kinds or name in waiting:
             continue
         elif x < 0:
-            r.add(f"{w}, kind_costs", f"kind {name}: cost below zero")
+            text = QT_TRANSLATE_NOOP("Project", "kind {name}: cost below zero")
+            r.add(f"{w}, kind_costs", text.format(name=name))
         elif x == 0 and not kinds[name].zero_weight:
-            r.add(f"{w}, kind_costs", f"{name} costs 0; a kind without labour needs zero_weight")
-    for what, have, names in (("executor", ex, [x.name for x in model.executors]),
-                              ("scope", sc, model.scopes)):
+            text = QT_TRANSLATE_NOOP("Project",
+                                     "{name} costs 0; a kind without labour needs zero_weight")
+            r.add(f"{w}, kind_costs", text.format(name=name))
+    executor_texts = (
+        QT_TRANSLATE_NOOP("Project", "executor without coefficient: {name}"),
+        QT_TRANSLATE_NOOP("Project", "coefficient of unknown executor: {name}"),
+        QT_TRANSLATE_NOOP("Project", "executor {name}: coefficient below zero"),
+    )
+    scope_texts = (
+        QT_TRANSLATE_NOOP("Project", "scope without coefficient: {name}"),
+        QT_TRANSLATE_NOOP("Project", "coefficient of unknown scope: {name}"),
+        QT_TRANSLATE_NOOP("Project", "scope {name}: coefficient below zero"),
+    )
+    for what, have, names, texts in (("executor", ex, [x.name for x in model.executors],
+                                      executor_texts),
+                                     ("scope", sc, model.scopes, scope_texts)):
         f = f"{w}, {what}_coefficients"
+        without, unknown, below = texts
         for name in names:
             if strict and name not in have:
-                r.add(f, f"{what} without coefficient: {name}")
+                r.add(f, without.format(name=name))
         for name, x in have.items():
             if name not in names:
-                r.add(f, f"coefficient of unknown {what}: {name}")
+                r.add(f, unknown.format(name=name))
             elif x < 0:
-                r.add(f, f"{what} {name}: coefficient below zero")
+                r.add(f, below.format(name=name))
     axes = check_axes(_sound(model, broken))
     for e, a in axes:
         if strict and (e, a) not in prices:
-            r.add(f"{w}, axis_skip_prices", f"check axis without check price: {e}/{a}")
+            text = QT_TRANSLATE_NOOP("Project", "check axis without check price: {entity}/{axis}")
+            r.add(f"{w}, axis_skip_prices", text.format(entity=e, axis=a))
     broken_checks = [k for k in model.kinds if k.check and k.name in broken.kinds]
     unsure = {k.entity for k in broken_checks}
     unsure_everywhere = any(model.entity(k.entity) is None for k in broken_checks)
@@ -670,15 +754,18 @@ def _check_norm(model: Model, n: dict, broken: _Broken, r: _Remarks,
         if (e, a) not in axes:
             if unsure_everywhere or e in unsure or broken.axis(e, a):
                 continue
-            r.add(f"{w}, axis_skip_prices", f"{e}/{a} is not a check axis")
+            text = QT_TRANSLATE_NOOP("Project", "{entity}/{axis} is not a check axis")
+            r.add(f"{w}, axis_skip_prices", text.format(entity=e, axis=a))
         elif x <= 0:
-            r.add(f"{w}, axis_skip_prices", f"{e}/{a}: price must be above zero")
+            text = QT_TRANSLATE_NOOP("Project", "{entity}/{axis}: price must be above zero")
+            r.add(f"{w}, axis_skip_prices", text.format(entity=e, axis=a))
     batch = n.get("batch_size")
     if batch is not None and Decimal(batch) <= 0:
-        r.add(f"{w}, batch_size", "must be above zero")
+        r.add(f"{w}, batch_size", QT_TRANSLATE_NOOP("Project", "must be above zero"))
     weight = Decimal(n.get("labour_per_waiting_hour", 0))
     if weight < 0:
-        r.add(f"{w}, labour_per_waiting_hour", "must not be below zero")
+        r.add(f"{w}, labour_per_waiting_hour",
+              QT_TRANSLATE_NOOP("Project", "must not be below zero"))
     return Normalization(costs, ex, sc, prices, {g: list(t) for g, t in n.get("uncounted_errors", {}).items()},
                          Decimal(batch) if batch is not None else None, weight)
 
@@ -715,9 +802,11 @@ def _check_runs(model: Model, skip: set[str], broken: _Broken, r: _Remarks,
                 errors[v.code] = (exc.number, exc.reason)
     sound = _sound(model, broken)
     for a, b in duplicate_kinds(sound):
-        r.add("kinds", f"same change of state: {a} = {b}")
+        text = QT_TRANSLATE_NOOP("Project", "same change of state: {kind} = {other}")
+        r.add("kinds", text.format(kind=a, other=b))
     for k, chain in decomposable_kinds(sound):
-        r.add("kinds", f"kind {k} repeats the chain {' + '.join(chain)}")
+        text = QT_TRANSLATE_NOOP("Project", "kind {name} repeats the chain {chain}")
+        r.add("kinds", text.format(name=k, chain=" + ".join(chain)))
 
 
 def _require_tasks(data: object, r: _Remarks) -> None:
@@ -733,10 +822,10 @@ def _require_tasks(data: object, r: _Remarks) -> None:
             continue
         code = v.get("code")
         if _is_text(code):
-            where = f"variant {code}"
+            where = VARIANT.format(code=code)
         else:
-            where = f"variant {data['variants'].index(v) + 1}"
-        r.add(where, "task is required", soft=True)
+            where = VARIANT.format(code=data["variants"].index(v) + 1)
+        r.add(where, QT_TRANSLATE_NOOP("Project", "task is required"), soft=True)
 
 
 def read_project(data: object, strict: bool = True) -> tuple[Project | None, list[Remark]]:
@@ -781,7 +870,10 @@ def parse_text(text: str) -> tuple[Project | None, list[Remark]]:
     try:
         data = json.loads(text, parse_float=Decimal)
     except json.JSONDecodeError as exc:
-        return None, [Remark("file", f"not valid JSON: line {exc.lineno}, column {exc.colno}: {exc.msg}")]
+        text = QT_TRANSLATE_NOOP("Project",
+                                 "not valid JSON: line {line}, column {column}: {reason}")
+        return None, [Remark("file", text.format(line=exc.lineno, column=exc.colno,
+                                                 reason=exc.msg))]
     return read_project(data)
 
 
@@ -795,5 +887,6 @@ def load_file(path: Path) -> tuple[Project | None, list[Remark]]:
     try:
         text = Path(path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        return None, [Remark("file", f"cannot read: {exc}")]
+        text = QT_TRANSLATE_NOOP("Project", "cannot read: {reason}")
+        return None, [Remark("file", text.format(reason=exc))]
     return parse_text(text)

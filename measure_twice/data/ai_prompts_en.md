@@ -23,11 +23,13 @@ Step 1. Task.
 My task: {task}
 
 Give the task one short name; all ways share it. List the ways to do it that you understood from my
-words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). Then
-add the usual ways I did not mention: only ways that really solve the task, always "other".
-End the title of each added way with "(added)" and keep it through our conversation and in the file;
-action names get no mark. An added way must differ from the others in its actions. In "Points to
-check" name each added way and ask which ways are missing or extra.
+words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). If my
+words give codes for the ways (T1, T2, T3, T4), keep exactly those; a way you add gets the next code
+of the series (T5). No codes given: A, B, C, ... Then add the usual ways I did not mention: only
+ways that really solve the task, always "other". End the title of each added way with "(added)" and
+keep it through our conversation and in the file; action names get no mark. An added way must differ
+from the others in its actions. In "Points to check" name each added way and ask which ways are
+missing or extra.
 ```
 
 ## Prompt 2. Steps
@@ -121,7 +123,7 @@ choices you made.
 
 FORMAT
 A reference is the declared name letter for letter. Numbers are JSON numbers. Order matters.
-No name repeats in one list. Leave out unneeded optional fields.
+No name repeats in one list. Omit unneeded optional fields.
 
 Top level (* required): format* = 1; name*; existence_axis* {"name","absent"};
 entities*; kinds*; executors*, instruments*, scopes* - lists of names; batch_scope* - the
@@ -135,7 +137,7 @@ value. No ordinary axis has this name.
 kinds: {"name", "entity", "axis", "from", "to"} plus optional:
 requires [[entity, axis, value], ...] - must hold before; never the kind's own entity and
 axis: "from" already says it;
-check: true - confirms the result of an action; on an axis of the thing checked;
+check: true - confirms the result of an action; on the checked thing's axis;
 zero_weight: true with zero_weight_note - a step with no labour (draining).
 waiting: number > 0 with waiting_unit "hours"|"days" - waiting for someone: no cost, no check.
 from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
@@ -144,9 +146,10 @@ from != to. No two kinds with the same entity, axis, from and to. No kind duplic
 named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
 skips are counted when one group first holds. "final" is taken.
 
-variants: {"code" (mine if I gave them), "title", "side": "own"|"other", "task", "calls", "steps"}.
-Ways with the same task text are compared. calls - [kind, executor, instrument, scope]; each starts
-from the value the previous one left; all requires hold. A way without a check has no call for it.
+variants: {"code"* (keep given; new: T5 after T4; none: A, B, C, ...), "title",
+"side": "own"|"other", "task", "calls", "steps"}. Ways with the same task are compared.
+calls - [kind, executor, instrument, scope]; each starts from the value the previous one left;
+all requires hold. A way without a check has no call for it.
 steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the sum
 equals the number of calls.
 

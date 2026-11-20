@@ -9,34 +9,36 @@ import html
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QMimeData, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QMimeData, QRect, QSize, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
                                QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from measure_twice import export
+from measure_twice import export, i18n
 from measure_twice.calc import Comparison, Group, Point, Row, compare, details, fmt, groups, series
 from measure_twice.project import FINAL, Project
 from measure_twice.ui import style
 from measure_twice.ui.labour_scale import LabourScale
 from measure_twice.ui.line_charts import LineCharts
 from measure_twice.ui.pages import Page
-from measure_twice.ui.tables import ARROW, CHECK, DASH, Table, label, mono
+from measure_twice.ui.tables import (ARROW, CHECK, DASH, CheckButton, Table, label, mono, plural,
+                                     translate)
 
 SIDES = (("all", "All"), ("own", "Ours"), ("other", "Theirs"))
-SIDE_TEXT = style.SIDE_TEXT
-NOT_REACHED = " (not reached)"
-END = "end"
+END = QT_TRANSLATE_NOOP("ComparisonPage", "end")
 RISK = "Risk left"
-RISK_TIP = "Price you gave to each check this way does not do."
-NO_PAIR = "No comparable variant"
-NO_PAIR_NOTE = "Not compared: no other variant has the same task"
-OUT = "Out of comparison"
-HINT = ("Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk left "
-        "is counted separately. Click a row to see its steps.")
-STEP_HEADERS = ["#", "Kind", "Executor", "Instrument", "Scope", "Cost", "Scope ×", "Executor ×", "Labour",
-                "Risk left", "Changes"]
+RISK_TIP = QT_TRANSLATE_NOOP("ComparisonPage", "Price you gave to each check this way does not do.")
+NO_PAIR = QT_TRANSLATE_NOOP("ComparisonPage", "No comparable variant")
+NO_PAIR_NOTE = QT_TRANSLATE_NOOP(
+    "ComparisonPage", "Not compared: no other variant has the same task"
+)
+OUT = QT_TRANSLATE_NOOP("ComparisonPage", "Out of comparison")
+HINT = QT_TRANSLATE_NOOP(
+    "ComparisonPage",
+    "Rows are grouped by task. Ours come first, then theirs; lower labour is cheaper, but risk "
+    "left is counted separately. Click a row to see its steps.",
+)
 STEP_NUMERIC = {0, 5, 6, 7, 8, 9}
 PAD_X = 8  # horizontal item padding of the table stylesheet, px
 PAD_Y = 6  # vertical item padding and border of the table stylesheet, px
@@ -53,11 +55,44 @@ def _slice_label(name: str) -> str:
     return END if name == FINAL else name
 
 
+def _slice_shown(name: str) -> str:
+    """The label of a slice in the language of the window."""
+    return translate("ComparisonPage", END) if name == FINAL else name
+
+
+def _step_headers() -> list[str]:
+    """Column names of the steps table of a variant."""
+    return [
+        translate("ComparisonPage", "#"),
+        translate("ComparisonPage", "Kind"),
+        translate("ComparisonPage", "Executor"),
+        translate("ComparisonPage", "Instrument"),
+        translate("ComparisonPage", "Scope"),
+        translate("ComparisonPage", "Cost"),
+        translate("ComparisonPage", "Scope ×"),
+        translate("ComparisonPage", "Executor ×"),
+        translate("ComparisonPage", "Labour"),
+        translate("ComparisonPage", "Risk left"),
+        translate("ComparisonPage", "Changes"),
+    ]
+
+
 def _head_font() -> QFont:
     f = QFont()
     f.setPixelSize(13)
     f.setBold(True)
     return f
+
+
+def _task_title(group: Group) -> str:
+    """``Task: <task>`` over a group."""
+    return translate("ComparisonPage", "Task: {task}").format(task=group.task)
+
+
+def _variants(n: int) -> str:
+    """``N variants`` over a group."""
+    one = "%n variant"
+    return plural(translate("ComparisonPage", "%n variant", "", n), one, "%n variants", n)
 
 
 class FirstCell(QStyledItemDelegate):
@@ -124,7 +159,7 @@ class GroupHeader(QFrame):
         self.actions.addWidget(self.count)
         self.compare = None
         if compare:
-            self.compare = QPushButton("Compare steps")
+            self.compare = CheckButton(self.tr("Compare steps"))
             self.compare.setObjectName("small")
             self.actions.addWidget(self.compare)
         box.addLayout(top)
@@ -231,11 +266,12 @@ class StepsPanel(QFrame):
         box = QVBoxLayout(self)
         box.setContentsMargins(34, 6, 10, 8)
         box.setSpacing(4)
-        self.table = WrapTable(STEP_HEADERS, STEP_NUMERIC)
+        self.table = WrapTable(_step_headers(), STEP_NUMERIC)
         failed = row.error is not None
         points = series(project, row.code)  # none for a variant with a run error
         self.table.set_rows([
-            [str(s.number), s.kind, s.executor, s.instrument, s.scope] + export.step_numbers(s, failed)
+            [str(s.number), s.kind, s.executor, s.instrument, s.scope]
+            + [i18n.shown(x) for x in export.step_numbers(s, failed)]
             + [DASH if failed else str(points[i].skips_count),
                "; ".join(f"{e}/{a}: {b if b is not None else DASH} {ARROW} {x if x is not None else DASH}"
                          for e, a, b, x in s.changes)]
@@ -244,13 +280,25 @@ class StepsPanel(QFrame):
         self.skipped: list[QLabel] = []
         for s in row.slices:
             if s.skips:
-                what = ", ".join(f"{e}/{a} ({export.number(p, fmt)})" for e, a, p in s.skips)
-                name = f", {_slice_label(s.name)}" if len(row.slices) > 1 else ""
-                reached = NOT_REACHED if not s.reached else ""
-                w = label(f"Not checked{name}{reached}: {what}")
+                what = ", ".join(f"{e}/{a} ({i18n.shown(export.number(p, fmt))})"
+                                 for e, a, p in s.skips)
+                w = label(self._not_checked(row, s, what))
                 w.setObjectName("skipped")
                 self.skipped.append(w)
                 box.addWidget(w)
+
+    def _not_checked(self, row: Row, s, what: str) -> str:
+        """``Not checked, <slice> (not reached): <what>``: the slice only for several slices."""
+        slice_ = _slice_shown(s.name)
+        if len(row.slices) > 1 and not s.reached:
+            text = self.tr("Not checked, {slice} (not reached): {what}")
+        elif len(row.slices) > 1:
+            text = self.tr("Not checked, {slice}: {what}")
+        elif not s.reached:
+            text = self.tr("Not checked (not reached): {what}")
+        else:
+            text = self.tr("Not checked: {what}")
+        return text.format(slice=slice_, what=what)
 
     def event(self, e) -> bool:
         """A new height of the steps table reaches the tree row."""
@@ -281,8 +329,8 @@ class StepCell(QFrame):
         self.marker.setVisible(bool(point.slices))
         top.addWidget(self.marker, 0, Qt.AlignmentFlag.AlignTop)
         box.addLayout(top)
-        self.labour = QLabel(export.number(point.labour))
-        self.skips = QLabel(f"Risk left: {point.skips_count}")
+        self.labour = QLabel(i18n.shown(export.number(point.labour)))
+        self.skips = QLabel(self.tr("Risk left: {count}").format(count=point.skips_count))
         self.skips.setStyleSheet(f"color: {style.ERR if point.skips_count else style.OK};")
         for w in (self.labour, self.skips):
             f = mono()
@@ -313,12 +361,14 @@ class StepsView(QFrame):
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
         box.setSpacing(0)
-        head = GroupHeader(f"Task: {group.task}", f"{len(group.rows)} variants", None, False, compare=True)
+        count = _variants(len(group.rows))
+        head = GroupHeader(_task_title(group), count, None, False, compare=True)
         head.setObjectName("viewHead")
         head.compare.setCheckable(True)
         head.compare.setChecked(True)
+        head.compare.updateGeometry()  # wider now that it is checkable
         head.compare.clicked.connect(lambda: head.compare.setChecked(True))
-        self.back = QPushButton("Back to table")
+        self.back = QPushButton(self.tr("Back to table"))
         self.back.setObjectName("small")
         head.actions.addWidget(self.back)
         self.title = head.title
@@ -346,7 +396,7 @@ class StepsView(QFrame):
             hb.setSpacing(0)
             line = QHBoxLayout()
             line.setSpacing(6)
-            code, title, side = QLabel(r.code), QLabel(r.title), QLabel(SIDE_TEXT.get(r.side, r.side))
+            code, title, side = QLabel(r.code), QLabel(r.title), QLabel(style.side_text(r.side))
             code.setObjectName("colCode")
             title.setWordWrap(True)
             side.setObjectName("groupNote")
@@ -401,7 +451,7 @@ class ChartPair(QWidget):
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 12, 0, 0)
         box.setSpacing(4)
-        self.title = QLabel(f"Task: {group.task}")
+        self.title = QLabel(_task_title(group))
         self.title.setObjectName("groupTitle")
         box.addWidget(self.title)
         self.charts = LineCharts()  # the lines of this task only, as the rows of the table
@@ -501,12 +551,12 @@ class ComparisonPage(Page):
         self._keys: list[str] = []
         self._items: dict[str, QTreeWidgetItem] = {}
         self.steps_view: StepsView | None = None
-        self.box.addWidget(label("Comparison", "h2"))
+        self.box.addWidget(label(self.tr("Comparison"), "h2"))
         bar = QHBoxLayout()
-        bar.addWidget(label("Side:", "note"))
+        bar.addWidget(label(self.tr("Side:"), "note"))
         self.side_buttons = QButtonGroup(self)
-        for key, text in SIDES:
-            b = QPushButton(text)
+        for key, _ in SIDES:
+            b = CheckButton(self.tr("All") if key == "all" else style.side_name(key))
             b.setCheckable(True)
             b.setChecked(key == "all")
             b.clicked.connect(lambda _=False, k=key: self.set_side(k))
@@ -524,21 +574,21 @@ class ComparisonPage(Page):
         self.charts_lay.setSpacing(0)
         self._pairs: list[ChartPair] = []
         self.box.addWidget(self.charts_box)
-        self.hint = label(HINT, "note")
+        self.hint = label(translate("ComparisonPage", HINT), "note")
         self.box.addWidget(self.hint)
         self.notes = label("", "note")
         self.notes.setTextFormat(Qt.TextFormat.PlainText)
         self.box.addWidget(self.notes)
         buttons = QHBoxLayout()
-        self.export_md = QPushButton("Export table (Markdown)")
+        self.export_md = QPushButton(self.tr("Export table (Markdown)"))
         self.export_md.setProperty("primary", True)
-        self.export_csv = QPushButton("Export table (CSV)")
+        self.export_csv = QPushButton(self.tr("Export table (CSV)"))
         buttons.addWidget(self.export_md)
         buttons.addWidget(self.export_csv)
-        self.copy_table_button = QPushButton("Copy table")
+        self.copy_table_button = QPushButton(self.tr("Copy table"))
         self.copy_table_button.clicked.connect(self.copy_table)
         buttons.addWidget(self.copy_table_button)
-        self.report_button = QPushButton("Report (PDF)…")
+        self.report_button = QPushButton(self.tr("Report (PDF)…"))
         buttons.addWidget(self.report_button)
         buttons.addStretch(1)
         self.export_bar = QWidget()
@@ -588,9 +638,20 @@ class ComparisonPage(Page):
         cmp = self._cmp
         execs = cmp.executors if cmp else []
         names = [_slice_label(n) for n in cmp.slice_names] if cmp else []
+        shown_names = [_slice_shown(n) for n in cmp.slice_names] if cmp else []
         labour = [("Labour", x) for x in execs] + [("Labour", "total")] if cmp else []
         waiting = export.waiting_headers(cmp) if cmp else []
         skips = [(RISK, n) for n in names]
+        waiting_names = {
+            export.WAITING: self.tr("Waiting"),
+            export.LABOUR_WAITING: self.tr("Labour + waiting"),
+        }
+        waiting_shown = [waiting_names.get(w, w) for w in waiting]
+        labour_word = self.tr("Labour")
+        labour_shown = [(labour_word, x) for x in execs] + [(labour_word, self.tr("total"))]
+        if not cmp:
+            labour_shown = []
+        skips_shown = [(self.tr("Risk left"), n) for n in shown_names]
         fm = QFontMetrics(_head_font())
 
         def two_lines(a: str, b: str) -> str:
@@ -600,17 +661,25 @@ class ComparisonPage(Page):
                       + [f"{a} · {b}" for a, b in labour]
                       + waiting
                       + [f"{a}, {b}" for a, b in skips])
-        shown = (["Code", "Title", "Side", "Steps"]
-                 + [two_lines(a, b) for a, b in labour]
-                 + waiting
-                 + [two_lines(a, b) for a, b in skips])
+        fixed = [self.tr("Code"), self.tr("Title"), self.tr("Side"), self.tr("Steps")]
+        shown = (fixed
+                 + [two_lines(a, b) for a, b in labour_shown]
+                 + waiting_shown
+                 + [two_lines(a, b) for a, b in skips_shown])
+        tips = (fixed
+                + [f"{a} · {b}" for a, b in labour_shown]
+                + waiting_shown
+                + [f"{a}, {b}" for a, b in skips_shown])
         t = self.tree
         t.clear()
         t.setColumnCount(len(shown))
         t.setHeaderLabels(shown)
         h = t.headerItem()
         for c, key in enumerate(self._keys):
-            h.setToolTip(c, RISK_TIP if key.startswith(f"{RISK}, ") else key)
+            tip = tips[c]
+            if key.startswith(f"{RISK}, "):
+                tip = translate("ComparisonPage", RISK_TIP)
+            h.setToolTip(c, tip)
             if c >= 3:
                 h.setTextAlignment(c, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         t.header().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
@@ -619,7 +688,7 @@ class ComparisonPage(Page):
         cmp = self._cmp
         if cmp is None or not cmp.uncounted_errors:
             return ""
-        lines = ["Uncounted errors (shown, never counted):"]
+        lines = [self.tr("Uncounted errors (shown, never counted):")]
         lines += [f"  {g}: {text}" for g, texts in cmp.uncounted_errors.items() for text in texts]
         return "\n".join(lines)
 
@@ -653,12 +722,15 @@ class ComparisonPage(Page):
             top.setFlags(Qt.ItemFlag.ItemIsEnabled)
             top.setFirstColumnSpanned(True)
             if g.kind == "task":
-                head = GroupHeader(f"Task: {g.task}", f"{len(g.rows)} variants", None, False, compare=True)
+                count = _variants(len(g.rows))
+                head = GroupHeader(_task_title(g), count, None, False, compare=True)
                 head.compare.clicked.connect(lambda _=False, g=g: self.open_steps(g))
             elif g.kind == "no-pair":
-                head = GroupHeader(NO_PAIR, "", NO_PAIR_NOTE, True)
+                title = translate("ComparisonPage", NO_PAIR)
+                note = translate("ComparisonPage", NO_PAIR_NOTE)
+                head = GroupHeader(title, "", note, True)
             else:
-                head = GroupHeader(OUT, "", None, True)
+                head = GroupHeader(translate("ComparisonPage", OUT), "", None, True)
             least = min(r.total for r in rows) if g.kind == "task" else None
             for r in rows:
                 self._items[r.code] = self._variant_item(top, r, g.kind != "task",
@@ -692,8 +764,11 @@ class ComparisonPage(Page):
 
     def _variant_item(self, parent: QTreeWidgetItem, r: Row, grey: bool, least: bool) -> QTreeWidgetItem:
         cmp = self._cmp
-        title = r.title + (f"\nReason: {r.reason}" if r.reason else "")
-        texts = [r.code, title, SIDE_TEXT.get(r.side, r.side), str(r.steps)] + export.numbers(cmp, r)
+        title = r.title
+        if r.reason:
+            title += "\n" + self.tr("Reason: {reason}").format(reason=i18n.shown(r.reason))
+        texts = [r.code, title, style.side_text(r.side), str(r.steps)]
+        texts += [i18n.shown(x) for x in export.numbers(cmp, r)]
         it = QTreeWidgetItem(parent, texts)
         it.setData(0, KIND, "variant")
         it.setData(0, CODE, r.code)
@@ -862,7 +937,8 @@ class ComparisonPage(Page):
         if self._cmp is None:
             return
         shown = [(g, self._shown_rows(g)) for g in self._groups]
-        lines = export.shown_table(self._cmp, [(g, rows) for g, rows in shown if rows])
+        lines = export.shown_table(self._cmp, [(g, rows) for g, rows in shown if rows],
+                                   i18n.shown)
         text = "\n".join("\t".join(cells) for cells in lines)
         head = "".join(f"<th>{html.escape(c)}</th>" for c in lines[0])
         body = "".join("<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in cells) + "</tr>"
@@ -871,8 +947,8 @@ class ComparisonPage(Page):
         data.setHtml(f"<table border=\"1\"><tr>{head}</tr>{body}</table>")
         data.setText(text)
         QGuiApplication.clipboard().setMimeData(data)
-        self.copied.emit("Copied table")
+        self.copied.emit(self.tr("Copied table"))
 
     def export_path(self, path: Path) -> None:
         """Write the comparison to a .md or .csv file."""
-        export.write(self._project, Path(path))
+        export.write(self._project, Path(path), i18n.shown)

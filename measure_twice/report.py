@@ -11,6 +11,9 @@ scaled to their boxes.
 
 Fonts are sized in pixels and the writer runs at 72 dots per inch, so a pixel is a point both
 when the text is measured and when it is drawn.
+
+The texts are written in the language of the window: each line and cell is translated when
+it is laid out.
 """
 
 from __future__ import annotations
@@ -26,6 +29,8 @@ from PySide6.QtGui import QFont, QFontMetricsF, QPageLayout, QPageSize, QPainter
 
 from measure_twice.calc import Comparison, Point, Row, compare, fmt, groups, series
 from measure_twice.export import _group_name, _header, _row, number
+from measure_twice.i18n import shown
+from measure_twice.message import QT_TRANSLATE_NOOP, fill, joined
 from measure_twice.project import Project
 from measure_twice.ui import line_charts
 from measure_twice.ui.labour_scale import LabourScale
@@ -34,7 +39,11 @@ ANSWER = "answer"
 STEPS = "steps"
 ASSUMPTIONS = "assumptions"
 PAGES = (ANSWER, STEPS, ASSUMPTIONS)
-HEADINGS = {ANSWER: "Answer", STEPS: "Steps", ASSUMPTIONS: "Assumptions"}
+HEADINGS = {
+    ANSWER: QT_TRANSLATE_NOOP("Report", "Answer"),
+    STEPS: QT_TRANSLATE_NOOP("Report", "Steps"),
+    ASSUMPTIONS: QT_TRANSLATE_NOOP("Report", "Assumptions"),
+}
 
 POINTS_PER_MM = 72 / 25.4
 PAGE_WIDTH = 297 * POINTS_PER_MM  # A4 landscape, points
@@ -55,14 +64,15 @@ CHART_WIDTH = 1000  # charts are laid out as on a screen this wide, pixels, then
 SCALE = "scale"  # kind of chart: the labour scale
 
 SEP = " · "
-TASK = "Task: "
-SAME_UNIT = "Risk left is in the same unit as labour."
-REASON = "Reason: "
-EXECUTOR_COEFFICIENTS = "Executor coefficients"
-SCOPE_COEFFICIENTS = "Scope coefficients"
-CHECK_PRICES = "Check prices"
-CHECK_PRICE_NOTE = "Check price is added to Risk left when a way does not do the check."
-WAITING_WEIGHT = "Labour per hour of waiting"
+TASK = QT_TRANSLATE_NOOP("Report", "Task: {task}")
+SAME_UNIT = QT_TRANSLATE_NOOP("Report", "Risk left is in the same unit as labour.")
+REASON = QT_TRANSLATE_NOOP("Report", "Reason: {reason}")
+EXECUTOR_COEFFICIENTS = QT_TRANSLATE_NOOP("Report", "Executor coefficients")
+SCOPE_COEFFICIENTS = QT_TRANSLATE_NOOP("Report", "Scope coefficients")
+CHECK_PRICES = QT_TRANSLATE_NOOP("Report", "Check prices")
+CHECK_PRICE_NOTE = QT_TRANSLATE_NOOP("Report", 
+    "Check price is added to Risk left when a way does not do the check.")
+WAITING_WEIGHT = QT_TRANSLATE_NOOP("Report", "Labour per hour of waiting: {value}")
 
 
 @dataclass
@@ -252,7 +262,8 @@ class _Flow:
         return self.y + height <= BOTTOM
 
     def lines(self, text: str, size: int = BODY, bold: bool = False) -> None:
-        """A wrapped paragraph over the whole width."""
+        """A wrapped paragraph over the whole width, in the language of the window."""
+        text = shown(text)
         f = font(size, bold)
         h = line_height(f)
         for line in wrap(text, f, CONTENT_WIDTH):
@@ -264,7 +275,8 @@ class _Flow:
     def table(self, header: list[str], body: list[list[str] | tuple[str, bool]],
               widths: list[float] | None = None, rules: bool = True,
               grey: list[set[int]] | None = None) -> None:
-        """A table; the header is repeated on every page it takes.
+        """A table in the language of the window; the header is repeated on every page it
+        takes.
 
         :param header: column names, bold.
         :param body: rows: a list of cells, or ``(text, bold)`` for a line over all columns.
@@ -272,6 +284,9 @@ class _Flow:
         :param rules: thin lines under the header and between rows.
         :param grey: for each body row, the columns written in grey.
         """
+        header = [shown(c) for c in header]
+        body = [[shown(c) for c in r] if isinstance(r, list) else (shown(r[0]), r[1])
+                for r in body]
         if widths is None:
             widths = _widths(header, [r for r in body if isinstance(r, list)])
         self._row(header, widths, True, rules)
@@ -321,7 +336,7 @@ def _widths(header: list[str], body: list[list[str]]) -> list[float]:
 
 
 def _heading(project: Project, kind: str) -> str:
-    return f"{project.name}{SEP}{HEADINGS[kind]}"
+    return joined(SEP, [project.name, HEADINGS[kind]])
 
 
 def _chosen_groups(cmp: Comparison, ways: set[str]):
@@ -342,7 +357,7 @@ def _answer(project: Project, cmp: Comparison, ways: set[str]) -> list[Page]:
         for r in rows:
             body.append(_row(cmp, r))
             if g.kind == "out" and r.reason:
-                body.append((REASON + r.reason, False))
+                body.append((REASON.format(reason=r.reason), False))
     flow.table(_header(cmp), body)
     _charts(flow, project, cmp, ways)
     return flow.pages
@@ -366,7 +381,7 @@ def _charts(flow: _Flow, project: Project, cmp: Comparison, ways: set[str]) -> N
             sizes.append((kind, math.ceil(line_charts.fit_height(view, CHART_WIDTH))))
         scale = LabourScale(project, rows)
         sizes.append((SCALE, scale.heightForWidth(CHART_WIDTH)))
-        title = TASK + g.task
+        title = shown(TASK.format(task=g.task))
         title_h = len(wrap(title, head, CONTENT_WIDTH)) * line_height(head)
         flow.gap()
         for i, (kind, h) in enumerate(sizes):
@@ -385,7 +400,9 @@ def _way_lines(project: Project, r: Row) -> list[tuple[str, bool]]:
     above the actions of the step when the way has ``steps``."""
     if r.error is not None:
         return [(r.reason or "", False)]
-    points = [f"{p.number}. {p.kind} ({number(p.labour)})" for p in series(project, r.code)]
+    points = [fill("{number}. {kind} ({labour})", number=p.number, kind=p.kind,
+                   labour=number(p.labour))
+              for p in series(project, r.code)]
     steps = project.steps.get(r.code)
     if steps is None:
         return [(t, False) for t in points]
@@ -429,19 +446,25 @@ def _assumptions(project: Project, rows: list[Row]) -> list[Page]:
     flow.lines(SAME_UNIT)
     flow.gap()
     flow.lines(EXECUTOR_COEFFICIENTS, SECTION, True)
-    flow.table(["Executor", "Coefficient"],
+    coefficient = QT_TRANSLATE_NOOP("Report", "Coefficient")
+    flow.table([QT_TRANSLATE_NOOP("Report", "Executor"), coefficient],
                _numbers((x, k) for x, k in norm.executor_coefficients.items() if x in executors))
     flow.gap()
     flow.lines(SCOPE_COEFFICIENTS, SECTION, True)
-    flow.table(["Scope", "Coefficient"],
+    flow.table([QT_TRANSLATE_NOOP("Report", "Scope"), coefficient],
                _numbers((s, k) for s, k in norm.scope_coefficients.items() if s in scopes))
     flow.gap()
     flow.lines(CHECK_PRICES, SECTION, True)
-    flow.table(["Entity", "Check axis", "Check price"],
+    head = [
+        QT_TRANSLATE_NOOP("Report", "Entity"),
+        QT_TRANSLATE_NOOP("Report", "Check axis"),
+        QT_TRANSLATE_NOOP("Report", "Check price"),
+    ]
+    flow.table(head,
                [[e, a, fmt(p)] for (e, a), p in norm.skip_prices.items()])
     flow.lines(CHECK_PRICE_NOTE)
     flow.gap()
-    flow.lines(f"{WAITING_WEIGHT}: {fmt(norm.labour_per_waiting_hour)}")
+    flow.lines(WAITING_WEIGHT.format(value=fmt(norm.labour_per_waiting_hour)))
     return flow.pages
 
 

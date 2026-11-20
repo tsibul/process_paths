@@ -13,10 +13,12 @@ import html
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, Decimal
 
-from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import (QT_TRANSLATE_NOOP, QCoreApplication, QEvent, QPoint, QPointF, QRectF,
+                            QSize, Qt)
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen, QStaticText
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget
 
+from measure_twice import i18n
 from measure_twice.calc import Point, Row, fmt, money, series, start_point
 from measure_twice.project import Project
 from measure_twice.ui import style
@@ -30,7 +32,7 @@ SEG_TOP, SEG_H = 26, 20
 STRIP_TOP, STRIP_H = 50, 6
 LEGEND_GAP = 16
 LEGEND_LINE = 22
-END_NOTE = "Right of bar: Labour · total · Risk left, end"
+END_NOTE = QT_TRANSLATE_NOOP("LabourScale", "Right of bar: Labour · total · Risk left, end")
 
 
 @dataclass
@@ -85,7 +87,7 @@ class ScaleRow:
 
     def end_text(self) -> tuple[str, str]:
         """Right of the bar: total labour and the risk left at the end."""
-        return money(self.total), money(self.skips_total)
+        return i18n.number(money(self.total)), i18n.number(money(self.skips_total))
 
 
 def _ticks(end: Decimal) -> list[Decimal]:
@@ -102,14 +104,16 @@ def _ticks(end: Decimal) -> list[Decimal]:
 def _row(project: Project, r: Row, colors: dict[str, tuple[str, str]]) -> ScaleRow:
     pts: list[Point] = [start_point(project, r.code)] + series(project, r.code)
     last = pts[-1]
-    out = ScaleRow(r.code, r.title, style.SIDE_TEXT.get(r.side, r.side), r.side == "own", last.labour,
+    out = ScaleRow(r.code, r.title, style.side_text(r.side), r.side == "own", last.labour,
                    last.skips_total, style.OK if last.skips_total == 0 else style.ERR)
     for a, b in zip(pts, pts[1:]):
         step = b.labour - a.labour
-        tip = f"{b.kind}, {b.executor}: {money(step)}"
+        text = i18n.number(money(step))
+        tip = f"{b.kind}, {b.executor}: {text}"
         if step:
             fill, ink = colors[b.executor]
-            out.segments.append(Segment(b.number, a.labour, b.labour, b.executor, fill, ink, money(step), tip))
+            out.segments.append(Segment(b.number, a.labour, b.labour, b.executor, fill, ink,
+                                        text, tip))
         else:
             out.zeros.append(Mark(b.number, b.labour, tip=tip))
         if b.done_total > a.done_total:
@@ -142,11 +146,13 @@ class LabourScale(QWidget):
         used = {s.executor for r in self._rows for s in r.segments}
         slice_names = list(dict.fromkeys(m.name for r in self._rows for m in r.slices))
         self._legend: list[tuple[str, str, str | None]] = (
-            [("swatch", f"{e} step", colors[e][0]) for e in names if e in used]
-            + [("zero", "zero-labour step", None), ("check", "check step", None)]
-            + [("slice", f"slice “{n}”", None) for n in slice_names or ["named"]]
-            + [("swatch", "risk left still open", style.SCALE_OPEN),
-               ("swatch", "all checked", style.SCALE_DONE)])
+            [("swatch", self.tr("{executor} step").format(executor=e), colors[e][0])
+             for e in names if e in used]
+            + [("zero", self.tr("zero-labour step"), None), ("check", self.tr("check step"), None)]
+            + [("slice", self.tr("slice “{name}”").format(name=n), None)
+               for n in slice_names or [self.tr("named")]]
+            + [("swatch", self.tr("risk left still open"), style.SCALE_OPEN),
+               ("swatch", self.tr("all checked"), style.SCALE_DONE)])
         self.setMouseTracking(True)
         sp = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sp.setHeightForWidth(True)
@@ -165,6 +171,10 @@ class LabourScale(QWidget):
     def ticks(self) -> list[Decimal]:
         """Round ticks of the axis, from 0 to the first one at or beyond :meth:`axis_end`."""
         return list(self._ticks)
+
+    def tick_texts(self) -> list[str]:
+        """The labels of the ticks, as drawn."""
+        return [i18n.number(fmt(t)) for t in self._ticks]
 
     def legend(self) -> list[tuple[str, str | None]]:
         """Legend items: text and swatch colour (``None`` for a drawn sign)."""
@@ -265,14 +275,14 @@ class LabourScale(QWidget):
     def _paint_axis(self, p: QPainter) -> None:
         body = self._body_h()
         p.setFont(_font(11))
-        for t in self._ticks:
+        for t, text in zip(self._ticks, self.tick_texts()):
             x = self.x_of(t)
             p.setPen(QPen(QColor(style.BORDER), 1))
             p.drawLine(QPointF(x, 0), QPointF(x, AXIS_H))
             p.setPen(QPen(QColor(style.SCALE_GRID), 1))
             p.drawLine(QPointF(x, AXIS_H), QPointF(x, body))
             p.setPen(QColor(style.TEXT2))
-            p.drawText(QRectF(x + 4, 2, 60, AXIS_H - 2), Qt.AlignmentFlag.AlignLeft, fmt(t))
+            p.drawText(QRectF(x + 4, 2, 60, AXIS_H - 2), Qt.AlignmentFlag.AlignLeft, text)
         p.setPen(QPen(QColor(style.BORDER), 1))
         p.drawLine(QPointF(LABEL_W, AXIS_H), QPointF(self.x_of(self._ticks[-1]), AXIS_H))
         p.drawLine(QPointF(LABEL_W, 0), QPointF(LABEL_W, AXIS_H))
@@ -363,7 +373,8 @@ class LabourScale(QWidget):
             bx, by = x0 + x, y0 + y
             if k < 0:
                 p.setPen(QColor(style.TEXT2))
-                p.drawText(QRectF(bx, by, self.width(), LEGEND_LINE), Qt.AlignmentFlag.AlignVCenter, END_NOTE)
+                p.drawText(QRectF(bx, by, self.width(), LEGEND_LINE), Qt.AlignmentFlag.AlignVCenter,
+                           QCoreApplication.translate("LabourScale", END_NOTE))
                 continue
             kind, text, color = self._legend[k]
             mid = by + LEGEND_LINE / 2

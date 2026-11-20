@@ -8,12 +8,13 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from PySide6.QtCharts import QChart, QChartView, QLegend, QLineSeries, QValueAxis
-from PySide6.QtCore import QMargins, QRectF, QSizeF, Qt, Signal
+from PySide6.QtCore import (QT_TRANSLATE_NOOP, QCoreApplication, QMargins, QRectF, QSizeF, Qt,
+                            Signal)
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
+from measure_twice import i18n
 from measure_twice.calc import Point, Row, series, start_point
-from measure_twice.export import SIDES
 from measure_twice.project import Project
 from measure_twice.ui import style
 
@@ -26,10 +27,29 @@ LABOUR_WAITING = "labour_waiting"
 CHECKS = "checks"
 # kind of chart: title, title of the value axis, value of a point
 CHARTS: dict[str, tuple[str, str, Callable[[Point], object]]] = {
-    LABOUR: ("Labour by step", "Labour", lambda p: p.labour),
-    LABOUR_WAITING: ("Labour + waiting by step", "Labour + waiting", lambda p: p.labour_waiting),
-    CHECKS: ("Checks done by step", "Price of checks done", lambda p: p.done_total),
+    LABOUR: (
+        QT_TRANSLATE_NOOP("LineCharts", "Labour by step"),
+        QT_TRANSLATE_NOOP("LineCharts", "Labour"),
+        lambda p: p.labour,
+    ),
+    LABOUR_WAITING: (
+        QT_TRANSLATE_NOOP("LineCharts", "Labour + waiting by step"),
+        QT_TRANSLATE_NOOP("LineCharts", "Labour + waiting"),
+        lambda p: p.labour_waiting,
+    ),
+    CHECKS: (
+        QT_TRANSLATE_NOOP("LineCharts", "Checks done by step"),
+        QT_TRANSLATE_NOOP("LineCharts", "Price of checks done"),
+        lambda p: p.done_total,
+    ),
 }
+
+
+def titles(kind: str) -> tuple[str, str]:
+    """The title of a chart and the title of its value axis, in the language of the window."""
+    title, y_title, _ = CHARTS[kind]
+    translate = QCoreApplication.translate
+    return translate("LineCharts", title), translate("LineCharts", y_title)
 
 
 def drawn(rows: Sequence[Row]) -> list[Row]:
@@ -60,8 +80,8 @@ def chart(kind: str, project: Project, rows: Sequence[Row],
     :return: the chart in its view.
     :rtype: QChartView
     """
-    title, y_title, value = CHARTS[kind]
-    view = _view(title, y_title)
+    value = CHARTS[kind][2]
+    view = _view(*titles(kind))
     order = [v.code for v in project.model.variants]
     LineCharts._fill(view, rows, pts, order, value)
     return view
@@ -107,7 +127,7 @@ class ChartView(QChartView):
 
     def __init__(self, chart: QChart) -> None:
         super().__init__(chart)
-        self.copy_button = QPushButton("Copy chart", self)
+        self.copy_button = QPushButton(self.tr("Copy chart"), self)
         self.copy_button.setObjectName("copyChart")
         self.copy_button.setStyleSheet("padding: 1px 6px; font-size: 11px;")
         self.copy_button.adjustSize()
@@ -121,7 +141,7 @@ class ChartView(QChartView):
         image = self.grab().toImage()
         self.copy_button.show()
         QGuiApplication.clipboard().setImage(image)
-        self.copied.emit("Copied chart")
+        self.copied.emit(self.tr("Copied chart"))
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
         super().resizeEvent(event)
@@ -147,7 +167,12 @@ def _view(title: str, y_title: str) -> ChartView:
     chart.legend().setAlignment(Qt.AlignRight)
     chart.legend().setLabelColor(QColor(style.TEXT))
     chart.legend().setMarkerShape(QLegend.MarkerShapeFromSeries)
-    for title_, align, fmt in (("Step", Qt.AlignBottom, "%d"), (y_title, Qt.AlignLeft, "%g")):
+    # The labels take the decimal separator of the window language; a localized label takes
+    # neither "%d" nor "%g" without a precision.
+    chart.setLocale(i18n.locale())
+    chart.setLocalizeNumbers(True)
+    step = QCoreApplication.translate("LineCharts", "Step")
+    for title_, align, fmt in ((step, Qt.AlignBottom, "%.0f"), (y_title, Qt.AlignLeft, "%.6g")):
         axis = QValueAxis()
         axis.setTitleText(title_)
         axis.setLabelFormat(fmt)
@@ -177,10 +202,10 @@ class LineCharts(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.labour = _view(*CHARTS[LABOUR][:2])
-        self.labour_waiting = _view(*CHARTS[LABOUR_WAITING][:2])
+        self.labour = _view(*titles(LABOUR))
+        self.labour_waiting = _view(*titles(LABOUR_WAITING))
         self.labour_waiting.hide()
-        self.checks = _view(*CHARTS[CHECKS][:2])
+        self.checks = _view(*titles(CHECKS))
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.labour)
@@ -216,7 +241,7 @@ class LineCharts(QWidget):
         x_max, y_max = 1, 0.0
         for r in rows:
             s = QLineSeries()
-            s.setName(f"{r.code} · {SIDES.get(r.side, r.side)}")
+            s.setName(f"{r.code} · {style.side_name(r.side)}")
             pen = QPen(QColor(style.SERIES[order.index(r.code) % len(style.SERIES)]))
             pen.setWidth(2)
             pen.setStyle(Qt.SolidLine if r.side == "own" else Qt.DashLine)

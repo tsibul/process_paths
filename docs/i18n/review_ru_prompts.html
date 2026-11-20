@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measure Twice — русский перевод: просьбы</title>
+<style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      font: 16px/1.4 system-ui, sans-serif;
+      overflow-wrap: anywhere;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 12px;
+    }
+
+    .box {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #8884;
+      padding: 6px 8px;
+      text-align: start;
+      vertical-align: top;
+      white-space: pre-wrap;
+    }
+
+    th {
+      background: #8882;
+    }
+
+    td.num {
+      color: #888;
+      white-space: nowrap;
+    }
+
+    td.empty {
+      background: #fc03;
+    }
+
+    @media (max-width: 600px) {
+      thead {
+        display: none;
+      }
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      tr {
+        border: 1px solid #8886;
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+
+      td {
+        border: 0;
+        border-bottom: 1px solid #8884;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        color: #888;
+      }
+
+      td.note:empty {
+        display: none;
+      }
+    }
+</style>
+</head>
+<body>
+<h1>Measure Twice — русский перевод: просьбы</h1>
+<div class="box">
+<table>
+<thead><tr><th>№</th><th>English</th><th>Translation</th><th>Comment</th></tr></thead>
+<tbody>
+<tr><td class="num" data-label="№">1</td><td data-label="English"># Measure Twice: six prompts for an AI chat</td><td dir="auto" data-label="Translation"># Measure Twice: шесть просьб для чата с AI</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">2</td><td data-label="English">The person talks to an AI chat (ChatGPT, Gemini) in six steps and only copies the prompts below.
+Each step is one prompt; the person adds at most a sentence or two, then answers the AI's
+"Points to check" with "yes" or a correction in words. The format is needed only at step 5.
+Step 6 is built by the program when it refuses the file; it is used again until the file loads.</td><td dir="auto" data-label="Translation">Человек говорит с чатом AI (ChatGPT, Gemini) в шесть шагов и только копирует просьбы ниже.
+Каждый шаг — одна просьба; человек добавляет не больше одной-двух фраз, а на «Что проверить»
+отвечает «да» или поправкой своими словами. Формат нужен только на шаге 5.
+Шаг 6 строит программа, когда не принимает файл; он повторяется, пока файл не загрузится.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">3</td><td data-label="English">## Prompt 1. Task</td><td dir="auto" data-label="Translation">## Просьба 1. Задача</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">4</td><td data-label="English">Use it first, in a new chat. Replace {task} with one or two sentences about the task.</td><td dir="auto" data-label="Translation">Первой, в новом чате. Вместо {task} — одна-две фразы о задаче.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">5</td><td data-label="English">```text
+We will prepare a file for Measure Twice, a program that compares ways of doing one task by labour.
+We go in six steps; I will give you a prompt for each. Rules for the whole conversation:
+- Do each step yourself. Do not stop to ask me questions. Where unsure, take the likely answer.
+- End every answer with "Points to check": 2-4 numbered doubtful places. I answer "yes" or
+  correct them in words.
+- Propose numbers yourself and mark the doubtful ones.
+- Use the language of my task for all text and names.
+- Write no file until step 5.</td><td dir="auto" data-label="Translation">```text
+Мы подготовим файл для Measure Twice — программы, которая сравнивает пути выполнения одной задачи
+по труду. Идём в шесть шагов; на каждый я дам просьбу. Правила на весь разговор:
+- Каждый шаг делай сам. Не останавливайся, чтобы задать мне вопросы. Если не уверен, бери
+  вероятный ответ.
+- Каждый ответ заканчивай разделом «Что проверить»: 2-4 пронумерованных сомнительных места.
+  Я отвечаю «да» или поправляю словами.
+- Числа предлагай сам и помечай сомнительные.
+- Все тексты и названия пиши на языке моей задачи.
+- До шага 5 файл не пиши.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">6</td><td data-label="English">Step 1. Task.
+My task: {task}</td><td dir="auto" data-label="Translation">Шаг 1. Задача.
+Моя задача: {task}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">7</td><td data-label="English">Give the task one short name; all ways share it. List the ways to do it that you understood from my
+words: a short title, one line on what is done, and "own" (mine) or "other" (someone else's). If my
+words give codes for the ways (T1, T2, T3, T4), keep exactly those; a way you add gets the next code
+of the series (T5). No codes given: A, B, C, ... Then add the usual ways I did not mention: only
+ways that really solve the task, always "other". End the title of each added way with "(added)" and
+keep it through our conversation and in the file; action names get no mark. An added way must differ
+from the others in its actions. In "Points to check" name each added way and ask which ways are
+missing or extra.
+```</td><td dir="auto" data-label="Translation">Дай задаче одно короткое название; оно общее для всех путей. Перечисли пути её выполнения, которые
+ты понял из моих слов: короткое название, одна строка о том, что делается, и «свой» (мой) или
+«чужой» (чей-то ещё). Если в моих словах есть коды путей (T1, T2, T3, T4), оставь именно их;
+добавленный путь получает следующий код ряда (T5). Кодов нет: A, B, C, ... Затем добавь обычные
+пути, о которых я не сказал: только те, что правда решают задачу, всегда «чужой». Название каждого
+добавленного пути заканчивай пометкой «(добавлен)» и сохраняй её весь разговор и в файле; у названий
+действий пометки нет. Добавленный путь должен отличаться от других действиями. В «Что проверить»
+назови каждый добавленный путь и спроси, каких путей не хватает и какие лишние.
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">8</td><td data-label="English">## Prompt 2. Steps</td><td dir="auto" data-label="Translation">## Просьба 2. Шаги</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">9</td><td data-label="English">Use it when the list of ways is agreed.</td><td dir="auto" data-label="Translation">Когда список путей согласован.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">10</td><td data-label="English">```text
+Step 2. Steps.
+Write every agreed way out step by step. I give you no steps: write them yourself, as the work
+is really done.
+- Include the routine steps: prepare (shut off the water or power), check the result,
+  clean up.
+- One step is one action, in plain words. Say who does it.
+- A way that hands the work to someone (a hired worker, a service) lists that worker's steps.
+- If two ways reach the same result differently, say which part each step works on
+  (replace the washer, tighten the nut, tape the thread), not just "fix it".
+- A way without a check gets no step for it, not even "no check is made".
+- Mark each step where the person only waits (for a plumber, for a delivery) and give a rough
+  duration.
+- In "Points to check" name, in one point, the steps you added that are not in my words.
+Show a numbered list per way. No file format yet.
+End with "Points to check": the 2-4 steps you are least sure of.
+```</td><td dir="auto" data-label="Translation">```text
+Шаг 2. Шаги.
+Распиши каждый согласованный путь по шагам. Шагов я не даю: напиши их сам, как работа делается
+на самом деле.
+- Включи обычные шаги: подготовку (перекрыть воду, отключить ток), проверку результата,
+  уборку.
+- Один шаг — одно действие, простыми словами. Скажи, кто его делает.
+- Путь, где работу отдают кому-то (наёмному работнику, службе), перечисляет шаги этого работника.
+- Если два пути приходят к одному результату по-разному, скажи, над какой частью работает каждый
+  шаг (заменить прокладку, подтянуть гайку, обмотать резьбу), а не просто «починить».
+- У пути без проверки нет шага для неё, даже «проверка не делается».
+- Отметь каждый шаг, где человек только ждёт (сантехника, доставку), и дай примерную
+  длительность.
+- В «Что проверить» одним пунктом назови шаги, которые ты добавил и которых нет в моих словах.
+Покажи пронумерованный список для каждого пути. Формата файла пока нет.
+В конце — «Что проверить»: 2-4 шага, в которых ты меньше всего уверен.
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">11</td><td data-label="English">## Prompt 3. Same actions and checks</td><td dir="auto" data-label="Translation">## Просьба 3. Одинаковые действия и проверки</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">12</td><td data-label="English">Use it when the steps are agreed.</td><td dir="auto" data-label="Translation">Когда шаги согласованы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">13</td><td data-label="English">```text
+Step 3. Same actions and checks.
+Go over the steps of all ways together.
+1. The same action gets the same name in every way, word for word.
+2. For each action say what it changes: one attribute of one thing, from one state to
+   another. Example: "Replace the washer: Washer, worn -&gt; new".
+3. Two actions must never make the same change. Different ways to one result act on different
+   parts: Washer, worn -&gt; new; Nut, loose -&gt; tight.
+4. An action with no change of its own gets a new attribute (Floor: wet -&gt; dry). Never hang it
+   on another thing's change. Only work without labour is "no labour".
+5. Mark the checks: a check confirms the result after an action, and skipping it has a price.
+   If my words call an action a check, it is a check. Otherwise finding the cause of a fault
+   is an ordinary action. A check changes an attribute of its own, not the state it looks at:
+   "Test for leaks: Tap, leak not tested -&gt; tested", "Inspect the seal: Washer, not inspected
+   -&gt; inspected". A way without a check gets no step for it; the thing still has the check
+   attribute, so the skip shows.
+6. Say what appears or disappears along the way (a bucket put under, a visit booked).
+   A part that leaves with another thing gets its own no-labour action:
+   make the same thing absent with its exists attribute (Washer: exists yes -&gt; no, thrown away with
+   the old tap); never add a new thing for the old part. Its checks are then not skipped.
+7. Waiting for someone is its own kind of action: not a check, not labour. It still changes an
+   attribute of its own (Plumber visit: booked -&gt; done).
+Then run each way: every action starts from the state the previous one left. Fix any that
+does not.
+Show a table: action | thing | attribute | from -&gt; to | check. Then each way as action names.
+End with "Points to check".
+```</td><td dir="auto" data-label="Translation">```text
+Шаг 3. Одинаковые действия и проверки.
+Пройди по шагам всех путей вместе.
+1. Одно и то же действие называется одинаково во всех путях, слово в слово.
+2. Для каждого действия скажи, что оно меняет: один признак одной вещи, из одного состояния
+   в другое. Пример: «Заменить прокладку: Прокладка, изношена -&gt; новая».
+3. Два действия никогда не делают одну и ту же смену. Разные способы прийти к одному результату
+   действуют на разные части: Прокладка, изношена -&gt; новая; Гайка, ослаблена -&gt; затянута.
+4. Действию без своей смены дай новый признак (Пол: мокрый -&gt; сухой). Никогда не вешай его
+   на смену другой вещи. «Без труда» — только работа, где труда нет.
+5. Отметь проверки: проверка подтверждает результат после действия, и у её пропуска есть цена.
+   Если в моих словах действие названо проверкой, это проверка. Иначе поиск причины поломки —
+   обычное действие. Проверка меняет свой признак, а не то состояние, на которое смотрит:
+   «Проверить на течь: Кран, течь не проверена -&gt; проверена», «Осмотреть уплотнение: Прокладка,
+   не осмотрена -&gt; осмотрена». У пути без проверки нет шага для неё; признак проверки у вещи
+   всё равно есть, поэтому пропуск виден.
+6. Скажи, что появляется или исчезает по ходу (подставленное ведро, записанный визит).
+   Часть, которая уходит вместе с другой вещью, получает своё действие без труда:
+   сделай ту же вещь отсутствующей признаком наличия (Прокладка: наличие да -&gt; нет, выброшена со
+   старым краном); никогда не заводи новую вещь для старой части. Тогда её проверки не пропущены.
+7. Ожидание кого-то — отдельный вид действия: не проверка и не труд. Оно тоже меняет свой
+   признак (Визит сантехника: записан -&gt; состоялся).
+Затем прогони каждый путь: каждое действие начинается из состояния, которое оставило предыдущее.
+Исправь те, что не сходятся.
+Покажи таблицу: действие | вещь | признак | из -&gt; в | проверка. Затем каждый путь как названия
+действий.
+В конце — «Что проверить».
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">14</td><td data-label="English">## Prompt 4. Who and how much</td><td dir="auto" data-label="Translation">## Просьба 4. Кто и сколько</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">15</td><td data-label="English">Use it when the actions and checks are agreed.</td><td dir="auto" data-label="Translation">Когда действия и проверки согласованы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">16</td><td data-label="English">```text
+Step 4. Who and how much.
+1. List the executors: who or what does the actions.
+2. Give each a coefficient: how much of their labour counts, 1 for the main person.
+   Coefficient 0 only for a machine or program that works by itself. Never 0 for a person,
+   a hired one included. Put every coefficient 0 into "Points to check".
+3. Give each action a labour cost in one unit for the whole project (minutes or points).
+   Paying is not labour: no action for it. Waiting for someone is an action with a duration
+   in hours or days, not a cost or weight: mark each with "?". A short wait with no duration
+   needed (water draining) costs 0.
+4. Say whether each action is done once for the whole job or for each unit; if per unit, how
+   many units a batch has.
+5. For each check give the price of skipping it, more than 0, in the labour unit,
+   comparable to the work of fixing what the skip lets through. Never add it to labour.
+6. Show the total of each way: sum of cost x executor coefficient x scope coefficient.
+   If steps not in my words change a way's total noticeably, say so in "Points to check".
+Mark doubtful numbers with "?".
+End with "Points to check".
+```</td><td dir="auto" data-label="Translation">```text
+Шаг 4. Кто и сколько.
+1. Перечисли исполнителей: кто или что делает действия.
+2. Дай каждому коэффициент: какая доля его труда засчитывается, 1 — для главного человека.
+   Коэффициент 0 — только для машины или программы, которая работает сама. Никогда не 0 для
+   человека, наёмного тоже. Каждый коэффициент 0 вынеси в «Что проверить».
+3. Дай каждому действию стоимость труда в одной единице на весь проект (минуты или баллы).
+   Оплата — не труд: действия для неё нет. Ожидание кого-то — действие с длительностью
+   в часах или днях, а не со стоимостью или весом: пометь каждое знаком «?». Короткое ожидание,
+   длительность которого не нужна (стекает вода), стоит 0.
+4. Скажи, делается ли каждое действие один раз на всю работу или на каждую единицу; если на
+   единицу — сколько единиц в пачке.
+5. Для каждой проверки дай цену её пропуска, больше 0, в единице труда, сравнимую с работой
+   по исправлению того, что пропуск пропустит. Никогда не прибавляй её к труду.
+6. Покажи итог каждого пути: сумма стоимость x коэффициент исполнителя x коэффициент охвата.
+   Если шаги не из моих слов заметно меняют итог пути, скажи об этом в «Что проверить».
+Сомнительные числа пометь знаком «?».
+В конце — «Что проверить».
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">17</td><td data-label="English">## Prompt 5. File</td><td dir="auto" data-label="Translation">## Просьба 5. Файл</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">18</td><td data-label="English">Use it when the executors and numbers are agreed.</td><td dir="auto" data-label="Translation">Когда исполнители и числа согласованы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">19</td><td data-label="English">```text
+Step 5. File.
+Write what we agreed as one Measure Twice file: JSON, whole, in one code block, in my language.
+Use only the actions agreed at steps 2-4; add no preparation (get or put away tools) I did not
+name. First run each variant through the axes yourself. Then "Points to check":
+choices you made.</td><td dir="auto" data-label="Translation">```text
+Шаг 5. Файл.
+Запиши согласованное одним файлом Measure Twice: JSON, целиком, в одном блоке кода, на моём языке.
+Только действия, согласованные на шагах 2-4; без подготовки,
+которой я не называл. Сначала сам прогони каждый путь по осям. Затем «Что проверить»: твои выборы.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">20</td><td data-label="English">FORMAT
+A reference is the declared name letter for letter. Numbers are JSON numbers. Order matters.
+No name repeats in one list. Omit unneeded optional fields.</td><td dir="auto" data-label="Translation">ФОРМАТ
+Ссылка — объявленное название буква в букву. Числа — числами JSON. Порядок важен.
+В списке названия не повторяются. Лишних необязательных полей не пиши.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">21</td><td data-label="English">Top level (* required): format* = 1; name*; existence_axis* {"name","absent"};
+entities*; kinds*; executors*, instruments*, scopes* - lists of names; batch_scope* - the
+scope "once per batch"; named_slices; variants*; normalization*.</td><td dir="auto" data-label="Translation">Верхний уровень (* обязательно): format* = 1; name*; existence_axis* {"name","absent"};
+entities*; kinds*; executors*, instruments*, scopes* - списки названий; batch_scope* - охват
+«один раз на пачку»; named_slices; variants*; normalization*.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">22</td><td data-label="English">entities: {"name", "axes": [{"name", "values": [...]}]}. The FIRST value is the initial one.
+An axis is one independent attribute. A thing that appears or disappears gets an axis named
+existence_axis.name, first value existence_axis.absent; while absent, its other axes have no
+value. No ordinary axis has this name.</td><td dir="auto" data-label="Translation">entities: {"name", "axes": [{"name", "values": [...]}]}. ПЕРВОЕ значение - начальное.
+Ось - один независимый признак. Появляющаяся или исчезающая вещь получает ось
+existence_axis.name с первым значением existence_axis.absent; пока вещи нет, другие её оси
+без значения. Обычная ось так не называется.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">23</td><td data-label="English">kinds: {"name", "entity", "axis", "from", "to"} plus optional:
+requires [[entity, axis, value], ...] - must hold before; never the kind's own entity and
+axis: "from" already says it;
+check: true - confirms the result of an action; on the checked thing's axis;
+zero_weight: true with zero_weight_note - a step with no labour (draining).
+waiting: number &gt; 0 with waiting_unit "hours"|"days" - waiting for someone: no cost, no check.
+from != to. No two kinds with the same entity, axis, from and to. No kind duplicating a chain
+(a-&gt;b, b-&gt;c, so no a-&gt;c). An action with no axis of its own gets a new axis.</td><td dir="auto" data-label="Translation">kinds: {"name", "entity", "axis", "from", "to"} и необязательные:
+requires [[сущность, ось, значение], ...] - что верно до; не своя сущность и ось
+вида: это уже в "from";
+check: true - подтверждает результат действия; на оси проверяемой вещи;
+zero_weight: true с zero_weight_note - шаг без труда (стекание).
+waiting: число &gt; 0 с waiting_unit "hours"|"days" - ожидание кого-то: без стоимости, не проверка.
+from != to. Нет двух видов с одинаковыми entity, axis, from и to. Нет вида в обход цепочки
+(a-&gt;b, b-&gt;c - нет a-&gt;c). Действию без своей оси - новая ось.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">24</td><td data-label="English">named_slices (optional): {"name": {"any": [{"states": [[entity, axis, value], ...]}]}} -
+skips are counted when one group first holds. "final" is taken.</td><td dir="auto" data-label="Translation">named_slices (необязательно): {"имя": {"any": [{"states": [[сущность, ось, значение], ...]}]}} -
+пропуски считаются, когда впервые выполнится одна группа. "final" занято.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">25</td><td data-label="English">variants: {"code"* (keep given; new: T5 after T4; none: A, B, C, ...), "title",
+"side": "own"|"other", "task", "calls", "steps"}. Ways with the same task are compared.
+calls - [kind, executor, instrument, scope]; each starts from the value the previous one left;
+all requires hold. A way without a check has no call for it.
+steps - [{"text": step in my words, "calls": how many calls in a row}]; calls may be 0; the sum
+equals the number of calls.</td><td dir="auto" data-label="Translation">variants: {"code"* (данные оставь; новые: T5 после T4; нет: A, B, C, ...), "title",
+"side": "own"|"other", "task", "calls", "steps"}. Сравниваются пути с одинаковым task.
+calls - [вид, исполнитель, инструмент, охват]; каждый начинает со значения, оставленного
+предыдущим; все requires выполнены. У пути без проверки нет вызова для неё.
+steps - [{"text": шаг моими словами, "calls": сколько вызовов подряд}]; calls может быть 0;
+сумма равна числу вызовов.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">26</td><td data-label="English">normalization: kind_costs {kind: cost} for every kind (zero_weight, waiting: 0 or left out);
+executor_coefficients {executor: k} for every executor, 0 only for a machine or program;
+scope_coefficients {scope: k} for every scope (per unit 1, per batch 1/batch size);
+axis_skip_prices {entity: {check axis: price &gt; 0}} for every check axis and only those, never
+added to labour; batch_size optional; leave out labour_per_waiting_hour: I set it. No negative numbers. No extra names.</td><td dir="auto" data-label="Translation">normalization: kind_costs {вид: стоимость} для каждого вида (zero_weight, waiting: 0 или нет);
+executor_coefficients {исполнитель: k} для каждого, 0 только для машины или программы;
+scope_coefficients {охват: k} для каждого (на единицу 1, на пачку 1/размер пачки);
+axis_skip_prices {сущность: {ось проверки: цена &gt; 0}} для каждой оси проверки и только для них,
+к труду не прибавляется; batch_size необязательно; labour_per_waiting_hour не пиши: его задаю я.
+Без отрицательных чисел и лишних названий.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">27</td><td data-label="English">EXAMPLE
+{"format": 1, "name": "Unblock a sink",
+ "existence_axis": {"name": "exists", "absent": "no"},
+ "entities": [
+  {"name": "Pipe", "axes": [{"name": "clog", "values": ["blocked", "cleared"]}]},
+  {"name": "Trap", "axes": [{"name": "inside", "values": ["dirty", "clean"]}]},
+  {"name": "Bucket", "axes": [{"name": "exists", "values": ["no", "yes"]}]},
+  {"name": "Visit", "axes": [{"name": "arrival", "values": ["not here", "here"]}]},
+  {"name": "Sink", "axes": [{"name": "drain test", "values": ["not tested", "tested"]}]}],
+ "kinds": [
+  {"name": "Plunge", "entity": "Pipe", "axis": "clog", "from": "blocked", "to": "cleared"},
+  {"name": "Put a bucket under", "entity": "Bucket", "axis": "exists", "from": "no", "to": "yes"},
+  {"name": "Wait for the plumber", "entity": "Visit", "axis": "arrival",
+   "from": "not here", "to": "here", "waiting": 2, "waiting_unit": "days"},
+  {"name": "Clean the trap", "entity": "Trap", "axis": "inside", "from": "dirty",
+   "to": "clean", "requires": [["Bucket", "exists", "yes"]]},
+  {"name": "Test the drain", "entity": "Sink", "axis": "drain test", "from": "not tested",
+   "to": "tested", "check": true}],
+ "executors": ["Owner", "Plumber"],
+ "instruments": ["hands", "plunger", "bucket", "wrench"],
+ "scopes": ["job"], "batch_scope": "job",
+ "variants": [
+  {"code": "A", "title": "Plunger", "side": "own", "task": "Unblock the sink", "calls": [
+    ["Plunge", "Owner", "plunger", "job"],
+    ["Test the drain", "Owner", "hands", "job"]],
+   "steps": [{"text": "Plunge the sink", "calls": 1},
+    {"text": "Run the tap, watch the drain", "calls": 1}]},
+  {"code": "B", "title": "Plumber", "side": "other",
+   "task": "Unblock the sink", "calls": [
+    ["Wait for the plumber", "Owner", "hands", "job"],
+    ["Put a bucket under", "Owner", "bucket", "job"],
+    ["Clean the trap", "Plumber", "wrench", "job"]],
+   "steps": [{"text": "Wait for the plumber", "calls": 1},
+    {"text": "Put a bucket under", "calls": 1},
+    {"text": "The plumber cleans the trap", "calls": 1}]}],
+ "normalization": {
+  "kind_costs": {"Plunge": 3, "Put a bucket under": 1, "Clean the trap": 8, "Test the drain": 1},
+  "executor_coefficients": {"Owner": 1, "Plumber": 0.8},
+  "scope_coefficients": {"job": 1},
+  "axis_skip_prices": {"Sink": {"drain test": 5}}}}
+```</td><td dir="auto" data-label="Translation">ПРИМЕР
+{"format": 1, "name": "Чистка раковины",
+ "existence_axis": {"name": "наличие", "absent": "нет"},
+ "entities": [
+  {"name": "Труба", "axes": [{"name": "засор", "values": ["забита", "чистая"]}]},
+  {"name": "Сифон", "axes": [{"name": "внутри", "values": ["грязно", "чисто"]}]},
+  {"name": "Ведро", "axes": [{"name": "наличие", "values": ["нет", "есть"]}]},
+  {"name": "Визит", "axes": [{"name": "приход", "values": ["не пришёл", "пришёл"]}]},
+  {"name": "Раковина", "axes": [{"name": "слив", "values": ["не проверен", "проверен"]}]}],
+ "kinds": [
+  {"name": "Пробить вантузом", "entity": "Труба", "axis": "засор", "from": "забита",
+   "to": "чистая"},
+  {"name": "Подставить ведро", "entity": "Ведро", "axis": "наличие", "from": "нет", "to": "есть"},
+  {"name": "Ждать мастера", "entity": "Визит", "axis": "приход",
+   "from": "не пришёл", "to": "пришёл", "waiting": 2, "waiting_unit": "days"},
+  {"name": "Чистить сифон", "entity": "Сифон", "axis": "внутри", "from": "грязно",
+   "to": "чисто", "requires": [["Ведро", "наличие", "есть"]]},
+  {"name": "Проверить слив", "entity": "Раковина", "axis": "слив", "from": "не проверен",
+   "to": "проверен", "check": true}],
+ "executors": ["Хозяин", "Мастер"],
+ "instruments": ["руки", "вантуз", "ведро", "ключ"],
+ "scopes": ["работа"], "batch_scope": "работа",
+ "variants": [
+  {"code": "A", "title": "Вантуз", "side": "own", "task": "Чистка раковины", "calls": [
+    ["Пробить вантузом", "Хозяин", "вантуз", "работа"],
+    ["Проверить слив", "Хозяин", "руки", "работа"]],
+   "steps": [{"text": "Пробить вантузом", "calls": 1},
+    {"text": "Пустить воду, посмотреть слив", "calls": 1}]},
+  {"code": "B", "title": "Мастер", "side": "other",
+   "task": "Чистка раковины", "calls": [
+    ["Ждать мастера", "Хозяин", "руки", "работа"],
+    ["Подставить ведро", "Хозяин", "ведро", "работа"],
+    ["Чистить сифон", "Мастер", "ключ", "работа"]],
+   "steps": [{"text": "Ждать мастера", "calls": 1},
+    {"text": "Подставить ведро", "calls": 1},
+    {"text": "Мастер чистит сифон", "calls": 1}]}],
+ "normalization": {
+  "kind_costs": {"Пробить вантузом": 3, "Подставить ведро": 1, "Чистить сифон": 8,
+   "Проверить слив": 1},
+  "executor_coefficients": {"Хозяин": 1, "Мастер": 0.8},
+  "scope_coefficients": {"работа": 1},
+  "axis_skip_prices": {"Раковина": {"слив": 5}}}}
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">28</td><td data-label="English">## Prompt 6. Remarks</td><td dir="auto" data-label="Translation">## Просьба 6. Замечания</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">29</td><td data-label="English">The program builds this prompt when it refuses the file; the person only pastes it.</td><td dir="auto" data-label="Translation">Эту просьбу строит программа, когда не принимает файл; человек её только вставляет.</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">30</td><td data-label="English">```text
+Step 6. Remarks.
+The program refused the file. Its remarks:
+{remarks}</td><td dir="auto" data-label="Translation">```text
+Шаг 6. Замечания.
+Программа не приняла файл. Её замечания:
+{remarks}</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+<tr><td class="num" data-label="№">31</td><td data-label="English">Fix every remark. Then check the whole file again against the step 5 format, not only the
+places named: remarks may come in portions. Run each variant through the axes again: every
+call starts from the value the previous one left. Keep everything we agreed; change only what
+the fix needs, and say in one line per remark what you changed.
+Give the whole file again in one code block, not a part of it.
+End with "Points to check" only if a fix changed something we agreed.
+```</td><td dir="auto" data-label="Translation">Исправь каждое замечание. Затем снова проверь весь файл по формату шага 5, а не только названные
+места: замечания могут приходить частями. Снова прогони каждый путь по осям: каждый вызов
+начинается со значения, которое оставил предыдущий. Сохрани всё, о чём мы договорились; меняй
+только то, что нужно для исправления, и одной строкой на замечание скажи, что изменил.
+Дай весь файл снова в одном блоке кода, а не его часть.
+В конце — «Что проверить», только если исправление изменило что-то согласованное.
+```</td><td class="note" dir="auto" data-label="Comment"></td></tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>

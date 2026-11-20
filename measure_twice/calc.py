@@ -12,6 +12,7 @@ from process_paths.engine import Slice, TransitionError, apply, initial_slice, r
 from process_paths.model import Call, Variant
 from process_paths.norm import find_slice, skipped_axes, task_axes
 
+from measure_twice.message import QT_TRANSLATE_NOOP, Number, joined
 from measure_twice.project import FINAL, WAITING_UNITS, Project, check_axes
 
 ZERO = Decimal(0)
@@ -290,12 +291,17 @@ def _missing(project: Project, v: Variant) -> list[str]:
     executors = {c.executor for c in labour_calls}
     scopes = {c.scope for c in labour_calls}
     entities = set(variant_entities(m, v))
-    out = [f"cost of {k.name}" for k in m.kinds if k.name in kinds and _cost(project, k.name) is None]
-    out += [f"coefficient of executor {x.name}" for x in m.executors
+    cost = QT_TRANSLATE_NOOP("Calc", "cost of {kind}")
+    executor = QT_TRANSLATE_NOOP("Calc", "coefficient of executor {name}")
+    scope = QT_TRANSLATE_NOOP("Calc", "coefficient of scope {name}")
+    price = QT_TRANSLATE_NOOP("Calc", "check price of {entity}/{axis}")
+    out = [cost.format(kind=k.name) for k in m.kinds
+           if k.name in kinds and _cost(project, k.name) is None]
+    out += [executor.format(name=x.name) for x in m.executors
             if x.name in executors and x.name not in n.executor_coefficients]
-    out += [f"coefficient of scope {x}" for x in m.scopes
+    out += [scope.format(name=x) for x in m.scopes
             if x in scopes and x not in n.scope_coefficients]
-    out += [f"check price of {e}/{a}" for e, a in check_axes(m)
+    out += [price.format(entity=e, axis=a) for e, a in check_axes(m)
             if e in entities and (e, a) not in n.skip_prices]
     return out
 
@@ -303,9 +309,10 @@ def _missing(project: Project, v: Variant) -> list[str]:
 def _reason(project: Project, v: Variant, missing: list[str]) -> str | None:
     error = project.errors.get(v.code)
     if error is not None:
-        return f"Error at transition {error[0]}: {error[1]}"
+        reason = QT_TRANSLATE_NOOP("Calc", "Error at transition {number}: {reason}")
+        return reason.format(number=error[0], reason=error[1])
     if missing:
-        return "Not set: " + ", ".join(missing)
+        return QT_TRANSLATE_NOOP("Calc", "Not set: {items}").format(items=joined(", ", missing))
     return v.out_of_comparison or None
 
 
@@ -594,14 +601,14 @@ def project_empty_steps(project: Project) -> int:
     return sum(empty_steps(project, v.code) for v in project.model.variants)
 
 
-def money(d: Decimal) -> str:
+def money(d: Decimal) -> Number:
     """Comparison table number: two digits after the point, half up.
 
     :param d: the number.
     :return: text.
-    :rtype: str
+    :rtype: Number
     """
-    return format(d.quantize(Decimal("0.01"), ROUND_HALF_UP), "f")
+    return Number(format(d.quantize(Decimal("0.01"), ROUND_HALF_UP), "f"))
 
 
 def waiting_text(hours: Decimal) -> str:
@@ -615,16 +622,16 @@ def waiting_text(hours: Decimal) -> str:
     if hours == 0:
         return DASH
     if hours >= HOURS_IN_DAY and hours % HOURS_IN_DAY == 0:
-        return f"{fmt(hours / HOURS_IN_DAY)} d"
-    return f"{fmt(hours)} h"
+        return QT_TRANSLATE_NOOP("Calc", "{number} d").format(number=fmt(hours / HOURS_IN_DAY))
+    return QT_TRANSLATE_NOOP("Calc", "{number} h").format(number=fmt(hours))
 
 
-def fmt(d: Decimal) -> str:
+def fmt(d: Decimal) -> Number:
     """Decimal without trailing zeros and without exponent.
 
     :param d: the number.
     :return: text.
-    :rtype: str
+    :rtype: Number
     """
     t = format(d.normalize(), "f")
-    return "0" if t in ("-0", "") else t
+    return Number("0" if t in ("-0", "") else t)
