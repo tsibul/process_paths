@@ -1,0 +1,116 @@
+# Copyright (C) 2026 Ilia Tsigelnitskii
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""Build Measure Twice for the current system: the `.qm` files, the folder, its archive.
+
+Run with the Python of the project's ``.venv``::
+
+    .venv/bin/python packaging/build.py          # Linux
+    .venv\\Scripts\\python packaging\\build.py     # Windows
+
+The result is ``dist/measure_twice`` and next to it ``measure_twice-<version>-<system>-<machine>``
+as ``.tar.gz`` on Linux or ``.zip`` on Windows.
+"""
+
+from __future__ import annotations
+
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+NAME = "measure_twice"
+
+
+def lrelease_path(python: Path, system: str) -> Path:
+    """The `lrelease` of PySide6 next to the interpreter."""
+    suffix = ".exe" if system.startswith("win") else ""
+    return python.parent / ("pyside6-lrelease" + suffix)
+
+
+def version(root: Path) -> str:
+    """The version of the project from ``pyproject.toml``."""
+    with open(root / "pyproject.toml", "rb") as f:
+        return tomllib.load(f)["project"]["version"]
+
+
+def archive_format(system: str) -> str:
+    """The archive format of :func:`shutil.make_archive` for the system."""
+    return "zip" if system.startswith("win") else "gztar"
+
+
+def archive_base(dist: Path, ver: str, system: str, machine: str) -> Path:
+    """The path of the archive without its extension."""
+    name = "windows" if system.startswith("win") else system
+    return dist / f"{NAME}-{ver}-{name}-{machine.lower()}"
+
+
+def compile_qm(sources: Path, out: Path, tool: Path) -> list[Path]:
+    """Build a `.qm` file for every ``measure_twice_<lang>.ts``; stops on the first failure.
+
+    :param sources: the folder of the `.ts` files.
+    :param out: the folder of the `.qm` files, emptied first.
+    :param tool: `pyside6-lrelease`.
+    :return: the built files.
+    :rtype: list[Path]
+    """
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True)
+    built = []
+    for ts in sorted(sources.glob(f"{NAME}_*.ts")):
+        qm = out / (ts.stem + ".qm")
+        subprocess.run([str(tool), "-silent", str(ts), "-qm", str(qm)], check=True)
+        built.append(qm)
+    return built
+
+
+def make_archive(folder: Path, base: Path, system: str) -> Path:
+    """Pack the program folder; inside the archive it keeps its name.
+
+    :return: the archive.
+    :rtype: Path
+    """
+    made = shutil.make_archive(
+        str(base),
+        archive_format(system),
+        root_dir=folder.parent,
+        base_dir=folder.name,
+    )
+    return Path(made)
+
+
+def main() -> int:
+    """Build everything; the exit code of the first failed step, else 0."""
+    python = Path(sys.executable)
+    qm = ROOT / "build" / "qm"
+    dist = ROOT / "dist"
+    compile_qm(ROOT / NAME / "i18n", qm, lrelease_path(python, sys.platform))
+    env = dict(os.environ, MEASURE_TWICE_QM=str(qm))
+    command = [
+        str(python),
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--distpath",
+        str(dist),
+        "--workpath",
+        str(ROOT / "build" / "pyinstaller"),
+        str(ROOT / "packaging" / f"{NAME}.spec"),
+    ]
+    done = subprocess.run(command, env=env)
+    if done.returncode != 0:
+        return done.returncode
+    folder = dist / NAME
+    base = archive_base(dist, version(ROOT), sys.platform, platform.machine())
+    archive = make_archive(folder, base, sys.platform)
+    print(f"Built {folder} and {archive}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
