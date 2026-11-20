@@ -82,10 +82,13 @@ command line. The translations are built from `measure_twice/i18n/*.ts` at start
 ### From the build (Linux)
 
 Unpack `measure_twice-<version>-linux-x86_64.tar.gz` and run `measure_twice/measure_twice`.
-Python is not needed. The data stay in `~/.local/share/measure_twice`.
+Python is not needed. The data stay in `~/.local/share/measure_twice`. The build is for the
+window only: the command line (`check`, `table`) is supported when running from source.
 
-To make the build: `packaging/build.sh` (needs the `.venv` above). It builds the `.qm` files,
-the folder `dist/measure_twice` and the archive next to it.
+To make the build, on the system it is for: `.venv/bin/python packaging/build.py` (on Windows
+`.venv\Scripts\python packaging\build.py`). It builds the `.qm` files, the folder
+`dist/measure_twice` and next to it the archive: `.tar.gz` on Linux, `.zip` on Windows. The
+build is meant for the system it was made on.
 
 ## License
 
