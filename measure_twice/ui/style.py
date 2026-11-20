@@ -26,6 +26,8 @@ AMBER_TEXT = "#92400E"
 AMBER_BG = "#FFFBEB"
 AMBER_EDGE = "#D97706"
 RADIUS = "8px"
+# The frame of every menu and popup list, in one place: its look waits for procnorm-132.
+POPUP_BORDER = BORDER
 # Labour scale: (fill, text) of a step by the executor's place in the dictionary; status strip; grid.
 SCALE_STEPS = (("#6366F1", "#FFFFFF"), ("#A5B4FC", TEXT), ("#4338CA", "#FFFFFF"), ("#C7D2FE", TEXT),
                ("#818CF8", TEXT))
@@ -92,7 +94,8 @@ QPushButton#menuButton::menu-indicator {{
 
 QMenu {{
   background: {BG};
-  border: 1px solid {BORDER};
+  color: {TEXT};
+  border: 1px solid {POPUP_BORDER};
   padding: 4px 0;
 }}
 
@@ -116,8 +119,13 @@ QLabel#menuHint {{
 }}
 QComboBox {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 6px; padding: 5px 12px;
             min-width: 240px; }}
-QComboBox QAbstractItemView {{ background: {BG}; border: 1px solid {BORDER};
-                              selection-background-color: {TINT}; selection-color: {TEXT}; }}
+QComboBox QAbstractItemView {{
+  background: {BG};
+  color: {TEXT};
+  border: 1px solid {POPUP_BORDER};
+  selection-background-color: {TINT};
+  selection-color: {TEXT};
+}}
 QTabWidget::pane {{ border: none; border-top: 1px solid {BORDER}; top: -1px; }}
 QTabBar::tab {{ background: transparent; color: {TEXT2}; padding: 8px 12px;
                border-bottom: 2px solid transparent; }}

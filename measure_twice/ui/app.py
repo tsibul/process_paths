@@ -9,7 +9,7 @@ import html
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSettings, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QPoint, QSettings, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextDocumentFragment
 from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QApplication,
                                QComboBox, QFileDialog, QFrame, QHBoxLayout, QInputDialog,
@@ -83,6 +83,22 @@ def _dot_icon() -> QIcon:
 # Events after which QTabWidget puts its pages back under the tab bar.
 RELAYOUT = (QEvent.Type.LayoutRequest, QEvent.Type.StyleChange, QEvent.Type.FontChange,
             QEvent.Type.Resize, QEvent.Type.Show)
+
+
+class WindowMenu(QMenu):
+    """A menu that opens inside its window: one that would cross the right edge moves left."""
+
+    def showEvent(self, event) -> None:  # the place is set before the system shows the menu
+        super().showEvent(event)
+        parent = self.parentWidget()
+        if parent is None:
+            return
+        window = parent.window()
+        left = window.mapToGlobal(QPoint(0, 0)).x()
+        right = left + window.width()
+        x = max(left, min(self.x(), right - self.width()))
+        if x != self.x():
+            self.move(x, self.y())
 
 
 class OfferTabs(QTabWidget):
@@ -275,7 +291,7 @@ class MainWindow(QMainWindow):
 
     def _build_menus(self, bar: QHBoxLayout) -> None:
         """The `+ New ▾` menu (making a project) and the `More ▾` menu (the open one)."""
-        self.new_menu = QMenu(self)
+        self.new_menu = WindowMenu(self)
         self.ai_action = self._item(self.new_menu, self.tr("With AI…"), self.on_ai)
         self.paste_action = self._item(self.new_menu, self.tr("Paste AI answer…"), self.on_paste)
         self.load_action = self._item(self.new_menu, self.tr("From file…"), self.on_load)
@@ -286,7 +302,7 @@ class MainWindow(QMainWindow):
         self.new_menu_button = self._menu_button(bar, self.tr("+ New ▾"), self.new_menu)
         self.new_menu_button.setProperty("primary", True)
 
-        self.more_menu = QMenu(self)
+        self.more_menu = WindowMenu(self)
         self.save_action = self._item(self.more_menu, self.tr("Export to file…"), self.on_save)
         hint = QLabel(translate("MainWindow", EXPORT_HINT))
         hint.setObjectName("menuHint")
@@ -299,12 +315,25 @@ class MainWindow(QMainWindow):
             self.more_menu, self.tr("Replace from file…"), self.on_load_over
         )
         self.delete_action = self._item(self.more_menu, self.tr("Delete…"), self.delete_project)
+        self._wrap_hint(hint, self.more_menu)
         self.more_menu_button = self._menu_button(bar, self.tr("More ▾"), self.more_menu)
+
+    @staticmethod
+    def _wrap_hint(hint: QLabel, menu: QMenu) -> None:
+        """The explanatory line takes the width of the widest item and wraps under it."""
+        hint.setWordWrap(True)
+        menu.ensurePolished()
+        hint.ensurePolished()
+        texts = [a.text() for a in menu.actions() if a.text()]
+        widest = max(menu.fontMetrics().horizontalAdvance(t) for t in texts)
+        margins = hint.contentsMargins()
+        hint.setFixedWidth(widest + 40 + margins.left() + margins.right())
+        hint.setFixedHeight(hint.heightForWidth(hint.width()))
 
     def _build_language(self, bar: QHBoxLayout) -> None:
         """The language switch at the end of the panel row: the code on view, names in the list."""
         chosen = i18n.read_language(self.settings) if self.settings is not None else None
-        self.language_menu = QMenu(self)
+        self.language_menu = WindowMenu(self)
         for code, name in i18n.LANGUAGES.items():
             action = self.language_menu.addAction(f"{code.upper()} {name}")
             action.setCheckable(True)
