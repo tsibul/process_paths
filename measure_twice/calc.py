@@ -490,6 +490,65 @@ def allowed_kinds(project: Project, code: str, after: int) -> dict[str, str | No
     return result
 
 
+@dataclass(frozen=True)
+class Obstacle:
+    """Why a kind cannot be added at a place, in parts a window can word in its language.
+
+    :ivar cause: ``absent`` (the entity is not there), ``already`` (the axis has another value),
+        ``needs`` (a condition of the kind does not hold).
+    :ivar entity: the entity concerned.
+    :ivar axis: the axis concerned; empty for ``absent``.
+    :ivar value: the value the axis has (``already``) or must have (``needs``); empty for
+        ``absent``.
+    """
+
+    cause: str
+    entity: str
+    axis: str = ""
+    value: str = ""
+
+
+def kind_obstacles(project: Project, code: str, after: int) -> dict[str, Obstacle | None]:
+    """The kinds of :func:`allowed_kinds` with the obstacle of each one not allowed.
+
+    :param project: the project.
+    :param code: the variant code.
+    :param after: number of the transition the new one goes under.
+    :return: ``{kind name: None when allowed, else its obstacle}`` in dictionary order.
+    :raises KeyError: no such variant.
+    :raises IndexError: ``after`` is outside the variant.
+    """
+    v = _variant(project, code)
+    allowed = allowed_kinds(project, code, after)
+    template = v.calls[0] if v.calls else Call("", "", "", "")
+    result: dict[str, Obstacle | None] = {}
+    for name, reason in allowed.items():
+        if reason is None:
+            result[name] = None
+            continue
+        added = (replace(template, kind=name),)
+        probe = replace(v, calls=v.calls[:after] + added + v.calls[after:])
+        s = initial_slice(project.model, probe)
+        for i in range(1, after + 1):
+            s = apply(project.model, s, probe, i)
+        result[name] = _obstacle(project, s, name)
+    return result
+
+
+def _obstacle(project: Project, s: Slice, name: str) -> Obstacle:
+    """The obstacle of kind ``name`` on slice ``s``, checked in the order of the engine."""
+    kind = project.model.kind(name)
+    key = (kind.entity, kind.axis)
+    if s.get(key) is None:
+        return Obstacle("absent", kind.entity)
+    if s[key] != kind.source:
+        return Obstacle("already", kind.entity, kind.axis, s[key])
+    for entity, axis, value in kind.requires:
+        if s.get((entity, axis)) != value:
+            return Obstacle("needs", entity, axis, value)
+    raise ValueError(name)
+
+
 def _reason_at(project: Project, v: Variant, number: int) -> str | None:
     """Why the run of a variant fails at transition ``number``; ``None`` when it does not."""
     s = initial_slice(project.model, v)

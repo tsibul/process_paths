@@ -236,6 +236,24 @@
         <translation>Δεν επιτρέπεται εδώ</translation>
     </message>
     <message>
+        <location filename="../ui/chains.py" line="77"/>
+        <source>{axis} is already {value}</source>
+        <translatorcomment>Причина серого вида перехода: ось уже имеет это значение.</translatorcomment>
+        <translation>{axis} ήδη {value}</translation>
+    </message>
+    <message>
+        <location filename="../ui/chains.py" line="77"/>
+        <source>needs {axis} {value}</source>
+        <translatorcomment>Причина серого вида: условие вида требует это значение оси.</translatorcomment>
+        <translation>χρειάζεται: {axis} {value}</translation>
+    </message>
+    <message>
+        <location filename="../ui/chains.py" line="77"/>
+        <source>no {entity} here</source>
+        <translatorcomment>Причина серого вида: сущности в этом месте нет.</translatorcomment>
+        <translation>δεν υπάρχει εδώ: {entity}</translation>
+    </message>
+    <message>
         <location filename="../ui/chains.py" line="70"/>
         <source>State here:</source>
         <translation>Κατάσταση εδώ:</translation>

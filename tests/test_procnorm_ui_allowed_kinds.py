@@ -15,12 +15,13 @@ import json
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QStyleOptionViewItem
 
-from measure_twice.calc import allowed_kinds, slice_at
+from measure_twice.calc import Obstacle, allowed_kinds, kind_obstacles, slice_at
 from measure_twice.project import read_project
 from measure_twice.store import Store
 from measure_twice.ui.app import MainWindow
+from measure_twice.ui.chains import obstacle_text
 from measure_twice.ui.tables import mono
 
 # Made-up project: K1 and K2 run, K3 has no transitions; a test breaks K2 at its first transition.
@@ -138,7 +139,9 @@ def _check_place(win, store, t, code, after):
     allowed = allowed_kinds(_project(store, win.current_id), code, after)
     inp = t.input
     free = [k for k, why in allowed.items() if why is None]
-    grey = {k: why for k, why in allowed.items() if why is not None}
+    obstacles = kind_obstacles(_project(store, win.current_id), code, after)
+    grey = {k: obstacle_text(why) for k, why in obstacles.items() if why is not None}
+    assert list(grey) == [k for k, why in allowed.items() if why is not None]
     assert inp.allowed() == free
     assert inp.reasons() == grey
     assert inp.choices("kind") == free + list(grey)
@@ -174,11 +177,11 @@ def test_allowed_come_first_then_separator_then_grey(win):
 def test_grey_kind_shows_its_reason_and_cannot_be_chosen(win, store):
     t = _open_under_call(win, "K1", 1)
     inp = t.input
-    reason = allowed_kinds(_project(store, win.current_id), "K1", 1)["Wash"]
-    assert reason == "Cup/state is 'clean', expected 'dirty'"
+    assert kind_obstacles(_project(store, win.current_id), "K1", 1)["Wash"] == Obstacle(
+        "already", "Cup", "state", "clean")
     box = inp.lists["kind"]
     grey = box.model().item(box.findText("Wash"))
-    assert grey.toolTip() == reason
+    assert grey.toolTip() == "state is already clean"
     chosen = inp.values()[0]
     inp.set_value("kind", "Wash")
     assert inp.values()[0] == chosen
@@ -276,3 +279,74 @@ def test_other_path_does_not_keep_the_input_open(win):
     assert "input" in win.chains.table.kinds
     page = _page(win, "K2")
     assert "input" not in page.table.kinds
+
+
+# ---------- the reason of a grey kind ----------
+
+def _with_condition(store):
+    """Kitchen where Boil needs a clean cup, and a variant where the pot is gone."""
+    data = copy.deepcopy(KITCHEN)
+    data["kinds"][2]["requires"] = [["Cup", "state", "clean"]]
+    data["entities"][1]["axes"].insert(0, {"name": "exists", "values": ["yes", "no"]})
+    data["kinds"].append({"name": "Throw away", "entity": "Pot", "axis": "exists",
+                          "from": "yes", "to": "no"})
+    data["variants"].append({"code": "K4", "title": "No pot", "side": "own", "task": "Tea",
+                             "calls": [["Throw away", "Cook", "Hands", "All"]]})
+    project, _ = read_project(data, strict=False)
+    return project
+
+
+def test_obstacles_name_each_cause(store):
+    project = _with_condition(store)
+    assert kind_obstacles(project, "K1", 0)["Boil"] == Obstacle("needs", "Cup", "state", "clean")
+    assert kind_obstacles(project, "K4", 1)["Boil"] == Obstacle("absent", "Pot")
+    assert kind_obstacles(project, "K1", 1)["Dry"] is None
+
+
+@pytest.mark.parametrize("obstacle,text", [
+    (Obstacle("already", "Cup", "state", "clean"), "state is already clean"),
+    (Obstacle("needs", "Cup", "state", "clean"), "needs state clean"),
+    (Obstacle("absent", "Pot"), "no Pot here"),
+])
+def test_reason_words(obstacle, text):
+    assert obstacle_text(obstacle) == text
+
+
+def test_reason_never_shows_engine_words(win, store):
+    project = _with_condition(store)
+    for v in project.model.variants:
+        for after in range(len(v.calls) + 1):
+            for why in kind_obstacles(project, v.code, after).values():
+                if why is not None:
+                    text = obstacle_text(why)
+                    assert "expected" not in text and "condition" not in text, text
+
+
+def test_grey_kind_takes_two_lines(win):
+    t = _open_under_call(win, "K1", 1)
+    box = t.input.lists["kind"]
+    view = box.view()
+    delegate = box.itemDelegate()
+    option = QStyleOptionViewItem()
+    option.font = view.font()
+    grey = delegate.sizeHint(option, box.model().index(box.findText("Wash"), 0)).height()
+    free = delegate.sizeHint(option, box.model().index(box.findText("Dry"), 0)).height()
+    assert grey >= free + view.fontMetrics().height() // 2
+
+
+@pytest.mark.parametrize("lang,text", [
+    ("ru", ["state уже clean", "нужно: state clean", "здесь нет: Pot"]),
+    ("el", ["state ήδη clean", "χρειάζεται: state clean", "δεν υπάρχει εδώ: Pot"]),
+])
+def test_reason_in_language_of_window(app, tmp_path, lang, text):
+    from measure_twice import i18n
+
+    i18n.build_qm(out=tmp_path)
+    i18n.apply_language(app, lang, tmp_path)
+    try:
+        got = [obstacle_text(o) for o in (Obstacle("already", "Cup", "state", "clean"),
+                                          Obstacle("needs", "Cup", "state", "clean"),
+                                          Obstacle("absent", "Pot"))]
+        assert got == text
+    finally:
+        i18n.apply_language(app, "en", tmp_path)

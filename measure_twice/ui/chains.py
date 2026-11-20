@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from html import escape
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QRect, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QRect, QSize, Qt, Signal
 from PySide6.QtGui import (QColor, QFont, QFontMetrics, QPainter, QPen, QStandardItem,
                            QStandardItemModel)
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
@@ -26,8 +26,9 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGrid
 
 from measure_twice.calc import (
     Link,
+    Obstacle,
     Row,
-    allowed_kinds,
+    kind_obstacles,
     chain,
     compare,
     empty_steps,
@@ -73,6 +74,13 @@ STATE_GAP = "   "  # between the axes of State here; it wraps only there
 KIND_POPUP = 440  # least width of the open list Kind, px, as the mockup
 REASON_ROLE = Qt.ItemDataRole.UserRole + 1  # the reason of a kind not allowed here
 SEPARATOR_ROLE = Qt.ItemDataRole.UserRole + 2  # the line Not allowed here
+# Why a kind is not allowed, by the cause of calc.Obstacle; never the words of the engine.
+REASONS = {
+    "already": QT_TRANSLATE_NOOP("ChainsPage", "{axis} is already {value}"),
+    "needs": QT_TRANSLATE_NOOP("ChainsPage", "needs {axis} {value}"),
+    "absent": QT_TRANSLATE_NOOP("ChainsPage", "no {entity} here"),
+}
+REASON_PX = 12  # the size of the reason line under a grey kind
 
 
 NO_EXECUTOR_HINT = QT_TRANSLATE_NOOP(
@@ -135,10 +143,21 @@ def _shown_entities(p: Project, v: dict) -> list[str]:
     return [e.name for e in m.entities if e.name in names]
 
 
+def obstacle_text(o: Obstacle) -> str:
+    """The reason of a grey kind in the language of the window."""
+    return translate("ChainsPage", REASONS[o.cause]).format(
+        entity=o.entity, axis=o.axis, value=o.value
+    )
+
+
 def _place(p: Project, code: str, after: int) -> tuple[dict[str, str | None], list[str] | None]:
-    """The kinds allowed under transition ``after`` of a variant, and ``State here`` there:
-    ``entity / axis = value`` in the order of the slice; ``None`` when the run failed before."""
-    allowed = allowed_kinds(p, code, after)
+    """The kinds allowed under transition ``after`` of a variant with the reason of the others,
+    and ``State here`` there: ``entity / axis = value`` in the order of the slice; ``None`` when
+    the run failed before."""
+    allowed = {
+        name: None if o is None else obstacle_text(o)
+        for name, o in kind_obstacles(p, code, after).items()
+    }
     here = slice_at(p, code, after)
     if here is None:
         return allowed, None
@@ -303,7 +322,7 @@ class CallButtons(QWidget):
 
 class KindDelegate(QStyledItemDelegate):
     """Draws the open list ``Kind``: the line ``Not allowed here`` on a panel, and a kind not
-    allowed in grey with its reason grey at the right, cut with ``…`` when long."""
+    allowed in grey with its reason on a small second line, cut with ``…`` when long."""
 
     def paint(self, painter, option, index) -> None:
         separator = index.data(SEPARATOR_ROLE)
@@ -323,20 +342,32 @@ class KindDelegate(QStyledItemDelegate):
             painter.drawText(box, Qt.AlignmentFlag.AlignVCenter, index.data())
             painter.restore()
             return
-        grey = QColor(style.NOT_ALLOWED)
-        painter.setPen(grey)
+        painter.setPen(QColor(style.NOT_ALLOWED))
+        name_metrics = QFontMetrics(option.font)
+        small = self._small(option.font)
+        small_metrics = QFontMetrics(small)
+        top = box.top() + (box.height() - name_metrics.height() - small_metrics.height()) // 2
         painter.setFont(option.font)
-        name = index.data()
-        painter.drawText(box, Qt.AlignmentFlag.AlignVCenter, name)
-        name_width = QFontMetrics(option.font).horizontalAdvance(name)
-        small = QFont(option.font)
-        small.setPixelSize(12)
+        name_box = QRect(box.left(), top, box.width(), name_metrics.height())
+        painter.drawText(name_box, Qt.AlignmentFlag.AlignVCenter, index.data())
         painter.setFont(small)
-        room = box.width() - name_width - 12
-        text = QFontMetrics(small).elidedText(reason, Qt.TextElideMode.ElideRight, max(room, 0))
-        right = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight
-        painter.drawText(box, right, text)
+        reason_box = QRect(box.left(), name_box.bottom() + 1, box.width(), small_metrics.height())
+        text = small_metrics.elidedText(reason, Qt.TextElideMode.ElideRight, box.width())
+        painter.drawText(reason_box, Qt.AlignmentFlag.AlignVCenter, text)
         painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:
+        size = super().sizeHint(option, index)
+        if index.data(REASON_ROLE) is None:
+            return size
+        extra = QFontMetrics(self._small(option.font)).height()
+        return QSize(size.width(), size.height() + extra)
+
+    @staticmethod
+    def _small(font: QFont) -> QFont:
+        small = QFont(font)
+        small.setPixelSize(REASON_PX)
+        return small
 
 
 class StateHere(QWidget):
