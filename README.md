@@ -62,6 +62,31 @@ python -m process_paths <команда> модель.json
   - Пропуски считаются в каждом именованном срезе модели (`named_slices`) и в конечном.
   - Варианты с `out_of_comparison` считаются и помечаются «вне сравнения».
 
+## Measure Twice
+
+The desktop program `measure_twice` compares the path variants of a project in a window.
+
+### From source
+
+Python 3.14 and [uv](https://docs.astral.sh/uv/). From the project folder:
+
+```
+uv venv --python 3.14 .venv
+uv pip install --python .venv/bin/python -r pyproject.toml --group dev
+.venv/bin/python -m measure_twice
+```
+
+Without arguments the window opens; `check <file>` and `table <file> [--csv]` work on the
+command line. The translations are built from `measure_twice/i18n/*.ts` at start.
+
+### From the build (Linux)
+
+Unpack `measure_twice-<version>-linux-x86_64.tar.gz` and run `measure_twice/measure_twice`.
+Python is not needed. The data stay in `~/.local/share/measure_twice`.
+
+To make the build: `packaging/build.sh` (needs the `.venv` above). It builds the `.qm` files,
+the folder `dist/measure_twice` and the archive next to it.
+
 ## License
 
 Copyright (C) 2026 Ilia Tsigelnitskii
