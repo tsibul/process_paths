@@ -60,22 +60,31 @@ class _Recorder:
         return MagicMock()
 
 
-def _run_spec(qm_dir: Path) -> dict[str, list]:
-    """Execute the spec with the PyInstaller classes replaced; the calls by class name."""
+def _run_spec(qm_dir: Path, icon: Path | None = None) -> dict[str, list]:
+    """Execute the spec with the PyInstaller classes replaced; the calls by class name.
+
+    :param qm_dir: the folder of the `.qm` files.
+    :param icon: the `.ico` file; a missing one when absent.
+    """
     _Recorder.calls = {}
     names = ("Analysis", "PYZ", "EXE", "COLLECT")
     spec_globals = {name: _Recorder(name) for name in names}
     spec_globals["SPECPATH"] = str(SPEC.parent)
     spec_globals["__file__"] = str(SPEC)
-    old = os.environ.get("MEASURE_TWICE_QM")
-    os.environ["MEASURE_TWICE_QM"] = str(qm_dir)
+    env = {
+        "MEASURE_TWICE_QM": str(qm_dir),
+        "MEASURE_TWICE_ICO": str(icon or qm_dir / "missing.ico"),
+    }
+    old = {key: os.environ.get(key) for key in env}
+    os.environ.update(env)
     try:
         exec(compile(SPEC.read_text(encoding="utf-8"), str(SPEC), "exec"), spec_globals)
     finally:
-        if old is None:
-            os.environ.pop("MEASURE_TWICE_QM", None)
-        else:
-            os.environ["MEASURE_TWICE_QM"] = old
+        for key, value in old.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
     return _Recorder.calls
 
 
@@ -114,6 +123,32 @@ def test_spec_needs_a_qm_for_every_ts(tmp_path):
         _run_spec(empty)
 
 
+def test_spec_takes_the_window_icon(qm_dir):
+    datas = _datas(_run_spec(qm_dir))
+    icon = ROOT / "measure_twice" / "data" / "icon.svg"
+    assert (str(icon.resolve()), "measure_twice/data") in datas
+
+
+def test_spec_gives_the_ico_to_the_windows_program(qm_dir, tmp_path, monkeypatch):
+    ico = tmp_path / "measure_twice.ico"
+    ico.write_bytes(b"ico")
+    monkeypatch.setattr(sys, "platform", "win32")
+    (args, kwargs), = _run_spec(qm_dir, ico)["EXE"]
+    assert kwargs["icon"] == str(ico)
+
+
+def test_spec_on_windows_needs_the_ico(qm_dir, monkeypatch):
+    monkeypatch.setattr(sys, "platform", "win32")
+    with pytest.raises(SystemExit):
+        _run_spec(qm_dir)
+
+
+def test_spec_on_linux_needs_no_ico(qm_dir, monkeypatch):
+    monkeypatch.setattr(sys, "platform", "linux")
+    (args, kwargs), = _run_spec(qm_dir)["EXE"]
+    assert kwargs["icon"] is None
+
+
 def test_spec_builds_a_folder_with_qtcharts(qm_dir):
     calls = _run_spec(qm_dir)
     assert "COLLECT" in calls  # a folder, not one file
@@ -131,6 +166,11 @@ KEPT = [
     "PySide6/Qt/plugins/platforms/libqoffscreen.so",
     "PySide6/Qt/plugins/platforminputcontexts/libibusplatforminputcontextplugin.so",
     "PySide6/Qt/plugins/imageformats/libqjpeg.so",
+    "PySide6/Qt/lib/libQt6Svg.so.6",
+    "PySide6/Qt/plugins/imageformats/libqsvg.so",
+    "PySide6/Qt/plugins/iconengines/libqsvgicon.so",
+    "PySide6/Qt6Svg.dll",
+    "PySide6/plugins/iconengines/qsvgicon.dll",
     "PySide6/Qt/translations/qtbase_ru.qm",
     "PySide6/Qt6Charts.dll",
     "PySide6/plugins/platforms/qwindows.dll",
@@ -231,3 +271,16 @@ def test_frozen_program_does_not_run_lrelease(tmp_path, monkeypatch):
     monkeypatch.setattr(i18n, "_lrelease", no_tool)
     built = i18n.build_qm(tmp_path, tmp_path, frozen=True)
     assert [p.name for p in built] == ["measure_twice_el.qm", "measure_twice_ru.qm"]
+
+
+def test_window_icon_comes_from_the_data_folder():
+    from PySide6.QtWidgets import QApplication
+
+    from measure_twice.ui import app as ui_app
+
+    qt_app = QApplication.instance() or QApplication([])
+    assert qt_app is not None
+    assert ui_app.ICON_FILE == ROOT / "measure_twice" / "data" / "icon.svg"
+    icon = ui_app.app_icon()
+    assert not icon.isNull()
+    assert not icon.pixmap(32, 32).isNull()

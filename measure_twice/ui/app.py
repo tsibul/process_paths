@@ -50,6 +50,7 @@ from measure_twice.ui.tables import (
 )
 
 LAST = "last_project"
+ICON_FILE = Path(__file__).resolve().parent.parent / "data" / "icon.svg"
 NEW_NAME = "New project"
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = QT_TRANSLATE_NOOP("MainWindow", "Project files (*.json);;All files (*)")
@@ -58,6 +59,11 @@ EXPORT_HINT = QT_TRANSLATE_NOOP(
     "MainWindow",
     "The program keeps your projects by itself. This makes a file to send or archive.",
 )
+
+
+def app_icon() -> QIcon:
+    """The icon of the program, drawn from ``data/icon.svg``."""
+    return QIcon(str(ICON_FILE))
 
 
 def _dot_icon() -> QIcon:
@@ -982,6 +988,7 @@ def carry_settings(new: QSettings, old: QSettings) -> None:
 def main() -> int:
     """Run the window over the default store."""
     app = QApplication.instance() or QApplication(sys.argv)
+    app.setWindowIcon(app_icon())
     store = Store(default_path())
     settings = QSettings("measure_twice", "measure_twice")
     carry_settings(settings, QSettings("procnorm", "procnorm"))

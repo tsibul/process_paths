@@ -5,15 +5,19 @@
 """PyInstaller spec of Measure Twice: one folder ``dist/measure_twice`` with the program.
 
 Run through ``packaging/build.py``: it builds the `.qm` files first. The folder of the `.qm`
-files is ``build/qm`` of the project, or the one in the ``MEASURE_TWICE_QM`` variable.
+files is ``build/qm`` of the project, or the one in the ``MEASURE_TWICE_QM`` variable. The
+`.ico` of the Windows program is ``build/icon/measure_twice.ico`` or ``MEASURE_TWICE_ICO``; on
+Linux the window takes its icon from ``measure_twice/data/icon.svg``.
 """
 
 import os
+import sys
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(SPECPATH).resolve().parent
 PACKAGE = ROOT / "measure_twice"
 QM = Path(os.environ.get("MEASURE_TWICE_QM") or ROOT / "build" / "qm")
+ICO = Path(os.environ.get("MEASURE_TWICE_ICO") or ROOT / "build" / "icon" / "measure_twice.ico")
 
 
 def _qm_files() -> list[Path]:
@@ -75,6 +79,15 @@ def _unused(name: str) -> bool:
     return False
 
 
+def _icon() -> str | None:
+    """The `.ico` of the program on Windows, which stops the build when missing; else none."""
+    if not sys.platform.startswith("win"):
+        return None
+    if not ICO.is_file():
+        raise SystemExit(f"No {ICO}: run packaging/build.py")
+    return str(ICO)
+
+
 datas = [(str(path), "measure_twice/data") for path in sorted((PACKAGE / "data").iterdir())]
 datas += [(str(path), "measure_twice/i18n") for path in _qm_files()]
 
@@ -97,6 +110,7 @@ exe = EXE(
     exclude_binaries=True,
     name="measure_twice",
     console=False,
+    icon=_icon(),
 )
 
 coll = COLLECT(
