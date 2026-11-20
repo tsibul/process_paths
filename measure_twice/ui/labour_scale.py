@@ -292,7 +292,7 @@ class LabourScale(QWidget):
         p.setPen(QPen(QColor(style.BORDER), 1))
         p.drawLine(QPointF(0, top + ROW_H - 0.5), QPointF(self.width(), top + ROW_H - 0.5))
         if r.own:
-            p.fillRect(QRectF(0, top, 3, ROW_H), QColor(style.ACCENT))
+            p.fillRect(QRectF(0, top, 3, ROW_H), QColor(style.ACCENT_FG))
         # labels
         p.setPen(QColor(style.TEXT))
         p.setFont(_font(14))
@@ -301,7 +301,7 @@ class LabourScale(QWidget):
         head.setTextWidth(LABEL_W - 24)
         p.drawStaticText(QPointF(12, top + 6), head)
         dot, _, word = r.side.partition(" ")
-        side = QStaticText(f'<span style="color:{style.ACCENT}">{html.escape(dot)}</span> '
+        side = QStaticText(f'<span style="color:{style.ACCENT_FG}">{html.escape(dot)}</span> '
                            f'<span style="color:{style.TEXT2}">{html.escape(word)}</span>')
         side.setTextFormat(Qt.TextFormat.RichText)
         p.setFont(_font(13))

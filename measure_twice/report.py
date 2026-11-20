@@ -32,7 +32,7 @@ from measure_twice.export import _group_name, _header, _row, number
 from measure_twice.i18n import shown
 from measure_twice.message import QT_TRANSLATE_NOOP, fill, joined
 from measure_twice.project import Project
-from measure_twice.ui import line_charts
+from measure_twice.ui import line_charts, style
 from measure_twice.ui.labour_scale import LabourScale
 
 ANSWER = "answer"
@@ -511,17 +511,21 @@ def _draw(painter: QPainter, page: Page) -> None:
 
 
 def _draw_chart(painter: QPainter, c: Chart) -> None:
-    """A chart painted by the code of the window, scaled from its size to its box."""
+    """A chart painted by the code of the window, scaled from its size to its box.
+
+    The paper is white: the chart takes the light colours whatever theme the window shows.
+    """
     w, h = c.size
-    if c.kind == SCALE:
-        scale = LabourScale(c.project, c.rows)
-        scale.resize(w, h)
-        painter.translate(c.x, c.y)
-        painter.scale(c.width / w, c.height / h)
-        scale.paint(painter)
-        return
-    view = line_charts.chart(c.kind, c.project, c.rows, c.points)
-    line_charts.render(view, painter, QRectF(c.x, c.y, c.width, c.height), QSizeF(w, h))
+    with style.light():
+        if c.kind == SCALE:
+            scale = LabourScale(c.project, c.rows)
+            scale.resize(w, h)
+            painter.translate(c.x, c.y)
+            painter.scale(c.width / w, c.height / h)
+            scale.paint(painter)
+            return
+        view = line_charts.chart(c.kind, c.project, c.rows, c.points)
+        line_charts.render(view, painter, QRectF(c.x, c.y, c.width, c.height), QSizeF(w, h))
 
 
 def draw(laid: list[Page], path: Path, title: str = "") -> None:

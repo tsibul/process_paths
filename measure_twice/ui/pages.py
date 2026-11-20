@@ -958,7 +958,7 @@ class WordTable(Table):
         it = self.item(r, row.col)
         it.setData(ADD, (row.what, row.owner))
         it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-        it.setForeground(QBrush(QColor(style.ACCENT)))
+        it.setForeground(QBrush(QColor(style.ACCENT_FG)))
         font = QFont(self.font())
         font.setPixelSize(13)
         it.setFont(font)

@@ -108,7 +108,7 @@ class FirstCell(QStyledItemDelegate):
             return
         r = option.rect
         if index.data(OWN):
-            painter.fillRect(QRect(r.left(), r.top(), STRIPE, r.height()), QColor(style.ACCENT))
+            painter.fillRect(QRect(r.left(), r.top(), STRIPE, r.height()), QColor(style.ACCENT_FG))
         painter.save()
         painter.setPen(QColor(style.TEXT2))
         sign = "▾" if self.tree.isExpanded(index) else "▸"

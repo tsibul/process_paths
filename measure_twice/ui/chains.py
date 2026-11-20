@@ -266,7 +266,7 @@ class SliceMark(QWidget):
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt name)
         p = QPainter(self)
         p.fillRect(self.rect(), QColor(style.BG))
-        accent = QColor(style.ACCENT)
+        accent = QColor(style.ACCENT_FG)
         pen = QPen(accent, 1.5, Qt.PenStyle.DashLine)
         y = self.height() // 2
         p.setPen(pen)
@@ -677,7 +677,7 @@ class ChainTable(Table):
                     self.setItem(r, c, it)
                 num = self.item(r, 0)
                 num.setText(number)
-                num.setForeground(QColor(style.ACCENT))
+                num.setForeground(QColor(style.ACCENT_FG))
                 f = num.font()
                 f.setBold(True)
                 num.setFont(f)

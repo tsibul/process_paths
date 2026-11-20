@@ -39,9 +39,9 @@ from measure_twice.ui.comparison import ComparisonPage
 from measure_twice.ui.guide import TITLE as GUIDE_TITLE, GuideDialog
 from measure_twice.ui.pages import DictionaryPage, NormPage
 from measure_twice.ui.paste import PasteDialog
+from measure_twice.ui import style
 from measure_twice.ui.remarks import RemarksPanel
 from measure_twice.ui.report_dialog import ReportDialog
-from measure_twice.ui.style import ACCENT, STYLE
 from measure_twice.ui.tables import (
     NOTE_ROLE,
     NoteDelegate,
@@ -69,6 +69,13 @@ LEAST_PROJECTS = 220  # the project list is not made narrower for the full AI la
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = QT_TRANSLATE_NOOP("MainWindow", "Project files (*.json);;All files (*)")
 NO_JSON = QT_TRANSLATE_NOOP("MainWindow", "No JSON object found in the text.")
+THEME = QT_TRANSLATE_NOOP("MainWindow", "Theme")
+# The items of `Theme ▸`, in the order of ``style.THEMES``.
+THEME_NAMES = (
+    QT_TRANSLATE_NOOP("MainWindow", "As in the system"),
+    QT_TRANSLATE_NOOP("MainWindow", "Light"),
+    QT_TRANSLATE_NOOP("MainWindow", "Dark"),
+)
 EXPORT_HINT = QT_TRANSLATE_NOOP(
     "MainWindow",
     "The program keeps your projects by itself. This makes a file to send or archive.",
@@ -87,7 +94,7 @@ def _dot_icon() -> QIcon:
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor(ACCENT))
+    painter.setBrush(QColor(style.ACCENT_FG))
     painter.drawEllipse(1, 1, 8, 8)
     painter.end()
     return QIcon(pix)
@@ -204,17 +211,22 @@ class MainWindow(QMainWindow):
 
     :param store: the project store.
     :param settings: where the last selected project is remembered; ``None`` remembers nothing.
+    :param theme: the theme to show; the stored one when absent.
     """
 
-    def __init__(self, store: Store, settings: QSettings | None = None) -> None:
+    def __init__(self, store: Store, settings: QSettings | None = None,
+                 theme: str | None = None) -> None:
         super().__init__()
         self.store = store
         self.settings = settings
+        self.theme = theme or style.read_theme(settings)
+        style.apply(QApplication.instance(), self.theme)
         self.current_id: int | None = None
         self._amber: list[str] = []  # variants that got errors after a dictionary edit
         self._scenario: AiScenarioDialog | None = None  # kept between openings until a load
         self.setWindowTitle("Measure Twice")
-        self.setStyleSheet(STYLE)
+        self.setStyleSheet(style.stylesheet())
+        QApplication.styleHints().colorSchemeChanged.connect(self._system_scheme_changed)
         self.resize(1100, 780)
 
         body = QWidget()
@@ -389,6 +401,7 @@ class MainWindow(QMainWindow):
         )
         self.delete_action = self._item(self.more_menu, self.tr("Delete…"), self.delete_project)
         self.more_menu.addSeparator()
+        self._build_theme()
         self.guide_action = self._item(
             self.more_menu, translate("MainWindow", GUIDE_TITLE), self.show_guide
         )
@@ -436,6 +449,52 @@ class MainWindow(QMainWindow):
         others += bar.spacing() * (bar.count() - 1)
         self.ai_button.set_short(bar.geometry().width() - others < LEAST_PROJECTS)
 
+    def _build_theme(self) -> None:
+        """`Theme ▸` in `More`: as in the system, light, dark; the stored one is checked."""
+        self.theme_menu = WindowMenu(self)
+        self.theme_menu.setTitle(translate("MainWindow", THEME))
+        for key, text in zip(style.THEMES, THEME_NAMES):
+            action = self.theme_menu.addAction(translate("MainWindow", text))
+            action.setCheckable(True)
+            action.setData(key)
+            action.triggered.connect(lambda _=False, k=key: self.choose_theme(k))
+        self.more_menu.addMenu(self.theme_menu)
+        self._show_theme(self.theme)
+
+    def _show_theme(self, theme: str) -> None:
+        for action in self.theme_menu.actions():
+            action.setChecked(action.data() == theme)
+
+    def choose_theme(self, theme: str) -> "MainWindow":
+        """Keep the chosen theme and show the window in it at once.
+
+        A theme that keeps the look (``light`` over a light system) leaves the window as it is;
+        another one builds the window anew, as a language change does.
+
+        :param theme: ``system``, ``light`` or ``dark``.
+        :return: the window shown now.
+        :rtype: MainWindow
+        """
+        if self.settings is not None:
+            style.write_theme(self.settings, theme)
+        self._finish_typing()
+        was = style.is_dark()
+        dark = style.apply(QApplication.instance(), theme)
+        # Set after the theme is applied: a return to the system scheme signals a change, and this
+        # window is not to follow it on its own.
+        self.theme = theme
+        if dark == was:
+            self._show_theme(theme)
+            return self
+        return self._rebuild()
+
+    def _system_scheme_changed(self) -> None:
+        """The system turned dark or light: a window that follows it is built anew."""
+        if self.theme != style.SYSTEM or not self.isVisible():
+            return
+        if style.system_dark(QApplication.instance()) != style.is_dark():
+            self._rebuild()
+
     def _build_language(self, bar: QHBoxLayout) -> None:
         """The language switch at the end of the panel row: the code on view, names in the list."""
         chosen = i18n.read_language(self.settings) if self.settings is not None else None
@@ -470,7 +529,17 @@ class MainWindow(QMainWindow):
             return self
         self._finish_typing()
         i18n.apply_language(QApplication.instance(), code, i18n.BUILD)
-        new = MainWindow(self.store, self.settings)
+        return self._rebuild()
+
+    def _rebuild(self) -> "MainWindow":
+        """Build the window anew over the same store, in place of this one: the same project,
+        tab, size and place. Edits are already in the database, nothing waits to be saved.
+
+        :return: the new window.
+        :rtype: MainWindow
+        """
+        self._finish_typing()
+        new = MainWindow(self.store, self.settings, self.theme)
         if new.current_id != self.current_id:
             new.refresh(self.current_id)
         new.tabs.setCurrentIndex(self.tabs.currentIndex())

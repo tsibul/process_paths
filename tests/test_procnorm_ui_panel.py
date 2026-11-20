@@ -18,7 +18,7 @@ from tests.test_procnorm_edit_delete import with_spares
 
 NEW_ITEMS = ["Paste AI answer…", "From file…", "Empty", "Example"]
 MORE_ITEMS = ["Export to file…", "Duplicate", "Replace from file…", "Delete…",
-              "User guide"]
+              "Theme", "User guide"]
 HINT = "The program keeps your projects by itself. This makes a file to send or archive."
 OLD_TEXTS = {"New", "Load", "Load over", "Save file", "Copy", "Delete",
              "Add a process with AI", "Example"}

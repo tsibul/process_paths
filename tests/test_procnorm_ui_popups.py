@@ -58,6 +58,7 @@ def system(app):
     yield app
     app.setPalette(palette)
     i18n.apply_language(app, "en")
+    style.use(False)
 
 
 @pytest.fixture
@@ -135,12 +136,13 @@ def _most_common(img) -> str:
     seen = Counter(img.pixelColor(x, y).name()
                    for y in range(0, img.height(), 2) for x in range(0, img.width(), 2))
     del seen[style.TINT.lower()]
+    del seen[style.SELECT_BG.lower()]
     return seen.most_common(1)[0][0]
 
 
 def test_popup_tokens_of_variant_3():
-    assert style.POPUP_BG == "#F5F6FF"
-    assert style.POPUP_BORDER == "#C7CBF5"
+    assert style.LIGHT["POPUP_BG"] == "#F5F6FF"
+    assert style.LIGHT["POPUP_BORDER"] == "#C7CBF5"
 
 
 def test_menu_background_explicit(system, store, tmp_path):

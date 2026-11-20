@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QLabel, QPushButton, QStyle, Q
                                QStyleOptionViewItem, QTableWidget, QTableWidgetItem, QWidget)
 
 from measure_twice import i18n
-from measure_twice.ui.style import TEXT2
+from measure_twice.ui import style
 
 DASH = "—"
 ARROW = "→"
@@ -110,7 +110,7 @@ class NoteDelegate(QStyledItemDelegate):
         if option.state & QStyle.StateFlag.State_Selected:
             painter.setPen(option.palette.highlightedText().color())
         else:
-            painter.setPen(QColor(TEXT2))
+            painter.setPen(QColor(style.TEXT2))
         rect = option.rect.adjusted(0, 0, -8, 0)
         align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         painter.drawText(rect, align, note)
