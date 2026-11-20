@@ -52,7 +52,16 @@ from measure_twice.ui.tables import (
 LAST = "last_project"
 _SHOWN: list["MainWindow"] = []  # the window built after a language change, kept alive
 ICON_FILE = Path(__file__).resolve().parent.parent / "data" / "icon.svg"
-NEW_NAME = "New project"
+NEW_NAME = QT_TRANSLATE_NOOP("MainWindow", "New project")
+# The standard buttons of dialogs: Qt carries no Greek of its own. GNOME takes the second pair.
+DIALOG_BUTTONS = (
+    QT_TRANSLATE_NOOP("QPlatformTheme", "OK"),
+    QT_TRANSLATE_NOOP("QPlatformTheme", "Cancel"),
+    QT_TRANSLATE_NOOP("QPlatformTheme", "&Yes"),
+    QT_TRANSLATE_NOOP("QPlatformTheme", "&No"),
+    QT_TRANSLATE_NOOP("QGnomeTheme", "&OK"),
+    QT_TRANSLATE_NOOP("QGnomeTheme", "&Cancel"),
+)
 NEW_TITLE = "New variant"  # title of a variant added on Step chains
 JSON_FILTER = QT_TRANSLATE_NOOP("MainWindow", "Project files (*.json);;All files (*)")
 NO_JSON = QT_TRANSLATE_NOOP("MainWindow", "No JSON object found in the text.")
@@ -505,7 +514,7 @@ class MainWindow(QMainWindow):
             return False
         if op == "new":
             return self._new_variant()
-        if op == "delete" and not self.confirm(f"Delete {args[0]}?"):
+        if op == "delete" and not self.confirm(self.tr("Delete {code}?").format(code=args[0])):
             return False
         if op == "header":
             code, field_, value = args
@@ -927,7 +936,7 @@ class MainWindow(QMainWindow):
     # --- actions with file dialogs
 
     def on_new(self) -> None:
-        name = self.ask_name(NEW_NAME)
+        name = self.ask_name(translate("MainWindow", NEW_NAME))
         if name is not None:
             self.new_project(name)
 

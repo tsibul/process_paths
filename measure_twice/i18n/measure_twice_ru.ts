@@ -699,8 +699,8 @@
     </message>
     <message>
         <location filename="../ui/pages.py" line="95"/>
-        <source>parameter name</source>
-        <translation>название параметра</translation>
+        <source>name</source>
+        <translation>имя</translation>
     </message>
     <message>
         <location filename="../ui/pages.py" line="100"/>
@@ -2111,6 +2111,16 @@
         <translation>Название проекта:</translation>
     </message>
     <message>
+        <location filename="../ui/app.py" line="517"/>
+        <source>Delete {code}?</source>
+        <translation>Удалить {code}?</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="55"/>
+        <source>New project</source>
+        <translation>Новый проект</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="877"/>
         <source>Load project file</source>
         <translation>Загрузить файл проекта</translation>
@@ -2778,6 +2788,48 @@
             <numerusform>%n пути</numerusform>
             <numerusform>%n путей</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>QGnomeTheme</name>
+    <message>
+        <location filename="../ui/app.py" line="62"/>
+        <source>&amp;OK</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>&amp;OK</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="63"/>
+        <source>&amp;Cancel</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>От&amp;мена</translation>
+    </message>
+</context>
+<context>
+    <name>QPlatformTheme</name>
+    <message>
+        <location filename="../ui/app.py" line="58"/>
+        <source>OK</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="59"/>
+        <source>Cancel</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="60"/>
+        <source>&amp;Yes</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>&amp;Да</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="61"/>
+        <source>&amp;No</source>
+        <translatorcomment>Как в qtbase_ru: наш перевод стоит над ним.</translatorcomment>
+        <translation>&amp;Нет</translation>
     </message>
 </context>
 <context>

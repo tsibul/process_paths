@@ -705,8 +705,8 @@
     </message>
     <message>
         <location filename="../ui/pages.py" line="96"/>
-        <source>parameter name</source>
-        <translation>όνομα παραμέτρου</translation>
+        <source>name</source>
+        <translation>όνομα</translation>
     </message>
     <message>
         <location filename="../ui/pages.py" line="101"/>
@@ -2133,6 +2133,17 @@
         <translation>Όνομα έργου:</translation>
     </message>
     <message>
+        <location filename="../ui/app.py" line="517"/>
+        <source>Delete {code}?</source>
+        <translatorcomment>Греческий вопросительный знак — «;».</translatorcomment>
+        <translation>Διαγραφή {code};</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="55"/>
+        <source>New project</source>
+        <translation>Νέο έργο</translation>
+    </message>
+    <message>
         <location filename="../ui/app.py" line="883"/>
         <source>Load project file</source>
         <translation>Φόρτωση αρχείου έργου</translation>
@@ -2800,6 +2811,48 @@
             <numerusform>%n διαδρομή</numerusform>
             <numerusform>%n διαδρομές</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>QGnomeTheme</name>
+    <message>
+        <location filename="../ui/app.py" line="62"/>
+        <source>&amp;OK</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>&amp;OK</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="63"/>
+        <source>&amp;Cancel</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>&amp;Άκυρο</translation>
+    </message>
+</context>
+<context>
+    <name>QPlatformTheme</name>
+    <message>
+        <location filename="../ui/app.py" line="58"/>
+        <source>OK</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="59"/>
+        <source>Cancel</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>Άκυρο</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="60"/>
+        <source>&amp;Yes</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>&amp;Ναι</translation>
+    </message>
+    <message>
+        <location filename="../ui/app.py" line="61"/>
+        <source>&amp;No</source>
+        <translatorcomment>Кнопки окон Qt: греческого перевода Qt нет.</translatorcomment>
+        <translation>&amp;Όχι</translation>
     </message>
 </context>
 <context>
