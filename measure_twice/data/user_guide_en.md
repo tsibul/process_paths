@@ -80,7 +80,7 @@ and **Report (PDF)…** makes a report of the pages and ways you choose.
 
 The button at the right end of the top row shows the language: **EN ▾**, **RU ▾** or
 **EL ▾**. Choose English, Русский or Ελληνικά in its list. The window changes at once; the
-project, the tab and the size stay. The user guide is in English and Russian; for Greek the
-English one is shown.
+project, the tab and the size stay. The user guide is shown in the language of the window:
+English, Russian or Greek.
 
 The guide opens from **More ▾**, **User guide**.

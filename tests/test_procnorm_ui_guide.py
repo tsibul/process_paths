@@ -160,3 +160,17 @@ def test_every_language_has_its_guide(code):
     assert path.is_file()
     assert path.read_text(encoding="utf-8") != english
     assert guide.guide_file(code) == path
+
+
+# The sentences of the Language section that said Greek shows the English guide.
+FALLBACK = ("for Greek", "для греческого", "only in English", "английское")
+
+
+@pytest.mark.parametrize("code", list(i18n.LANGUAGES))
+def test_language_section_is_current(code):
+    text = (DATA / f"user_guide_{code}.md").read_text(encoding="utf-8")
+    section = re.split(r"^## ", text, flags=re.M)[-1]  # Language is the last section
+    for name in i18n.LANGUAGES.values():
+        assert name in section, name
+    for phrase in FALLBACK:
+        assert phrase not in section, phrase
