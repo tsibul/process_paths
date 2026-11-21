@@ -136,3 +136,49 @@ def test_compare_button_stays_in_view_when_scrolled(greek_win, app):
             assert greek_win.comparison.steps_view is not None  # the click opened the steps
             greek_win.comparison.close_steps()
             app.processEvents()
+
+
+LONG_TASK = (  # made up, wider than a narrow window
+    "Постирать, высушить, погладить и разложить по полкам бельё всей большой семьи за неделю"
+)
+
+
+@pytest.fixture(params=[(900, False), (760, False), (760, True)])
+def narrow_win(request, lang, app, tmp_path):
+    """The window at a narrow width, in each language; with a long task name too."""
+    width, long_task = request.param
+    path = LAUNDRY
+    if long_task:
+        data = json.loads(LAUNDRY.read_text(encoding="utf-8"))
+        for v in data["variants"]:
+            v["task"] = LONG_TASK
+        path = tmp_path / "long_task.json"
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    store = Store(tmp_path / "t.db")
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    w = MainWindow(store, settings)
+    w.resize(width, 800)
+    assert w.load_path(path)
+    w.show()
+    w.tabs.setCurrentWidget(w.comparison)
+    app.processEvents()
+    yield w, width
+    w.close()
+    store.close()
+
+
+def test_compare_button_fits_a_narrow_window(narrow_win, lang):
+    win, width = narrow_win
+    tree = win.comparison.tree
+    view = tree.viewport()
+    heads = [h for h in win.comparison.group_headers() if h.compare is not None]
+    assert heads
+    for head in heads:
+        button = head.compare
+        rect = QRect(button.mapTo(view, QPoint(0, 0)), button.size())
+        assert view.rect().contains(rect), (lang, width, rect, view.rect())
+        shown = QRect(button.mapTo(win, QPoint(0, 0)), button.size())
+        assert win.rect().contains(shown), (lang, width, shown, win.rect())
+        assert button.width() >= button.sizeHint().width(), (lang, width, button.width())
+        if LONG_TASK in head.title.text():
+            assert head.title.toolTip() == head.title.text()  # cut, the whole name on hover

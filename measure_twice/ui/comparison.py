@@ -9,10 +9,11 @@ import html
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QMimeData, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QGuiApplication
-from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-                               QPushButton, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QMimeData, QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QGuiApplication, QPainter
+from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QFrame, QGridLayout, QHBoxLayout,
+                               QHeaderView, QLabel, QLayout, QLayoutItem, QPushButton, QStyle,
+                               QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from measure_twice import export, i18n
@@ -135,6 +136,90 @@ class FirstCell(QStyledItemDelegate):
         return s
 
 
+class FlowLayout(QLayout):
+    """Widgets left to right, going on to the next line when the width ends: a row of buttons
+    never makes the page wider than the window."""
+
+    def __init__(self, spacing: int = 6) -> None:
+        super().__init__()
+        self._items: list[QLayoutItem] = []
+        self.setSpacing(spacing)
+
+    def addItem(self, item: QLayoutItem) -> None:  # noqa: N802 (Qt name)
+        self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 (Qt name)
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 (Qt name)
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self) -> Qt.Orientation:  # noqa: N802 (Qt name)
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt name)
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 (Qt name)
+        return self._place(QRect(0, 0, width, 0), move=False)
+
+    def setGeometry(self, rect: QRect) -> None:  # noqa: N802 (Qt name)
+        super().setGeometry(rect)
+        self._place(rect, move=True)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:  # noqa: N802 (Qt name)
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        m = self.contentsMargins()
+        return size + QSize(m.left() + m.right(), m.top() + m.bottom())
+
+    def _place(self, rect: QRect, move: bool) -> int:
+        """Lay the items out in ``rect``; the height taken."""
+        m = self.contentsMargins()
+        area = rect.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        x, y, line = area.x(), area.y(), 0
+        for item in self._items:
+            if item.isEmpty():
+                continue
+            hint = item.sizeHint()
+            if x > area.x() and x + hint.width() > area.right() + 1:
+                x, y, line = area.x(), y + line + self.spacing(), 0
+            if move:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x += hint.width() + self.spacing()
+            line = max(line, hint.height())
+        return y + line - rect.y() + m.bottom()
+
+
+class ElidedLabel(QLabel):
+    """One line of text that gives way first when the row is narrow: cut with "…", the whole
+    text in the tooltip."""
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt name)
+        fm = self.fontMetrics()
+        return QSize(fm.horizontalAdvance("…") * 4, super().minimumSizeHint().height())
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        super().resizeEvent(event)
+        cut = self.fontMetrics().horizontalAdvance(self.text()) > self.contentsRect().width()
+        self.setToolTip(self.text() if cut else "")
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt name)
+        painter = QPainter(self)
+        rect = self.contentsRect()
+        text = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight, rect.width())
+        align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        self.style().drawItemText(painter, rect, align, self.palette(), self.isEnabled(), text,
+                                  self.foregroundRole())
+
+
 class GroupHeader(QFrame):
     """Header row of a group: title on the left, ``N variants`` on the right, a note under it."""
 
@@ -147,10 +232,9 @@ class GroupHeader(QFrame):
         box.setContentsMargins(10, 8, 10, 8)
         box.setSpacing(2)
         top = QHBoxLayout()
-        self.title = QLabel(title)
+        self.title = ElidedLabel(title)
         self.title.setObjectName("groupTitle")
-        top.addWidget(self.title)
-        top.addStretch(1)
+        top.addWidget(self.title, 1)
         self.actions = QHBoxLayout()  # count, then the group's buttons
         self.actions.setSpacing(12)
         top.addLayout(self.actions)
@@ -619,7 +703,7 @@ class ComparisonPage(Page):
         self.notes = label("", "note")
         self.notes.setTextFormat(Qt.TextFormat.PlainText)
         self.box.addWidget(self.notes)
-        buttons = QHBoxLayout()
+        buttons = FlowLayout()
         self.export_md = QPushButton(self.tr("Export table (Markdown)"))
         self.export_md.setProperty("primary", True)
         self.export_csv = QPushButton(self.tr("Export table (CSV)"))
@@ -630,7 +714,6 @@ class ComparisonPage(Page):
         buttons.addWidget(self.copy_table_button)
         self.report_button = QPushButton(self.tr("Report (PDF)…"))
         buttons.addWidget(self.report_button)
-        buttons.addStretch(1)
         self.export_bar = QWidget()
         self.export_bar.setLayout(buttons)
         buttons.setContentsMargins(0, 0, 0, 0)
