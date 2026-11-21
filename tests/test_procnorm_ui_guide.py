@@ -20,7 +20,7 @@ from measure_twice.ui.app import MainWindow
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "measure_twice" / "data"
 ITEM = {"en": "User guide", "ru": "Руководство", "el": "Οδηγός χρήσης"}
-HEADING = {"en": "user guide", "ru": "руководство"}
+HEADING = {"en": "user guide", "ru": "руководство", "el": "οδηγός χρήσης"}
 # The names of buttons, tabs and menu items the guide mentions, as the program has them.
 NAMES = (
     "✦ Add with AI",
@@ -112,30 +112,30 @@ def test_window_text(lang, store, tmp_path):
     w.guide_action.trigger()
     dialog = w.guide_dialog
     assert dialog.isVisible()
-    shown = lang if lang != "el" else "en"  # no Greek guide yet
     text = dialog.browser.toMarkdown()
-    assert HEADING[shown] in text.lower()
+    assert HEADING[lang] in text.lower()
     assert len(text) > 2000  # the whole guide, not a part
     assert dialog.windowTitle() == ITEM[lang]
     dialog.close()
     w.close()
 
 
-def test_greek_takes_english():
-    assert guide.guide_file("el") == DATA / "user_guide_en.md"
+def test_guide_file_by_language():
+    assert guide.guide_file("el") == DATA / "user_guide_el.md"
+    assert guide.guide_file("xx") == DATA / "user_guide_en.md"  # unknown: English
     assert guide.guide_file("ru") == DATA / "user_guide_ru.md"
     assert guide.guide_file("en") == DATA / "user_guide_en.md"
 
 
 def test_files_in_build():
-    for lang in ("en", "ru"):
+    for lang in i18n.LANGUAGES:
         assert (DATA / f"user_guide_{lang}.md").is_file()
     assert not list((ROOT / "docs").glob("user_guide_*"))  # one copy, in the data folder
     spec = (ROOT / "packaging" / "measure_twice.spec").read_text(encoding="utf-8")
     assert '(PACKAGE / "data").iterdir()' in spec  # every file of the data folder goes in
 
 
-@pytest.mark.parametrize("code", ["en", "ru"])
+@pytest.mark.parametrize("code", list(i18n.LANGUAGES))
 def test_names_match_program(code):
     text = (DATA / f"user_guide_{code}.md").read_text(encoding="utf-8")
     for line in text.splitlines():
@@ -146,8 +146,17 @@ def test_names_match_program(code):
     for source in NAMES:
         known |= _shown(code, source)
     known |= {code.upper() + " ▾" for code in ("en", "ru", "el")}
-    known |= {ITEM[code], "Новый" if code == "ru" else "New"}
+    known |= {ITEM[code], {"en": "New", "ru": "Новый", "el": "Νέα"}[code]}
     assert mentioned - known == set()
     for source in NAMES:
         assert _shown(code, source) & mentioned, source
 
+
+
+@pytest.mark.parametrize("code", [c for c in i18n.LANGUAGES if c != i18n.SOURCE])
+def test_every_language_has_its_guide(code):
+    english = (DATA / f"user_guide_{i18n.SOURCE}.md").read_text(encoding="utf-8")
+    path = DATA / f"user_guide_{code}.md"
+    assert path.is_file()
+    assert path.read_text(encoding="utf-8") != english
+    assert guide.guide_file(code) == path

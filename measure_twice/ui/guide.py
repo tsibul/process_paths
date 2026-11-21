@@ -3,8 +3,8 @@
 
 """The user guide window: the Markdown guide of the language of the window, read-only.
 
-The guides are ``measure_twice/data/user_guide_<lang>.md``; a language without one (Greek for
-now) shows the English guide.
+The guides are ``measure_twice/data/user_guide_<lang>.md``, one for every language of the window; a
+language without one would show the English guide.
 """
 
 from __future__ import annotations
