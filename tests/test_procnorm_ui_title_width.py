@@ -13,8 +13,9 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QPoint, QRect, QSettings, Qt
 from PySide6.QtGui import QFontMetrics
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from measure_twice import i18n
@@ -88,3 +89,50 @@ def test_spare_width_goes_to_the_titles(win, lang, app):
     app.processEvents()
     total = sum(tree.columnWidth(c) for c in range(tree.columnCount()))
     assert total >= tree.viewport().width()
+
+
+@pytest.fixture
+def greek_win(app, tmp_path):
+    """The window in Greek, 1000 px wide: the columns are wider than the viewport."""
+    if i18n._lrelease() is None:
+        pytest.skip("pyside6-lrelease is not installed")
+    assert i18n.build_qm(out=tmp_path)
+    i18n.apply_language(app, "el", tmp_path)
+    store = Store(tmp_path / "t.db")
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    w = MainWindow(store, settings)
+    w.resize(WIDTH, 800)
+    assert w.load_path(LAUNDRY)
+    w.show()
+    w.tabs.setCurrentWidget(w.comparison)
+    app.processEvents()
+    yield w
+    w.close()
+    store.close()
+    i18n.apply_language(app, i18n.SOURCE, tmp_path)
+
+
+def test_compare_button_stays_in_view_when_scrolled(greek_win, app):
+    tree = greek_win.comparison.tree
+    bar = tree.horizontalScrollBar()
+    assert bar.maximum() > 0  # the case of the side effect: the table scrolls sideways
+    heads = [h for h in greek_win.comparison.group_headers() if h.compare is not None]
+    assert heads
+    view = tree.viewport()
+    for value in (0, bar.maximum() // 2, bar.maximum()):
+        bar.setValue(value)
+        app.processEvents()
+        for head in heads:
+            button = head.compare
+            rect = QRect(button.mapTo(view, QPoint(0, 0)), button.size())
+            assert view.rect().contains(rect), (value, rect, view.rect())
+            assert button.isVisible() and button.isEnabled()
+            assert view.childAt(rect.center()) is button
+            clicks = []
+            button.clicked.connect(lambda _=False: clicks.append(1))
+            QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+            app.processEvents()
+            assert clicks, value
+            assert greek_win.comparison.steps_view is not None  # the click opened the steps
+            greek_win.comparison.close_steps()
+            app.processEvents()

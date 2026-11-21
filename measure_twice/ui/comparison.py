@@ -539,6 +539,28 @@ class GroupTree(QTreeWidget):
         super().resizeEvent(event)
         self._spread()
         self.sync_heights()
+        self._pin_groups()
+
+    def updateGeometries(self) -> None:  # noqa: N802 (Qt name)
+        super().updateGeometries()
+        self._pin_groups()
+
+    def scrollContentsBy(self, dx: int, dy: int) -> None:  # noqa: N802 (Qt name)
+        super().scrollContentsBy(dx, dy)
+        self._pin_groups()
+
+    def _pin_groups(self) -> None:
+        """Group rows span the viewport, not the columns: their count and buttons stay in view
+        at the right edge when the table scrolls sideways."""
+        width = self.viewport().width()
+        for g in range(self.topLevelItemCount()):
+            top = self.topLevelItem(g)
+            w = self.itemWidget(top, 0)
+            if w is None:
+                continue
+            rect = self.visualItemRect(top)
+            if rect.isValid() and (w.x(), w.width()) != (0, width):
+                w.setGeometry(0, rect.y(), width, rect.height())
 
 
 def _sort_keys(cmp: Comparison) -> list[Callable[[Row], object]]:
