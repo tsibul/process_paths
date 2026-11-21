@@ -220,6 +220,7 @@ class MainWindow(QMainWindow):
         self.store = store
         self.settings = settings
         self.theme = theme or style.read_theme(settings)
+        self._choosing = False  # a theme is being applied from the switch
         style.apply(QApplication.instance(), self.theme)
         self.current_id: int | None = None
         self._amber: list[str] = []  # variants that got errors after a dictionary edit
@@ -479,9 +480,13 @@ class MainWindow(QMainWindow):
             style.write_theme(self.settings, theme)
         self._finish_typing()
         was = style.is_dark()
-        dark = style.apply(QApplication.instance(), theme)
-        # Set after the theme is applied: a return to the system scheme signals a change, and this
-        # window is not to follow it on its own.
+        # The scheme set or unset while the theme is applied signals a change at once on some
+        # systems (Windows); this window is not to follow it on its own, it is rebuilt below.
+        self._choosing = True
+        try:
+            dark = style.apply(QApplication.instance(), theme)
+        finally:
+            self._choosing = False
         self.theme = theme
         if dark == was:
             self._show_theme(theme)
@@ -490,7 +495,7 @@ class MainWindow(QMainWindow):
 
     def _system_scheme_changed(self) -> None:
         """The system turned dark or light: a window that follows it is built anew."""
-        if self.theme != style.SYSTEM or not self.isVisible():
+        if self.theme != style.SYSTEM or self._choosing or not self.isVisible():
             return
         if style.system_dark(QApplication.instance()) != style.is_dark():
             self._rebuild()

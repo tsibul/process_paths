@@ -7,7 +7,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QPoint, QSettings, Qt
+from PySide6.QtCore import QObject, QPoint, QSettings, Qt, Signal
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QLabel, QLineEdit,
                                QMenu, QMessageBox, QPlainTextEdit, QPushButton, QTabBar,
@@ -456,6 +456,72 @@ def test_same_look_keeps_the_window(system, store, tmp_path):
         assert _theme_actions(w)["light"].isChecked()
     finally:
         w.close()
+
+
+class _Hints(QObject):
+    """Style hints of a system that knows its colour scheme, as Windows does.
+
+    A scheme the application sets takes effect at once and signals, before ``setColorScheme``
+    returns; so does a return to the system scheme.
+    """
+
+    colorSchemeChanged = Signal(Qt.ColorScheme)
+
+    def __init__(self, system: Qt.ColorScheme) -> None:
+        super().__init__()
+        self.system = system
+        self.chosen: Qt.ColorScheme | None = None
+
+    def colorScheme(self) -> Qt.ColorScheme:
+        return self.chosen if self.chosen is not None else self.system
+
+    def _set(self, chosen: Qt.ColorScheme | None) -> None:
+        was = self.colorScheme()
+        self.chosen = chosen
+        if self.colorScheme() != was:
+            self.colorSchemeChanged.emit(self.colorScheme())
+
+    def setColorScheme(self, scheme: Qt.ColorScheme) -> None:
+        self._set(scheme)
+
+    def unsetColorScheme(self) -> None:
+        self._set(None)
+
+
+@pytest.fixture
+def dark_system(system, monkeypatch):
+    """A dark system whose colour scheme Qt reads, as on Windows."""
+    hints = _Hints(Qt.ColorScheme.Dark)
+    monkeypatch.setattr(QApplication, "styleHints", staticmethod(lambda: hints))
+    system.setPalette(system_palette("dark"))
+    return system
+
+
+def _visible_windows(app) -> list[MainWindow]:
+    QApplication.processEvents()
+    return [w for w in app.topLevelWidgets() if isinstance(w, MainWindow) and w.isVisible()]
+
+
+@pytest.mark.parametrize("start, chosen", [
+    ("system", "light"),
+    ("system", "dark"),
+    ("light", "system"),
+    ("dark", "light"),
+])
+def test_choice_over_dark_system_scheme(dark_system, store, tmp_path, start, chosen):
+    w = MainWindow(store, _settings(tmp_path, start))
+    w.show()
+    QApplication.processEvents()
+    w.choose_theme(chosen)
+    shown = _visible_windows(dark_system)
+    assert len(shown) == 1
+    window = shown[0]
+    tokens = style.LIGHT if chosen == "light" else style.DARK
+    assert style.BG == tokens["BG"]
+    assert window.theme == chosen
+    assert window.palette().color(QPalette.ColorRole.Window).name() == tokens["BG"].lower()
+    assert window.styleSheet() == style.stylesheet()
+    assert _theme_actions(window)[chosen].isChecked()
 
 
 def test_unknown_stored_theme_is_system(tmp_path):
