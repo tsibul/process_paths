@@ -554,9 +554,10 @@ def test_title_stretches_not_last_column(twelve):
     c = twelve.comparison
     _shown_at(twelve, 1100, "Б")
     hh = c.tree.header()
-    from PySide6.QtWidgets import QHeaderView
     assert not hh.stretchLastSection()
-    assert hh.sectionResizeMode(c.headers().index("Title")) == QHeaderView.ResizeMode.Stretch
+    assert c.headers().index("Title") == 1
+    total = sum(c.tree.columnWidth(i) for i in range(c.tree.columnCount()))
+    assert total >= c.tree.viewport().width()  # Title takes the rest
     last = c.tree.columnCount() - 1
     assert c.tree.columnWidth(last) < c.tree.columnWidth(1)
 

@@ -495,31 +495,49 @@ class GroupTree(QTreeWidget):
         return out
 
     def fit(self) -> None:
-        """Columns by content and two-line labels; full height."""
+        """Columns by content and two-line labels; full height.
+
+        Title is never narrower than its content: it takes the spare width, and when there is
+        none the tree scrolls sideways (a stretched section would shrink to its header).
+        """
         fm = QFontMetrics(_head_font())
         extra = 16 + 16
         hh = self.header()
         hh.setStretchLastSection(False)
         for c in range(self.columnCount()):
             hh.setSectionResizeMode(c, QHeaderView.ResizeMode.Interactive)
-            head = max((fm.horizontalAdvance(x) for x in self.headerItem().text(c).split("\n")), default=0)
+            lines = self.headerItem().text(c).split("\n")
+            head = max((fm.horizontalAdvance(x) for x in lines), default=0)
             self.setColumnWidth(c, max(self.sizeHintForColumn(c), head + extra))
-        if self.columnCount() > 1:
-            hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Title takes the rest
+        self._title_width = self.columnWidth(1) if self.columnCount() > 1 else 0
+        self._spread()
         self.sync_heights()
 
+    def _spread(self) -> None:
+        """Title gets its own width or the spare width of the viewport, whichever is wider."""
+        if self.columnCount() < 2:
+            return
+        others = sum(self.columnWidth(c) for c in range(self.columnCount()) if c != 1)
+        title = getattr(self, "_title_width", 0)
+        self.setColumnWidth(1, max(title, self.viewport().width() - others))
+
     def sync_heights(self) -> None:
-        """Spanned rows take the height of their widgets; the tree takes the height of all rows."""
+        """Spanned rows take the height of their widgets; the tree takes the height of all rows
+        and of the horizontal scroll bar when the columns are wider than the viewport."""
         for it in self.visible_items():
             w = self.itemWidget(it, 0)
             if w is not None and it.sizeHint(0).height() != w.sizeHint().height():
                 it.setSizeHint(0, QSize(0, w.sizeHint().height()))
         self.doItemsLayout()
         rows = sum(self.visualItemRect(it).height() for it in self.visible_items())
-        self.setFixedHeight(self.header().sizeHint().height() + rows + 2 * self.frameWidth())
+        columns = sum(self.columnWidth(c) for c in range(self.columnCount()))
+        wide = columns > self.viewport().width()
+        bar = self.horizontalScrollBar().sizeHint().height() if wide else 0
+        self.setFixedHeight(self.header().sizeHint().height() + rows + bar + 2 * self.frameWidth())
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt name)
         super().resizeEvent(event)
+        self._spread()
         self.sync_heights()
 
 
